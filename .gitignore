@@ -1,23 +1,16 @@
-# Python-generated files
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
 
-# Caches
-__pycache__/
-.pytest_cache/
-.ruff_cache/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Virtual environments
-.venv
-
-# Local files
-/local
-
-# IDE Settings
-.vscode/launch.json
-
-# Resources
-/UdonModuleInfo.json
+# OS
+.DS_Store
+Thumbs.db

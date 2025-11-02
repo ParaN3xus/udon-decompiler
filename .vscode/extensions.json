@@ -1,9 +1,0 @@
-{
-    "recommendations": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "charliermarsh.ruff",
-        "myriad-dreamin.tinymist",
-        "xaver.clang-format"
-    ]
-}
