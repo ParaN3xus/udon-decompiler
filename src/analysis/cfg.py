@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Set, Optional
 import networkx as nx
+from pydot import Dot
 
 from ..models.instruction import Instruction, OpCode
 from ..models.program import UdonProgramData
@@ -12,7 +13,7 @@ from ..utils.logger import logger
 class ControlFlowGraph:
     entry_block: BasicBlock
     function_name: Optional[str] = None
-    graph: nx.DiGraph[BasicBlock] = field(default_factory=nx.DiGraph)
+    graph: nx.DiGraph = field(default_factory=nx.DiGraph)
 
     def __repr__(self) -> str:
         return (
@@ -23,6 +24,7 @@ class ControlFlowGraph:
 
     def get_block_at(self, address: int) -> Optional[BasicBlock]:
         for block in self.graph.nodes():
+            block: BasicBlock
             if block.contains_address(address):
                 return block
         return None
@@ -92,8 +94,8 @@ class ControlFlowGraph:
 
         return loops
 
-    def to_dot(self) -> str:
-        return nx.nx_pydot.to_pydot(self.graph).to_string()
+    def to_dot(self) -> Dot:
+        return nx.nx_pydot.to_pydot(self.graph)
 
 
 class CFGBuilder:
