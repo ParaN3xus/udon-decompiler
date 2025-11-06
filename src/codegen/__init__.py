@@ -16,7 +16,6 @@ __all__ = [
     'IfElseNode',
     'WhileNode',
     'DoWhileNode',
-    'ReturnNode',
     'VariableDeclNode',
     'LiteralNode',
     'VariableNode',
