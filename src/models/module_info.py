@@ -4,17 +4,26 @@ from typing import Dict, Optional, Tuple
 
 @dataclass
 class ExternFunctionInfo:
-    signature: str 
+    signature: str
     parameter_count: int
-    module_name: str  
-    function_name: str  
+    module_name: str
+    function_name: str
 
     def __repr__(self) -> str:
         return f"Extern({self.signature}, params={self.parameter_count})"
 
 
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
 @dataclass
-class UdonModuleInfo:
+class UdonModuleInfo(metaclass=Singleton):
     modules: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # modules[module_name][func_signature] = parameter_count
 
