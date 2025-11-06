@@ -1,7 +1,6 @@
 from typing import Optional
 
-from src.analysis.variable_identifier import Variable
-
+from ..analysis.variable_identifier import Variable
 from ..analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
 from .ast_nodes import *
 from .formatter import CodeFormatter
