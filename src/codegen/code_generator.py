@@ -1,4 +1,8 @@
 from typing import Optional
+
+from src.analysis.variable_identifier import Variable
+
+from ..analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
 from .ast_nodes import *
 from .formatter import CodeFormatter
 from ..utils.logger import logger
@@ -8,18 +12,28 @@ class CSharpCodeGenerator:
     def __init__(self, use_formatting: bool = True):
         self.formatter = CodeFormatter() if use_formatting else None
 
-    def generate(self, func_node: FunctionNode) -> str:
-        logger.info(f"Generating C# code for {func_node.name}...")
+    def generate(self, program_node: ProgramNode, class_name: str = "MonoBehaviour") -> str:
+        logger.info(f"Generating C# code for {class_name}...")
 
         lines = []
 
-        signature = self._generate_function_signature(func_node)
-        lines.append(signature)
-        lines.append("{")
+        lines.extend([
+            "// Decompiled Udon Program",
+            "// This is pseudo-code and may not compile directly",
+            "",
+            f"public class {class_name} : UdonSharpBehaviour",
+            "{",
+        ])
 
-        if func_node.body:
-            body_lines = self._generate_block(func_node.body, indent=1)
-            lines.extend(body_lines)
+        for global_var in program_node.global_variables:
+            decl_lines = self._generate_variable_decl(global_var, 1)
+            lines.extend(decl_lines)
+
+        lines.append("\n")
+
+        for func_node in program_node.functions:
+            func_lines = self._generate_function(func_node, indent=1)
+            lines.extend(func_lines)
 
         lines.append("}")
 
@@ -31,6 +45,28 @@ class CSharpCodeGenerator:
         logger.info(f"Code generation complete for {func_node.name}")
 
         return code
+
+    def _generate_function(self, func_node: FunctionNode, indent: int = 0) -> list[str]:
+        logger.info(f"Generating C# code for {func_node.name}...")
+
+        indent_str = "    " * indent
+
+        lines = []
+
+        signature = indent_str + self._generate_function_signature(func_node)
+        lines.append(signature)
+        lines.append(f"{indent_str}{{")
+
+        if func_node.body:
+            body_lines = self._generate_block(
+                func_node.body, indent=indent + 1)
+            lines.extend(body_lines)
+
+        lines.append(f"{indent_str}}}")
+
+        logger.info(f"Code generation complete for {func_node.name}")
+
+        return lines
 
     def _generate_function_signature(self, func_node: FunctionNode) -> str:
         return_type = func_node.return_type or "void"
@@ -231,28 +267,17 @@ class CSharpCodeGenerator:
 
 class ProgramCodeGenerator:
     def __init__(self):
-        self.function_generator = CSharpCodeGenerator()
+        self.generator = CSharpCodeGenerator()
 
     def generate_program(
         self,
-        function_analyzers: dict,
+        function_analyzers: dict[str, FunctionDataFlowAnalyzer],
         class_name: str = "UdonBehavior"
     ) -> str:
-        logger.info(f"Generating C# code for entire program...")
+        global_vars = self._collect_and_generate_global_variables(
+            function_analyzers)
 
-        lines = []
-
-        lines.extend([
-            "// Decompiled Udon Program",
-            "// This is pseudo-code and may not compile directly",
-            "",
-            "using UnityEngine;",
-            "using VRC.SDKBase;",
-            "using VRC.Udon;",
-            "",
-            f"public class {class_name} : UdonSharpBehaviour",
-            "{",
-        ])
+        program_node = ProgramNode(global_variables=global_vars)
 
         for func_name, analyzer in function_analyzers.items():
             logger.info(f"Generating function: {func_name}")
@@ -261,18 +286,51 @@ class ProgramCodeGenerator:
             ast_builder = ASTBuilder(analyzer.program, analyzer)
             func_node = ast_builder.build()
 
-            func_code = self.function_generator.generate(func_node)
+            program_node.functions.append(func_node)
 
-            func_lines = func_code.split("\n")
-            indented_lines = ["    " + line for line in func_lines]
-
-            lines.append("")
-            lines.extend(indented_lines)
-
-        lines.append("}")
-
-        code = "\n".join(lines)
+        code = self.generator.generate(program_node)
 
         logger.info("Program code generation complete")
 
         return code
+
+    def _collect_and_generate_global_variables(self, function_analyzers: dict[str, FunctionDataFlowAnalyzer]) -> list[VariableDeclNode]:
+        from ..analysis.variable_identifier import VariableScope
+
+        logger.info("Collecting global variables from all functions...")
+
+        global_vars_by_address: dict[int, Variable] = {}
+
+        for func_name, analyzer in function_analyzers.items():
+            for var in analyzer.variables.values():
+                if var.scope == VariableScope.GLOBAL:
+                    if var.address not in global_vars_by_address:
+                        global_vars_by_address[var.address] = var
+                        logger.debug(
+                            f"Found global variable in {func_name}: {var}")
+
+        res = []
+
+        first_analyzer = next(iter(function_analyzers.values()))
+        program = first_analyzer.program
+
+        for var in global_vars_by_address.values():
+            initial_heap_value = program.get_initial_heap_value(var.address)
+            if initial_heap_value == None or initial_heap_value.value == None:
+                initial_value = "null"
+            elif not initial_heap_value.value.is_serializable:
+                initial_value = "<non-serializable>"
+            else:
+                initial_value = initial_heap_value.value.value
+
+            res.append(
+                VariableDeclNode(
+                    var_name=var.name,
+                    var_type=var.type_hint or "object",
+                    initial_value=LiteralNode(
+                        value=initial_value
+                    )
+                )
+            )
+
+        return res
