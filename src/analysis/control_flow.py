@@ -3,7 +3,7 @@ from typing import List, Set, Optional, Dict
 from enum import Enum
 
 from .cfg import ControlFlowGraph
-from .basic_block import BasicBlock
+from .basic_block import BasicBlock, BasicBlockType
 from ..utils.logger import logger
 
 
@@ -137,7 +137,7 @@ class ControlFlowStructureIdentifier:
             if pred not in loop_blocks
         ]
 
-        if external_preds and header.block_type.value == "conditional":
+        if external_preds and header.block_type == BasicBlockType.CONDITIONAL:
             return ControlStructureType.WHILE
         else:
             return ControlStructureType.DO_WHILE
@@ -146,7 +146,7 @@ class ControlFlowStructureIdentifier:
         conditionals = []
 
         for block in self.cfg.graph.nodes():
-            if block.block_type.value != "conditional":
+            if block.block_type != BasicBlockType.CONDITIONAL:
                 continue
 
             successors = self.cfg.get_successors(block)

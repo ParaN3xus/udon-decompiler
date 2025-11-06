@@ -39,7 +39,17 @@ class ControlFlowGraph:
         return set(nx.descendants(self.graph, self.entry_block)) | {self.entry_block}
 
     def get_dominators(self) -> Dict[BasicBlock, Set[BasicBlock]]:
-        return nx.immediate_dominators(self.graph, self.entry_block)
+        idom = nx.immediate_dominators(self.graph, self.entry_block)
+
+        doms = {}
+        for node in idom:
+            doms[node] = set()
+            current = node
+            while current in idom and idom[current] != current:
+                current = idom[current]
+                doms[node].add(current)
+
+        return doms
 
     def get_post_dominators(self) -> Dict[BasicBlock, Set[BasicBlock]]:
         reversed_graph = self.graph.reverse()
@@ -54,7 +64,18 @@ class ControlFlowGraph:
         for exit_node in exit_nodes:
             reversed_graph.add_edge(virtual_exit, exit_node)
 
-        return nx.immediate_dominators(reversed_graph, virtual_exit)
+        idom = nx.immediate_dominators(reversed_graph, virtual_exit)
+
+        post_doms = {}
+        for node in idom:
+            post_doms[node] = set()
+            current = node
+            while current in idom and idom[current] != current:
+                current = idom[current]
+                if current != virtual_exit:
+                    post_doms[node].add(current)
+
+        return post_doms
 
     def get_back_edges(self) -> List[tuple[BasicBlock, BasicBlock]]:
         try:

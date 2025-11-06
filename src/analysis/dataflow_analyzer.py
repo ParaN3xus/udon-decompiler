@@ -1,0 +1,158 @@
+from typing import Dict, List, Optional
+
+from ..models.program import UdonProgramData
+from ..models.instruction import Instruction
+from ..models.module_info import UdonModuleInfo
+from .cfg import ControlFlowGraph, CFGBuilder
+from .stack_simulator import StackSimulator
+from .variable_identifier import VariableIdentifier, Variable
+from .expression_builder import ExpressionBuilder, Expression
+from ..utils.logger import logger
+
+
+class DataFlowAnalyzer:
+    # stack sim, var id, exp construction
+
+    def __init__(
+        self,
+        program: UdonProgramData,
+        module_info: UdonModuleInfo,
+        instructions: List[Instruction]
+    ):
+        self.program = program
+        self.module_info = module_info
+        self.instructions = instructions
+
+        cfg_builder = CFGBuilder(program, instructions)
+        self.cfgs = cfg_builder.build()
+
+        self.function_analyzers: Dict[str, FunctionDataFlowAnalyzer] = {}
+
+    def analyze(self) -> Dict[str, 'FunctionDataFlowAnalyzer']:
+        logger.info("Starting dataflow analysis for all functions...")
+
+        for func_name, cfg in self.cfgs.items():
+            logger.info(f"Analyzing function: {func_name}")
+
+            analyzer = FunctionDataFlowAnalyzer(
+                program=self.program,
+                module_info=self.module_info,
+                cfg=cfg
+            )
+
+            analyzer.analyze()
+            self.function_analyzers[func_name] = analyzer
+
+        logger.info(
+            f"Completed dataflow analysis for {len(self.cfgs)} functions")
+
+        return self.function_analyzers
+
+    def get_function_analyzer(self, function_name: str) -> Optional['FunctionDataFlowAnalyzer']:
+        return self.function_analyzers.get(function_name)
+
+
+class FunctionDataFlowAnalyzer:
+
+    def __init__(
+        self,
+        program: UdonProgramData,
+        module_info: UdonModuleInfo,
+        cfg: ControlFlowGraph
+    ):
+        self.program = program
+        self.module_info = module_info
+        self.cfg = cfg
+
+        self.stack_simulator: StackSimulator
+        self.variable_identifier: VariableIdentifier
+        self.expression_builder: ExpressionBuilder
+
+        # res
+        self.variables: Dict[int, Variable] = {}
+        # instruction address -> expression
+        self.expressions: Dict[int, Expression] = {}
+
+    def analyze(self) -> None:
+        logger.info(f"Analyzing dataflow for {self.cfg.function_name}...")
+
+        self._simulate_stack()
+        self._identify_variables()
+        self._build_expressions()
+
+        logger.info(
+            f"Dataflow analysis complete for {self.cfg.function_name}: "
+            f"{len(self.variables)} variables, {len(self.expressions)} expressions"
+        )
+
+    def _simulate_stack(self) -> None:
+        logger.debug(f"Simulating stack for {self.cfg.function_name}...")
+
+        self.stack_simulator = StackSimulator(self.program, self.module_info)
+
+        # topological trav
+        visited = set()
+
+        def visit_block(block, entry_state):
+            if block in visited:
+                return
+            visited.add(block)
+
+            exit_state = self.stack_simulator.simulate_block(
+                block, entry_state)
+
+            # recur
+            for successor in self.cfg.get_successors(block):
+                if successor not in visited:
+                    visit_block(successor, exit_state.copy())
+
+        visit_block(self.cfg.entry_block, None)
+
+        logger.debug(f"Stack simulation complete for {self.cfg.function_name}")
+
+    def _identify_variables(self) -> None:
+        logger.debug(f"Identifying variables for {self.cfg.function_name}...")
+
+        self.variable_identifier = VariableIdentifier(
+            program=self.program,
+            cfg=self.cfg,
+            stack_simulator=self.stack_simulator
+        )
+
+        self.variables = self.variable_identifier.identify()
+
+        logger.debug(
+            f"Variable identification complete for {self.cfg.function_name}: "
+            f"{len(self.variables)} variables"
+        )
+
+    def _build_expressions(self) -> None:
+        logger.debug(f"Building expressions for {self.cfg.function_name}...")
+
+        self.expression_builder = ExpressionBuilder(
+            program=self.program,
+            module_info=self.module_info,
+            stack_simulator=self.stack_simulator,
+            variable_identifier=self.variable_identifier
+        )
+
+        for block in self.cfg.graph.nodes():
+            for instruction in block.instructions:
+                expr = self.expression_builder.build_expression_from_instruction(
+                    instruction)
+                if expr:
+                    self.expressions[instruction.address] = expr
+
+        logger.debug(
+            f"Expression building complete for {self.cfg.function_name}: "
+            f"{len(self.expressions)} expressions"
+        )
+
+    def get_variable(self, address: int) -> Optional[Variable]:
+        return self.variables.get(address)
+
+    def get_expression(self, instruction_address: int) -> Optional[Expression]:
+        return self.expressions.get(instruction_address)
+
+    def format_expression(self, expr: Expression) -> str:
+        return self.expression_builder.format_expression(expr)
