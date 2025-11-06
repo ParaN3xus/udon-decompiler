@@ -171,7 +171,7 @@ public class UdonProgramReserializer : EditorWindow
         string json = JsonConvert.SerializeObject(serialized, settings);
 
         string outputFilePath = Path.Combine(outputDir, $"{fileName}.json");
-        File.WriteAllText(outputFilePath, json, Encoding.UTF8);
+        File.WriteAllText(outputFilePath, json, new UTF8Encoding(false));
         Debug.Log($"✓ Generated: {outputFilePath}");
     }
 

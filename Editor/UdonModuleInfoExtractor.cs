@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -76,7 +77,7 @@ public class UdonModuleInfoExtractor : EditorWindow
         string json = JsonConvert.SerializeObject(result, Formatting.Indented);
 
         string path = Path.Combine(Application.dataPath, "UdonModuleInfo.json");
-        File.WriteAllText(path, json);
+        File.WriteAllText(path, json, new UTF8Encoding(false));
 
         AssetDatabase.Refresh();
         Debug.Log($"Module info saved to: {path}");
