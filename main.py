@@ -1,14 +1,25 @@
-from src import ProgramLoader, CFGBuilder, BytecodeParser
+from pathlib import Path
+from udon_decompiler import ProgramLoader,  BytecodeParser, ModuleInfoLoader, UdonModuleInfo, DataFlowAnalyzer, ProgramCodeGenerator
 
+ModuleInfoLoader.load_from_file("./local/UdonModuleInfo.json")
 
 program = ProgramLoader.load_from_file("./local/ex.json")
 bc_parser = BytecodeParser(program)
 
 instructions = bc_parser.parse()
 
-cfg_builder = CFGBuilder(program, instructions)
+analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
+function_analyzers = analyzer.analyze()
 
-cfgs = cfg_builder.build()
+code_gen = ProgramCodeGenerator()
+generated_code = code_gen.generate_program(
+    function_analyzers,
+    class_name="Test"
+)
 
-for (func, cfg) in cfgs.items():
-    cfg.to_dot().write(path=f"local/{func}.png", format="png")
+output_path = Path("local/ex.cs")
+
+output_path.parent.mkdir(parents=True, exist_ok=True)
+
+with open(output_path, 'w', encoding='utf-8') as f:
+    f.write(generated_code)
