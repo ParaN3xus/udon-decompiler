@@ -16,6 +16,10 @@ The Udon Decompiler.
 
 ## TODO
 
+- [ ] Editor Tools
+  - [ ] `UdonModuleInfoExtractor` for different VRChat World SDK version
+  - [ ] `UdonProgramReserializer` supporting different `serializedProgramCompressedBytes` formats
+- [ ] Unit tests and E2E tests
 - [ ] Better `VariableIdentifier`
   - [ ] Identify variable scope and type by their names(`__lcl`, `__intnl`, `__const`)
 - [ ] Better `ExpressionBuilder`
