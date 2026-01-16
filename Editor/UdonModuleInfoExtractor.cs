@@ -26,15 +26,13 @@ public class UdonModuleInfoExtractor : EditorWindow
         UdonDefaultWrapperFactory udonWrapperFactory = new UdonDefaultWrapperFactory(blacklist);
         IUdonWrapper udonWrapper = udonWrapperFactory.GetWrapper();
 
-        List<Type> moduleTypes = GetWrapperModuleTypesFromAttribute();
+        List<Type> moduleTypes = GetWrapperModuleTypes(udonWrapperFactory);
 
         foreach (Type moduleType in moduleTypes)
         {
             try
             {
-                object instance = null;
-
-                instance = Activator.CreateInstance(
+                object instance = Activator.CreateInstance(
                     moduleType,
                     new object[] { udonWrapper, blacklist }
                 );
@@ -56,16 +54,19 @@ public class UdonModuleInfoExtractor : EditorWindow
                     BindingFlags.NonPublic | BindingFlags.Instance
                 );
 
-                if (
-                    parameterCountsField?.GetValue(instance)
-                    is Dictionary<string, int> parameterCounts
-                )
+                object rawValue = parameterCountsField?.GetValue(instance);
+
+                if (rawValue is Lazy<Dictionary<string, int>> lazyCounts)
                 {
-                    result[name] = new Dictionary<string, int>(parameterCounts);
+                    result[name] = new Dictionary<string, int>(lazyCounts.Value);
+                }
+                else if (rawValue is Dictionary<string, int> directCounts)
+                {
+                    result[name] = new Dictionary<string, int>(directCounts);
                 }
                 else
                 {
-                    Debug.LogWarning($"Module {name} has no _parameterCounts field");
+                    Debug.LogWarning($"Module {name} has unexpected field type: {rawValue?.GetType()}");
                 }
             }
             catch (Exception ex)
@@ -84,21 +85,27 @@ public class UdonModuleInfoExtractor : EditorWindow
         Debug.Log($"Total modules extracted: {result.Count}");
     }
 
-    private static List<Type> GetWrapperModuleTypesFromAttribute()
+    private static List<Type> GetWrapperModuleTypes(UdonDefaultWrapperFactory udonWrapperFactory)
     {
-        Type factoryType = typeof(UdonDefaultWrapperFactory);
-
-        MethodInfo method = factoryType.GetMethod(
-            "GetWrapperModuleTypesFromAttribute",
-            BindingFlags.NonPublic | BindingFlags.Static
-        );
-
-        if (method == null)
+        if (udonWrapperFactory == null)
         {
-            Debug.LogError("Cannot find GetWrapperModuleTypesFromAttribute method");
+            Debug.LogWarning("Given factory is null!");
             return new List<Type>();
         }
 
-        return method.Invoke(null, null) as List<Type> ?? new List<Type>();
+        FieldInfo field = typeof(UdonDefaultWrapperFactory).GetField(
+            "_wrapperModuleTypes",
+            BindingFlags.NonPublic | BindingFlags.Instance
+        );
+
+        if (field == null)
+        {
+            Debug.LogError("Cannot find _wrapperModuleTypes field");
+            return new List<Type>();
+        }
+
+        var hashSet = field.GetValue(udonWrapperFactory) as HashSet<Type>;
+
+        return hashSet != null ? new List<Type>(hashSet) : new List<Type>();
     }
 }
