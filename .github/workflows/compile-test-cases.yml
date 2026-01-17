@@ -98,7 +98,7 @@ jobs:
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
-            echo ">>> Unity exited with code $EXIT_CODE"
+            echo "Unity exited with code $EXIT_CODE"
           fi
 
       - name: Sanitize Build Log
@@ -115,10 +115,15 @@ jobs:
             sed -i "s|$UNITY_EMAIL|$MASK|g" "$BUILD_LOG"
             sed -i "s|$UNITY_PASSWORD|$MASK|g" "$BUILD_LOG"
             sed -i "s|$UNITY_SERIAL|$MASK|g" "$BUILD_LOG"
+
+            LEN=${#UNITY_SERIAL}
+            PREFIX=${UNITY_SERIAL:0:LEN-4}
+            UNITY_AUTO_MASKED="${PREFIX}XXXX"
+            sed -i "s|$UNITY_AUTO_MASKED|$MASK|g" "$BUILD_LOG"
             
-            echo ">>> Log sanitized."
+            echo "Log sanitized."
           else
-            echo ">>> No build log found to sanitize."
+            echo "No build log found to sanitize."
           fi
 
       - name: Extract Dumped Programs
@@ -127,7 +132,7 @@ jobs:
         run: |
           ERR_MSG=$(jq -r '.error' "$OUTPUT_JSON")
           if [ "$ERR_MSG" != "null" ] && [ -n "$ERR_MSG" ]; then
-              echo ">>> Error found in output.json: $ERR_MSG"
+              echo "Error found in output.json: $ERR_MSG"
               exit 1
           fi
 
