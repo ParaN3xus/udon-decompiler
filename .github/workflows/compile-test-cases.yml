@@ -123,6 +123,7 @@ jobs:
 
       - name: Extract Dumped Programs
         working-directory: ${{ env.PROJECT_NAME }}
+        shell: bash
         run: |
           ERR_MSG=$(jq -r '.error' "$OUTPUT_JSON")
           if [ "$ERR_MSG" != "null" ] && [ -n "$ERR_MSG" ]; then
