@@ -83,6 +83,7 @@ jobs:
         run: |
           ABS_PATH=$(pwd)
 
+          set +e
           /opt/unity/Editor/Unity \
             -username "$UNITY_EMAIL" \
             -password "$UNITY_PASSWORD" \
@@ -95,11 +96,31 @@ jobs:
             -outputFile "$ABS_PATH/$OUTPUT_JSON" \
             -logFile "$ABS_PATH/$BUILD_LOG"
 
-          if [ -f "$OUTPUT_JSON" ]; then
-              echo ">>> Compilation finished successfully."
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo ">>> Unity exited with code $EXIT_CODE"
+          fi
+
+      - name: Sanitize Build Log
+        if: always()
+        working-directory: ${{ env.PROJECT_NAME }}
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [ -f "$BUILD_LOG" ]; then
+            MASK="********************************"
+            
+            sed -i "s|$UNITY_EMAIL|$MASK|g" "$BUILD_LOG"
+            sed -i "s|$UNITY_PASSWORD|$MASK|g" "$BUILD_LOG"
+            sed -i "s|$UNITY_SERIAL|$MASK|g" "$BUILD_LOG"
+            
+            echo ">>> Log sanitized."
           else
-              echo ">>> Compilation failed to generate output.json"
-              exit 1
+            echo ">>> No build log found to sanitize."
           fi
 
       - name: Extract Dumped Programs
