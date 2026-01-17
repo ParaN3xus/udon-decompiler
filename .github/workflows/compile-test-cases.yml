@@ -30,7 +30,7 @@ jobs:
       - name: Install VRChat Package Manager (VPM)
         run: |
           dotnet tool install --global vrchat.vpm.cli
-          echo "/root/.dotnet/tools" >> $GITHUB_PATH
+          echo "/github/home/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Create VRChat Project
         run: |
