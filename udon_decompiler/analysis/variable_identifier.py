@@ -79,7 +79,7 @@ class VariableIdentifier:
             variable = Variable(
                 address=symbol.address,
                 name=symbol_name,
-                type_hint=symbol.brief_type,
+                type_hint=symbol.type,
                 scope=VariableScope.GLOBAL,
                 original_symbol=symbol
             )
@@ -194,13 +194,13 @@ class VariableIdentifier:
             variable = Variable(
                 address=address,
                 name=symbol.name,
-                type_hint=symbol.brief_type,
+                type_hint=symbol.type,
                 scope=VariableScope.GLOBAL,
                 original_symbol=symbol
             )
         else:
             heap_entry = self.program.get_initial_heap_value(address)
-            type_hint = heap_entry.brief_type if heap_entry else None
+            type_hint = heap_entry.type if heap_entry else None
 
             var_name = self._generate_temp_name()
 

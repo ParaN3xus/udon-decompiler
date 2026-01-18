@@ -127,11 +127,11 @@ class StackSimulator:
             value_type = StackValueType.HEAP_ADDRESS
 
             if heap_entry:
-                type_hint = heap_entry.brief_type
+                type_hint = heap_entry.type
             else:
                 symbol = self.program.get_symbol_by_address(operand)
                 if symbol:
-                    type_hint = symbol.brief_type
+                    type_hint = symbol.type
                 else:
                     value_type = StackValueType.IMMEDIATE
 
