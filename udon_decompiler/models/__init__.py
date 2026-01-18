@@ -5,8 +5,7 @@ from udon_decompiler.models.program import (
     HeapEntryValue,
     HeapEntry,
     EntryPointInfo,
-    UdonProgramData,
-    brief_type_name
+    UdonProgramData
 )
 
 __all__ = [
@@ -18,6 +17,5 @@ __all__ = [
     'HeapEntryValue',
     'HeapEntry',
     'EntryPointInfo',
-    'UdonProgramData',
-    'brief_type_name'
+    'UdonProgramData'
 ]

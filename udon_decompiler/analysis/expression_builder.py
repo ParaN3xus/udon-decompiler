@@ -108,7 +108,7 @@ class ExpressionBuilder:
             return Expression(
                 expr_type=ExpressionType.LITERAL,
                 value=heap_entry.value.value,
-                type_hint=heap_entry.brief_type,
+                type_hint=heap_entry.type,
                 source_instruction=instruction
             )
 
@@ -197,7 +197,7 @@ class ExpressionBuilder:
                 return Expression(
                     expr_type=ExpressionType.LITERAL,
                     value=heap_entry.value.value,
-                    type_hint=heap_entry.brief_type
+                    type_hint=heap_entry.type
                 )
 
         elif stack_value.value_type == StackValueType.IMMEDIATE:

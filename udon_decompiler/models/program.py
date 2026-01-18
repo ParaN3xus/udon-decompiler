@@ -4,22 +4,14 @@ from typing import Dict, List, Any, Optional
 from udon_decompiler.utils import logger
 
 
-def brief_type_name(typename: str) -> str:
-    return typename.split(",", 2)[0]
-
-
 @dataclass
 class SymbolInfo:
     name: str
     type: str
     address: int
 
-    @property
-    def brief_type(self) -> str:
-        return brief_type_name(self.type)
-
     def __repr__(self) -> str:
-        return f"Symbol({self.name}: {self.brief_type} @ 0x{self.address:08x})"
+        return f"Symbol({self.name}: {self.type} @ 0x{self.address:08x})"
 
 
 @dataclass
@@ -39,12 +31,8 @@ class HeapEntry:
     type: str
     value: HeapEntryValue
 
-    @property
-    def brief_type(self) -> str:
-        return brief_type_name(self.type)
-
     def __repr__(self) -> str:
-        return f"Heap[0x{self.address:08x}]: {self.brief_type} = {self.value}"
+        return f"Heap[0x{self.address:08x}]: {self.type} = {self.value}"
 
 
 @dataclass
