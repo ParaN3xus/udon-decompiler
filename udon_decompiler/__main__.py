@@ -1,0 +1,118 @@
+import argparse
+import sys
+from pathlib import Path
+from . import (
+    ProgramLoader,
+    BytecodeParser,
+    ModuleInfoLoader,
+    UdonModuleInfo,
+    DataFlowAnalyzer,
+    ProgramCodeGenerator,
+    UdonProgramData,
+    logger
+)
+
+
+def decompile_program_to_source(program: UdonProgramData, class_name: str) -> str:
+    bc_parser = BytecodeParser(program)
+    instructions = bc_parser.parse()
+
+    analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
+    function_analyzers = analyzer.analyze()
+
+    code_gen = ProgramCodeGenerator()
+    generated_code = code_gen.generate_program(
+        function_analyzers,
+        class_name=class_name
+    )
+    return generated_code
+
+
+def process_file(json_file: Path, output_target: Path, is_target_file: bool):
+    try:
+        program = ProgramLoader.load_from_file(str(json_file))
+
+        source_code = decompile_program_to_source(program, json_file.stem)
+
+        if is_target_file:
+            final_path = output_target
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            output_target.mkdir(parents=True, exist_ok=True)
+            final_path = output_target / f"{json_file.stem}.cs"
+
+        with open(final_path, 'w', encoding='utf-8') as f:
+            f.write(source_code)
+
+        logger.info(f"Decompiled: {json_file.name} -> {final_path}")
+
+    except Exception as e:
+        logger.error(f"Failed to decompile {json_file.name}: {str(e)}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="UdonSharp Decompiler CLI")
+    parser.add_argument("input", type=Path,
+                        help="Input .json file or directory")
+    parser.add_argument("-o", "--output", type=Path, help="Output path")
+    parser.add_argument("--info", type=Path, default="./local/UdonModuleInfo.json",
+                        help="Path to UdonModuleInfo.json")
+
+    args = parser.parse_args()
+
+    if not args.info.exists():
+        logger.error(f"Module info file not found at {args.info}")
+        sys.exit(1)
+
+    try:
+        ModuleInfoLoader.load_from_file(str(args.info))
+    except Exception as e:
+        logger.error(f"Error loading ModuleInfo: {e}")
+        sys.exit(1)
+
+    input_path = args.input
+    output_path = args.output
+
+    if not input_path.exists():
+        logger.error(f"Input path '{input_path}' does not exist.")
+        sys.exit(1)
+
+    if input_path.is_file():
+        if input_path.suffix.lower() != ".json":
+            logger.error("Input file must be a .json file.")
+            sys.exit(1)
+
+        if output_path is None:
+            target = input_path.with_suffix(".cs")
+            is_file = True
+        else:
+            if output_path.suffix.lower() == ".cs":
+                target = output_path
+                is_file = True
+            else:
+                target = output_path
+                is_file = False
+
+        process_file(input_path, target, is_file)
+
+    else:
+        if output_path is None:
+            target = input_path.parent / f"{input_path.name}-decompiled"
+        else:
+            target = output_path
+
+        json_files = list(input_path.glob("*.json"))
+        if not json_files:
+            logger.warning("No .json files found in the directory.")
+            return
+
+        for json_file in json_files:
+            if json_file.name == "UdonModuleInfo.json":
+                continue
+            process_file(json_file, target, is_target_file=False)
+
+    logger.info("Done.")
+
+
+if __name__ == "__main__":
+    main()
