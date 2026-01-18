@@ -1,10 +1,14 @@
 [project]
 name = "udon-decompiler"
 version = "0.1.0"
-description = "Add your description here"
+description = "The Udon Decompiler"
+authors = [{ name = "ParaN3xus", email = "paran3xus007@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "networkx>=3.5",
-    "pydot>=4.0.1",
-]
+dependencies = ["networkx>=3.5", "pydot>=4.0.1"]
+
+[project.scripts]
+udon-decompiler = "udon_decompiler.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["udon_decompiler*"]
