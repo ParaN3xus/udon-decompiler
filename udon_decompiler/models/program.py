@@ -1,19 +1,23 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 
-def brief_type_name(typename: str) -> str :
+from ..utils import logger
+
+
+def brief_type_name(typename: str) -> str:
     return typename.split(",", 2)[0]
+
 
 @dataclass
 class SymbolInfo:
     name: str
-    type: str 
-    address: int  
+    type: str
+    address: int
 
     @property
     def brief_type(self) -> str:
         return brief_type_name(self.type)
-    
+
     def __repr__(self) -> str:
         return f"Symbol({self.name}: {self.brief_type} @ 0x{self.address:08x})"
 
@@ -21,7 +25,7 @@ class SymbolInfo:
 @dataclass
 class HeapEntryValue:
     is_serializable: bool
-    value: Any  
+    value: Any
 
     def __repr__(self) -> str:
         if self.is_serializable:
@@ -32,7 +36,7 @@ class HeapEntryValue:
 @dataclass
 class HeapEntry:
     address: int
-    type: str 
+    type: str
     value: HeapEntryValue
 
     @property
@@ -46,7 +50,7 @@ class HeapEntry:
 @dataclass
 class EntryPointInfo:
     name: str
-    address: int 
+    address: int
 
     def __repr__(self) -> str:
         return f"EntryPoint({self.name} @ 0x{self.address:08x})"
@@ -59,6 +63,9 @@ class UdonProgramData:
     symbols: Dict[str, SymbolInfo] = field(default_factory=dict)
     entry_points: List[EntryPointInfo] = field(default_factory=list)
     heap_initial_values: Dict[int, HeapEntry] = field(default_factory=dict)
+
+    CLASS_NAME_ADDR: int = 1
+    CLASS_NAME_SYMBOL_NAME: str = "__refl_typename"
 
     def get_symbol_by_address(self, address: int) -> Optional[SymbolInfo]:
         for symbol in self.symbols.values():
@@ -74,6 +81,32 @@ class UdonProgramData:
 
     def get_initial_heap_value(self, address: int) -> Optional[HeapEntry]:
         return self.heap_initial_values.get(address)
+
+    def get_class_name(self) -> Optional[str]:
+        possible_class_name_symbol = self.get_symbol_by_address(
+            UdonProgramData.CLASS_NAME_ADDR)
+        if not possible_class_name_symbol:
+            logger.warning(
+                "Class name symbol not found! The Udon program might be broken!")
+            return None
+        if possible_class_name_symbol.name != UdonProgramData.CLASS_NAME_SYMBOL_NAME:
+            logger.warning(
+                "Incorrect class name symbol found! The Udon program might be broken!")
+            return None
+
+        possible_class_name_entry = self.get_initial_heap_value(
+            UdonProgramData.CLASS_NAME_ADDR)
+        if not possible_class_name_entry:
+            logger.warning(
+                "Class name entry not found! The Udon program might be broken!")
+            return None
+        if not possible_class_name_entry.value.is_serializable:
+            logger.warning(
+                "Class name entry is not serializable! The Udon program might be broken!")
+            return None
+
+        # todo: type verification
+        return possible_class_name_entry.value.value
 
     @property
     def byte_code_bytes(self) -> bytes:

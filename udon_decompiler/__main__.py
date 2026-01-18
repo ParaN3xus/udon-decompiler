@@ -1,6 +1,7 @@
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 from . import (
     ProgramLoader,
     BytecodeParser,
@@ -13,7 +14,7 @@ from . import (
 )
 
 
-def decompile_program_to_source(program: UdonProgramData, class_name: str) -> str:
+def decompile_program_to_source(program: UdonProgramData) -> tuple[Optional[str], str]:
     bc_parser = BytecodeParser(program)
     instructions = bc_parser.parse()
 
@@ -21,25 +22,23 @@ def decompile_program_to_source(program: UdonProgramData, class_name: str) -> st
     function_analyzers = analyzer.analyze()
 
     code_gen = ProgramCodeGenerator()
-    generated_code = code_gen.generate_program(
-        function_analyzers,
-        class_name=class_name
-    )
-    return generated_code
+    class_name, code = code_gen.generate_program(program, function_analyzers)
+    return class_name, code
 
 
 def process_file(json_file: Path, output_target: Path, is_target_file: bool):
     try:
         program = ProgramLoader.load_from_file(str(json_file))
 
-        source_code = decompile_program_to_source(program, json_file.stem)
+        class_name, source_code = decompile_program_to_source(program)
 
         if is_target_file:
             final_path = output_target
             final_path.parent.mkdir(parents=True, exist_ok=True)
         else:
             output_target.mkdir(parents=True, exist_ok=True)
-            final_path = output_target / f"{json_file.stem}.cs"
+            final_path = output_target / \
+                f"{class_name if class_name else json_file.stem}.cs"
 
         with open(final_path, 'w', encoding='utf-8') as f:
             f.write(source_code)
