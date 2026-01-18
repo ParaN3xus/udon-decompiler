@@ -1,5 +1,6 @@
 from typing import Optional
 
+from ..models.program import UdonProgramData
 from ..analysis.variable_identifier import Variable
 from ..analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
 from .ast_nodes import *
@@ -11,7 +12,7 @@ class CSharpCodeGenerator:
     def __init__(self, use_formatting: bool = True):
         self.formatter = CodeFormatter() if use_formatting else None
 
-    def generate(self, program_node: ProgramNode, class_name: str = "MonoBehaviour") -> str:
+    def generate(self, program_node: ProgramNode, class_name: str) -> str:
         logger.info(f"Generating C# code for {class_name}...")
 
         lines = []
@@ -265,15 +266,16 @@ class CSharpCodeGenerator:
 
 
 class ProgramCodeGenerator:
-    def __init__(self):
-        self.generator = CSharpCodeGenerator()
+    _class_counter: int = 0
+    _generator: CSharpCodeGenerator = CSharpCodeGenerator()
 
+    @classmethod
     def generate_program(
-        self,
+        cls,
+        program: UdonProgramData,
         function_analyzers: dict[str, FunctionDataFlowAnalyzer],
-        class_name: str = "UdonBehavior"
-    ) -> str:
-        global_vars = self._collect_and_generate_global_variables(
+    ) -> tuple[Optional[str], str]:
+        global_vars = cls._collect_and_generate_global_variables(
             function_analyzers)
 
         program_node = ProgramNode(global_variables=global_vars)
@@ -287,13 +289,21 @@ class ProgramCodeGenerator:
 
             program_node.functions.append(func_node)
 
-        code = self.generator.generate(program_node)
+        class_name = program.get_class_name()
+        name_fallback = False
+        if not class_name:
+            cls._class_counter += 1
+            name_fallback = True
+            class_name = f"DecompiledClass_{cls._class_counter}"
+
+        code = cls._generator.generate(program_node, class_name)
 
         logger.info("Program code generation complete")
 
-        return code
+        return class_name if not name_fallback else None, code
 
-    def _collect_and_generate_global_variables(self, function_analyzers: dict[str, FunctionDataFlowAnalyzer]) -> list[VariableDeclNode]:
+    @staticmethod
+    def _collect_and_generate_global_variables(function_analyzers: dict[str, FunctionDataFlowAnalyzer]) -> list[VariableDeclNode]:
         from ..analysis.variable_identifier import VariableScope
 
         logger.info("Collecting global variables from all functions...")
@@ -310,12 +320,15 @@ class ProgramCodeGenerator:
 
         res = []
 
+        if not function_analyzers:
+            return res
+
         first_analyzer = next(iter(function_analyzers.values()))
         program = first_analyzer.program
 
         for var in global_vars_by_address.values():
             initial_heap_value = program.get_initial_heap_value(var.address)
-            if initial_heap_value == None or initial_heap_value.value == None:
+            if initial_heap_value is None or initial_heap_value.value is None:
                 initial_value = "null"
             elif not initial_heap_value.value.is_serializable:
                 initial_value = "<non-serializable>"
