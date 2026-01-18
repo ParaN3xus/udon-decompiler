@@ -41,7 +41,7 @@ public static class UdonProgramDumper
         foreach (var symbolName in symbolTable.GetSymbols())
         {
             uint address = symbolTable.GetAddressFromSymbol(symbolName);
-            Type type = symbolTable.GetSymbolType(symbolName);
+            string type = symbolTable.GetSymbolType(symbolName).FullName;
 
             result[symbolName] = new SymbolInfo
             {
@@ -94,7 +94,7 @@ public static class UdonProgramDumper
             var entry = new HeapEntry
             {
                 address = address,
-                type = type,
+                type = type.FullName,
                 value = wrappedValue,
             };
             result[address] = entry;
@@ -117,7 +117,7 @@ public static class UdonProgramDumper
     public class SymbolInfo
     {
         public string name;
-        public Type type;
+        public string type;
         public uint address;
     }
 
@@ -125,7 +125,7 @@ public static class UdonProgramDumper
     public class HeapEntry
     {
         public uint address;
-        public Type type;
+        public string type;
         public HeapEntryValue value;
     }
 
