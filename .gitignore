@@ -9,6 +9,11 @@ wheels/
 # Virtual environments
 .venv
 
+# Doc src
 /analysis.typ
 
+# Local
 /local
+
+# Editor
+.vscode/launch.json
