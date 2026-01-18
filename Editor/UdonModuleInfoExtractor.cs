@@ -84,7 +84,7 @@ public class UdonModuleInfoExtractor : EditorWindow
                 ModuleDefinition moduleDef = new ModuleDefinition
                 {
                     functions = new List<FunctionDefinition>(),
-                    type = moduleType.FullName
+                    type = null
                 };
 
                 foreach (var kvp in paramCounts)
@@ -104,6 +104,11 @@ public class UdonModuleInfoExtractor : EditorWindow
 
                     if (registryLookup.TryGetValue(fullNodeName, out NodeInfoCache cacheInfo))
                     {
+                        if (moduleDef.type == null && cacheInfo.Member.DeclaringType != null)
+                        {
+                            moduleDef.type = cacheInfo.Member.DeclaringType.FullName;
+                        }
+
                         if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.OPERATOR)
                             funcDef.originalName = null;
 
