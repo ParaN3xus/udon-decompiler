@@ -15,10 +15,11 @@ class Singleton(type):
 class ExternFunctionInfo:
     signature: str
     parameter_count: int
-    module_name: str
+    type_name: str
     function_name: str
     def_type: str
     is_static: Optional[bool] = None
+    returns_void: Optional[bool] = None
     original_name: Optional[str] = None
 
     def __repr__(self) -> str:
@@ -41,6 +42,7 @@ class FunctionMetadata:
     parameter_count: int
     def_type: str
     is_static: Optional[bool] = None
+    returns_void: Optional[bool] = None
     original_name: Optional[str] = None
 
 
@@ -70,10 +72,11 @@ class UdonModuleInfo(metaclass=Singleton):
             return ExternFunctionInfo(
                 signature=signature,
                 parameter_count=func_meta.parameter_count,
-                module_name=module_name,
+                type_name=module_meta.type_name,
                 function_name=func_name,
                 def_type=func_meta.def_type,
                 is_static=func_meta.is_static,
+                returns_void=func_meta.returns_void,
                 original_name=func_meta.original_name
             )
         except Exception:
@@ -102,6 +105,7 @@ class UdonModuleInfo(metaclass=Singleton):
                 parameter_count=func_data['parameterCount'],
                 def_type=func_data['defType'],
                 is_static=func_data.get('isStatic'),
+                returns_void=func_data.get('returnsVoid'),
                 original_name=func_data.get('originalName')
             )
             func_dict[name] = meta

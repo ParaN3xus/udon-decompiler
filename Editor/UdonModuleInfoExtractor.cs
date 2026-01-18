@@ -39,6 +39,9 @@ public class UdonModuleInfoExtractor : EditorWindow
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public bool? isStatic;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? returnsVoid;
     }
 #nullable restore
 
@@ -121,7 +124,10 @@ public class UdonModuleInfoExtractor : EditorWindow
                                 funcDef.originalName = cacheInfo.Member.Name;
 
                             if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.METHOD_INFO && cacheInfo.Member is MethodInfo mi)
+                            {
+                                funcDef.returnsVoid = mi.ReturnType == typeof(void);
                                 funcDef.isStatic = mi.IsStatic;
+                            }
                             else if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.CTOR_INFO && cacheInfo.Member is ConstructorInfo ci)
                                 funcDef.isStatic = ci.IsStatic;
                         }
