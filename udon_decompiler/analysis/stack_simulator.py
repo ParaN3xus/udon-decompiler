@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Set
 from enum import Enum
 
-from ..models.instruction import Instruction, OpCode
-from ..models.program import UdonProgramData, HeapEntry, SymbolInfo
-from ..models.module_info import UdonModuleInfo
-from .basic_block import BasicBlock
-from ..utils.logger import logger
+from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.program import UdonProgramData, HeapEntry, SymbolInfo
+from udon_decompiler.models.module_info import UdonModuleInfo
+from udon_decompiler.analysis.basic_block import BasicBlock
+from udon_decompiler.utils.logger import logger
 
 
 class StackValueType(Enum):

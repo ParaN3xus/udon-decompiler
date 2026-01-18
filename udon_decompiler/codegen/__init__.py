@@ -1,7 +1,7 @@
-from .ast_nodes import *
-from .ast_builder import ASTBuilder
-from .code_generator import CSharpCodeGenerator, ProgramCodeGenerator
-from .formatter import CodeFormatter, CommentGenerator
+from udon_decompiler.codegen.ast_nodes import *
+from udon_decompiler.codegen.ast_builder import ASTBuilder
+from udon_decompiler.codegen.code_generator import CSharpCodeGenerator, ProgramCodeGenerator
+from udon_decompiler.codegen.formatter import CodeFormatter, CommentGenerator
 
 __all__ = [
     # AST Nodes

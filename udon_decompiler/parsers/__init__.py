@@ -1,3 +1,3 @@
-from .bytecode_parser import BytecodeParser
+from udon_decompiler.parsers.bytecode_parser import BytecodeParser
 
 __all__ = ['BytecodeParser']

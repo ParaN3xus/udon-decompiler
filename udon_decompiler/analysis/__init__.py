@@ -1,35 +1,35 @@
-from .basic_block import (
+from udon_decompiler.analysis.basic_block import (
     BasicBlock,
     BasicBlockType,
     BasicBlockIdentifier
 )
-from .cfg import (
+from udon_decompiler.analysis.cfg import (
     ControlFlowGraph,
     CFGBuilder
 )
-from .control_flow import (
+from udon_decompiler.analysis.control_flow import (
     ControlStructure,
     ControlStructureType,
     ControlFlowStructureIdentifier
 )
 
-from .stack_simulator import (
+from udon_decompiler.analysis.stack_simulator import (
     StackSimulator,
     StackFrame,
     StackValue,
     StackValueType
 )
-from .variable_identifier import (
+from udon_decompiler.analysis.variable_identifier import (
     VariableIdentifier,
     Variable,
     VariableScope
 )
-from .expression_builder import (
+from udon_decompiler.analysis.expression_builder import (
     ExpressionBuilder,
     Expression,
     ExpressionType
 )
-from .dataflow_analyzer import (
+from udon_decompiler.analysis.dataflow_analyzer import (
     DataFlowAnalyzer,
     FunctionDataFlowAnalyzer
 )

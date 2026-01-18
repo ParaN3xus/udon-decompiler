@@ -1,11 +1,11 @@
 from typing import Optional
 
-from ..models.program import UdonProgramData
-from ..analysis.variable_identifier import Variable
-from ..analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
-from .ast_nodes import *
-from .formatter import CodeFormatter
-from ..utils.logger import logger
+from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.analysis.variable_identifier import Variable
+from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
+from udon_decompiler.codegen.ast_nodes import *
+from udon_decompiler.codegen.formatter import CodeFormatter
+from udon_decompiler.utils.logger import logger
 
 
 class CSharpCodeGenerator:

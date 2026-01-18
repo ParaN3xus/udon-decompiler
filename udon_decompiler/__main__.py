@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Optional
-from . import (
+from udon_decompiler import (
     ProgramLoader,
     BytecodeParser,
     ModuleInfoLoader,

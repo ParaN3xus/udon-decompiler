@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import List, Set, Optional, Dict
 from enum import Enum
 
-from .cfg import ControlFlowGraph
-from .basic_block import BasicBlock, BasicBlockType
-from ..utils.logger import logger
+from udon_decompiler.analysis.cfg import ControlFlowGraph
+from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockType
+from udon_decompiler.utils.logger import logger
 
 
 class ControlStructureType(Enum):

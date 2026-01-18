@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 
-from ..models import UdonModuleInfo
-from ..utils import logger
+from udon_decompiler.models import UdonModuleInfo
+from udon_decompiler.utils import logger
 
 
 class ModuleInfoLoader():
