@@ -1,13 +1,13 @@
 from typing import Dict, List, Optional
 
-from ..models.program import UdonProgramData
-from ..models.instruction import Instruction
-from ..models.module_info import UdonModuleInfo
-from .cfg import ControlFlowGraph, CFGBuilder
-from .stack_simulator import StackSimulator
-from .variable_identifier import VariableIdentifier, Variable
-from .expression_builder import ExpressionBuilder, Expression
-from ..utils.logger import logger
+from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.models.instruction import Instruction
+from udon_decompiler.models.module_info import UdonModuleInfo
+from udon_decompiler.analysis.cfg import ControlFlowGraph, CFGBuilder
+from udon_decompiler.analysis.stack_simulator import StackSimulator
+from udon_decompiler.analysis.variable_identifier import VariableIdentifier, Variable
+from udon_decompiler.analysis.expression_builder import ExpressionBuilder, Expression
+from udon_decompiler.utils.logger import logger
 
 
 class DataFlowAnalyzer:

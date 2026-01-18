@@ -1,36 +1,36 @@
 import json
 from pathlib import Path
 from typing import Dict, Any
-from ..models import (
+from udon_decompiler.models import (
     UdonProgramData,
     SymbolInfo,
     HeapEntry,
     HeapEntryValue,
     EntryPointInfo
 )
-from ..utils import logger
+from udon_decompiler.utils import logger
 
 
 class ProgramLoader:
-    
+
     @staticmethod
     def load_from_file(file_path: str | Path) -> UdonProgramData:
         file_path = Path(file_path)
         logger.info(f"Loading Udon program from: {file_path}")
-        
+
         if not file_path.exists():
             raise FileNotFoundError(f"Program file not found: {file_path}")
-        
+
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         return ProgramLoader._parse_program_data(data)
-    
+
     @staticmethod
     def load_from_json_string(json_str: str) -> UdonProgramData:
         data = json.loads(json_str)
         return ProgramLoader._parse_program_data(data)
-    
+
     @staticmethod
     def _parse_program_data(data: Dict[str, Any]) -> UdonProgramData:
         try:
@@ -42,7 +42,7 @@ class ProgramLoader:
                         type=symbol_data['type'],
                         address=symbol_data['address']
                     )
-            
+
             entry_points = []
             if 'entryPoints' in data:
                 for ep_data in data['entryPoints']:
@@ -50,7 +50,7 @@ class ProgramLoader:
                         name=ep_data['name'],
                         address=ep_data['address']
                     ))
-            
+
             heap_initial_values = {}
             if 'heapInitialValues' in data:
                 for addr_str, heap_data in data['heapInitialValues'].items():
@@ -63,7 +63,7 @@ class ProgramLoader:
                             value=heap_data['value']['value']
                         )
                     )
-            
+
             program = UdonProgramData(
                 byte_code_hex=data['byteCodeHex'],
                 byte_code_length=data['byteCodeLength'],
@@ -71,10 +71,10 @@ class ProgramLoader:
                 entry_points=entry_points,
                 heap_initial_values=heap_initial_values
             )
-            
+
             logger.info(f"Successfully loaded program: {program}")
             return program
-            
+
         except KeyError as e:
             logger.error(f"Missing required field in JSON: {e}")
             raise KeyError(f"Invalid program JSON format: missing field {e}")

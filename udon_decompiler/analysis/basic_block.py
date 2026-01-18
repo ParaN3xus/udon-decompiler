@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Set, Optional
 from enum import Enum
 
-from ..models.program import HeapEntry
-from ..models.instruction import Instruction, OpCode
-from ..utils.logger import logger
+from udon_decompiler.models.program import HeapEntry
+from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.utils.logger import logger
 
 
 class BasicBlockType(Enum):

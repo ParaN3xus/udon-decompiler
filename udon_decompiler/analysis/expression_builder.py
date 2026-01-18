@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Any, Union
 from enum import Enum
 
-from ..models.instruction import Instruction, OpCode
-from ..models.program import UdonProgramData
-from ..models.module_info import UdonModuleInfo, ExternFunctionInfo
-from .stack_simulator import StackSimulator, StackValue, StackValueType
-from .variable_identifier import VariableIdentifier, Variable
-from ..utils.logger import logger
+from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.models.module_info import UdonModuleInfo, ExternFunctionInfo
+from udon_decompiler.analysis.stack_simulator import StackSimulator, StackValue, StackValueType
+from udon_decompiler.analysis.variable_identifier import VariableIdentifier, Variable
+from udon_decompiler.utils.logger import logger
 
 
 class ExpressionType(Enum):

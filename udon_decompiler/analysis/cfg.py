@@ -3,10 +3,10 @@ from typing import List, Dict, Set, Optional
 import networkx as nx
 from pydot import Dot
 
-from ..models.instruction import Instruction, OpCode
-from ..models.program import UdonProgramData
-from .basic_block import BasicBlock, BasicBlockIdentifier, BasicBlockType
-from ..utils.logger import logger
+from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifier, BasicBlockType
+from udon_decompiler.utils.logger import logger
 
 
 @dataclass

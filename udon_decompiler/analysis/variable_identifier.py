@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from typing import Dict, Set, Optional, List
 from enum import Enum
 
-from ..models.instruction import Instruction
-from ..models.program import UdonProgramData, SymbolInfo
-from .basic_block import BasicBlock
-from .cfg import ControlFlowGraph
-from .stack_simulator import StackFrame, StackSimulator, StackValue, StackValueType
-from ..utils.logger import logger
+from udon_decompiler.models.instruction import Instruction
+from udon_decompiler.models.program import UdonProgramData, SymbolInfo
+from udon_decompiler.analysis.basic_block import BasicBlock
+from udon_decompiler.analysis.cfg import ControlFlowGraph
+from udon_decompiler.analysis.stack_simulator import StackFrame, StackSimulator, StackValue, StackValueType
+from udon_decompiler.utils.logger import logger
 
 
 class VariableScope(Enum):

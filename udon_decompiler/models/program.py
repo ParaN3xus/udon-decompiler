@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 
-from ..utils import logger
+from udon_decompiler.utils import logger
 
 
 def brief_type_name(typename: str) -> str:

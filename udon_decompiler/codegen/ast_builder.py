@@ -1,13 +1,13 @@
 from typing import Dict, List, Optional, Set
-from ..models.instruction import Instruction
-from ..models.program import UdonProgramData
-from ..analysis.cfg import ControlFlowGraph
-from ..analysis.control_flow import ControlStructure, ControlStructureType
-from ..analysis.basic_block import BasicBlock, BasicBlockType
-from ..analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
-from ..analysis.expression_builder import Expression, ExpressionType
-from .ast_nodes import *
-from ..utils.logger import logger
+from udon_decompiler.models.instruction import Instruction
+from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.analysis.cfg import ControlFlowGraph
+from udon_decompiler.analysis.control_flow import ControlStructure, ControlStructureType
+from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockType
+from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
+from udon_decompiler.analysis.expression_builder import Expression, ExpressionType
+from udon_decompiler.codegen.ast_nodes import *
+from udon_decompiler.utils.logger import logger
 
 
 class ASTBuilder:
