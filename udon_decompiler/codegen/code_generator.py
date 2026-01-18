@@ -304,7 +304,7 @@ class ProgramCodeGenerator:
 
     @staticmethod
     def _collect_and_generate_global_variables(function_analyzers: dict[str, FunctionDataFlowAnalyzer]) -> list[VariableDeclNode]:
-        from ..analysis.variable_identifier import VariableScope
+        from udon_decompiler.analysis.variable_identifier import VariableScope
 
         logger.info("Collecting global variables from all functions...")
 
@@ -340,7 +340,8 @@ class ProgramCodeGenerator:
                     var_name=var.name,
                     var_type=var.type_hint or "object",
                     initial_value=LiteralNode(
-                        value=initial_value
+                        value=initial_value,
+                        literal_type=var.type_hint
                     )
                 )
             )
