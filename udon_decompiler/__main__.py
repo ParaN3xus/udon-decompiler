@@ -14,7 +14,7 @@ from udon_decompiler import (
 )
 
 
-def decompile_program_to_source(program: UdonProgramData) -> tuple[Optional[str], str]:
+def decompile_program_to_source(program: UdonProgramData, code_gen: ProgramCodeGenerator) -> tuple[Optional[str], str]:
     bc_parser = BytecodeParser(program)
     instructions = bc_parser.parse()
 
@@ -26,11 +26,12 @@ def decompile_program_to_source(program: UdonProgramData) -> tuple[Optional[str]
     return class_name, code
 
 
-def process_file(json_file: Path, output_target: Path, is_target_file: bool):
+def process_file(json_file: Path, output_target: Path, is_target_file: bool, code_gen: ProgramCodeGenerator):
     try:
         program = ProgramLoader.load_from_file(str(json_file))
 
-        class_name, source_code = decompile_program_to_source(program)
+        class_name, source_code = decompile_program_to_source(
+            program, code_gen)
 
         if is_target_file:
             final_path = output_target
@@ -76,6 +77,8 @@ def main():
         logger.error(f"Input path '{input_path}' does not exist.")
         sys.exit(1)
 
+    code_gen = ProgramCodeGenerator()
+
     if input_path.is_file():
         if input_path.suffix.lower() != ".json":
             logger.error("Input file must be a .json file.")
@@ -92,7 +95,7 @@ def main():
                 target = output_path
                 is_file = False
 
-        process_file(input_path, target, is_file)
+        process_file(input_path, target, is_file, code_gen)
 
     else:
         if output_path is None:
@@ -108,7 +111,8 @@ def main():
         for json_file in json_files:
             if json_file.name == "UdonModuleInfo.json":
                 continue
-            process_file(json_file, target, is_target_file=False)
+            process_file(json_file, target,
+                         is_target_file=False, code_gen=code_gen)
 
     logger.info("Done.")
 
