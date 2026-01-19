@@ -153,6 +153,3 @@ class FunctionDataFlowAnalyzer:
 
     def get_expression(self, instruction_address: int) -> Optional[Expression]:
         return self.expressions.get(instruction_address)
-
-    def format_expression(self, expr: Expression) -> str:
-        return self.expression_builder.format_expression(expr)

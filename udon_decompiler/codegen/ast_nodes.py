@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Any
 from enum import Enum
 
+from udon_decompiler.models.module_info import ExternFunctionInfo
+
 
 class ASTNodeType(Enum):
     PROGRAM = "program"
@@ -200,7 +202,7 @@ class VariableNode(ExpressionNode):
 
 @dataclass
 class CallNode(ExpressionNode):
-    function_signature: str = ""
+    function_info: Optional[ExternFunctionInfo] = None
     arguments: List[ExpressionNode] = field(default_factory=list)
 
     def __post_init__(self):

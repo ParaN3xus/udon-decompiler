@@ -33,7 +33,7 @@ class Expression:
     operands: List['Expression'] = field(default_factory=list)
 
     # func
-    function_name: Optional[str] = None
+    function_info: Optional[ExternFunctionInfo] = None
     arguments: List['Expression'] = field(default_factory=list)
 
     source_instruction: Optional[Instruction] = None
@@ -50,7 +50,7 @@ class Expression:
         elif self.expr_type == ExpressionType.VARIABLE:
             return f"Var({self.value})"
         elif self.expr_type == ExpressionType.CALL:
-            return f"Call({self.function_name}, {len(self.arguments)} args)"
+            return f"Call({self.function_info.function_name if self.function_info else "<unknown>"}, {len(self.arguments)} args)"
         else:
             return f"Expr({self.expr_type.value})"
 
@@ -159,7 +159,7 @@ class ExpressionBuilder:
             logger.warning(f"Unknown function: {signature}")
             return Expression(
                 expr_type=ExpressionType.CALL,
-                function_name=signature,
+                function_info=None,
                 source_instruction=instruction
             )
 
@@ -176,7 +176,7 @@ class ExpressionBuilder:
 
         return Expression(
             expr_type=ExpressionType.CALL,
-            function_name=func_info.signature,
+            function_info=func_info,
             arguments=arguments,
             source_instruction=instruction
         )
@@ -225,31 +225,3 @@ class ExpressionBuilder:
                         return self.stack_simulator.get_block_entry_state(block)
 
         return None
-
-    def format_expression(self, expr: Expression, indent: int = 0) -> str:
-        if expr.expr_type == ExpressionType.LITERAL:
-            if isinstance(expr.value, str):
-                if expr.type_hint == "System.String":
-                    return f'"{expr.value}"'
-            return str(expr.value)
-
-        elif expr.expr_type == ExpressionType.VARIABLE:
-            return str(expr.value)
-
-        elif expr.expr_type == ExpressionType.CALL:
-            args = ", ".join(self.format_expression(arg)
-                             for arg in expr.arguments)
-            return f"{expr.function_name}({args})"
-
-        elif expr.expr_type == ExpressionType.ASSIGNMENT:
-            if len(expr.operands) == 2:
-                left = self.format_expression(expr.operands[0])
-                right = self.format_expression(expr.operands[1])
-                return f"{left} = {right}"
-            elif expr.value:
-                right = self.format_expression(
-                    expr.operands[0]) if expr.operands else "?"
-                return f"{expr.value} = {right}"
-            return "assignment"
-
-        return f"<{expr.expr_type.value}>"
