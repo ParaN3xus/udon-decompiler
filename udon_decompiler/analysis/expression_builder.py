@@ -125,8 +125,8 @@ class ExpressionBuilder:
         if not prev_state or len(prev_state.stack) < 2:
             return None
 
-        source_val = prev_state.peek(0)
-        target_val = prev_state.peek(1)
+        target_val = prev_state.peek(0)
+        source_val = prev_state.peek(1)
 
         if not source_val or not target_val:
             return None
