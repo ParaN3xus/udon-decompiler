@@ -45,17 +45,20 @@ public class TempSourceText : UdonSharpBehaviour
 
     private void OnGUI()
     {
+        GUIStyle areaStyle = new GUIStyle(EditorStyles.textArea);
+        areaStyle.wordWrap = true;
+
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
         GUILayout.Label("Settings:", EditorStyles.boldLabel);
-        
+
         className = EditorGUILayout.TextField("Class Name", className);
 
         GUILayout.Space(10);
 
         GUILayout.Label("Input Udon Assembly Code:", EditorStyles.boldLabel);
 
-        sourceCode = EditorGUILayout.TextArea(sourceCode, GUILayout.MinHeight(150), GUILayout.ExpandHeight(true));
+        sourceCode = EditorGUILayout.TextArea(sourceCode, areaStyle, GUILayout.MinHeight(150), GUILayout.ExpandHeight(true));
 
         GUILayout.Space(10);
 
@@ -76,7 +79,7 @@ public class TempSourceText : UdonSharpBehaviour
 
         GUILayout.Label("Dumped JSON:", EditorStyles.boldLabel);
 
-        jsonOutput = EditorGUILayout.TextArea(jsonOutput, GUILayout.MinHeight(150), GUILayout.ExpandHeight(true));
+        jsonOutput = EditorGUILayout.TextArea(jsonOutput, areaStyle, GUILayout.MinHeight(150), GUILayout.ExpandHeight(true));
 
         EditorGUILayout.EndScrollView();
     }
