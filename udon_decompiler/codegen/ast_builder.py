@@ -1,13 +1,18 @@
 from typing import List, Optional, Set
 
 from udon_decompiler.analysis.basic_block import BasicBlock
-from udon_decompiler.analysis.control_flow import ControlStructure, ControlStructureType
+from udon_decompiler.analysis.control_flow import (
+    ControlFlowStructureIdentifier,
+    ControlStructure,
+    ControlStructureType,
+)
 from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
 from udon_decompiler.analysis.expression_builder import Expression, ExpressionType
 from udon_decompiler.codegen.ast_nodes import (
     AssignmentNode,
     BlockNode,
     CallNode,
+    ConstructionNode,
     DoWhileNode,
     ExpressionNode,
     ExpressionStatementNode,
@@ -15,6 +20,9 @@ from udon_decompiler.codegen.ast_nodes import (
     IfElseNode,
     IfNode,
     LiteralNode,
+    OperatorNode,
+    PropertyAccessNode,
+    PropertyAccessType,
     StatementNode,
     VariableDeclNode,
     VariableNode,
@@ -44,8 +52,6 @@ class ASTBuilder:
             name=self.cfg.function_name or "unknown_function",
             return_type="void",
         )
-
-        from ..analysis.control_flow import ControlFlowStructureIdentifier
 
         struct_identifier = ControlFlowStructureIdentifier(self.cfg)
         structures = struct_identifier.identify()
@@ -285,12 +291,27 @@ class ASTBuilder:
         if not expr:
             return None
 
-        if expr.expr_type == ExpressionType.ASSIGNMENT:
-            return self._create_assignment_statement(expr, inst)
-
-        elif expr.expr_type == ExpressionType.CALL:
-            call_expr = self._create_call_expression(expr)
-            return ExpressionStatementNode(expression=call_expr, address=inst.address)
+        match expr.expr_type:
+            case ExpressionType.ASSIGNMENT:
+                return self._create_assignment_statement(expr, inst)
+            case ExpressionType.CALL:
+                call_expr = self._create_call_expression(expr)
+                return ExpressionStatementNode(
+                    expression=call_expr, address=inst.address
+                )
+            case ExpressionType.PROPERTY_ACCESS:
+                prop_acc_expr = self._create_property_access_expression(expr)
+                return ExpressionStatementNode(
+                    expression=prop_acc_expr, address=inst.address
+                )
+            case ExpressionType.CONSTRUCTOR:
+                ctor_expr = self._create_construction_expression(expr)
+                return ExpressionStatementNode(
+                    expression=ctor_expr, address=inst.address
+                )
+            case ExpressionType.OPERATOR:
+                op_expr = self._create_operator_expression(expr)
+                return ExpressionStatementNode(expression=op_expr, address=inst.address)
 
         # todo: other expr type ignored
         return None
@@ -301,26 +322,78 @@ class ASTBuilder:
         target = expr.value if expr.value else "<unknown>"
 
         value_expr = None
-        if expr.operands:
-            value_expr = self._convert_expression_to_ast(expr.operands[0])
+        if expr.arguments:
+            value_expr = self._convert_expression_to_ast(expr.arguments[0])
 
         return AssignmentNode(target=target, value=value_expr, address=inst.address)
 
     def _create_call_expression(self, expr: Expression) -> CallNode:
+        if not expr.function_info:
+            raise Exception("Invalid call expression! function_info expected!")
+
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
 
         return CallNode(function_info=expr.function_info, arguments=args)
 
+    def _create_operator_expression(self, expr: Expression) -> OperatorNode:
+        if not expr.function_info:
+            raise Exception("Invalid call expression! function_info expected!")
+
+        if not expr.operator:
+            raise Exception("Invalid operator expression! A valid operator expected!")
+
+        oprs = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
+        receiver = oprs.pop()
+
+        return OperatorNode(
+            operator=expr.operator,
+            operands=oprs,
+            receiver=receiver,
+        )
+
+    def _create_property_access_expression(
+        self, expr: Expression
+    ) -> PropertyAccessNode:
+        if not expr.function_info:
+            raise Exception("Invalid call expression! function_info expected!")
+
+        args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
+
+        type = PropertyAccessType(
+            expr.function_info.original_name[: PropertyAccessType.literal_len()]
+        )
+
+        return PropertyAccessNode(
+            type=type,
+            field=expr.function_info.original_name,
+            receiver=args[1],
+            this=args[0],
+        )
+
+    def _create_construction_expression(self, expr: Expression) -> ConstructionNode:
+        if not expr.function_info:
+            raise Exception("Invalid call expression! function_info expected!")
+
+        args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
+        receiver = args.pop()
+
+        return ConstructionNode(
+            type_name=expr.function_info.type_name, arguments=args, receiver=receiver
+        )
+
     def _convert_expression_to_ast(self, expr: Expression) -> ExpressionNode:
         if expr.expr_type == ExpressionType.LITERAL:
             return LiteralNode(value=expr.value, literal_type=expr.type_hint)
-
         elif expr.expr_type == ExpressionType.VARIABLE:
             return VariableNode(var_name=str(expr.value), var_type=expr.type_hint)
-
         elif expr.expr_type == ExpressionType.CALL:
             return self._create_call_expression(expr)
-
+        elif expr.expr_type == ExpressionType.OPERATOR:
+            return self._create_operator_expression(expr)
+        elif expr.expr_type == ExpressionType.PROPERTY_ACCESS:
+            return self._create_property_access_expression(expr)
+        elif expr.expr_type == ExpressionType.CONSTRUCTOR:
+            return self._create_construction_expression(expr)
         else:
             return LiteralNode(value=f"<{expr.expr_type.value}>")
 

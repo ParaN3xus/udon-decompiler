@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List, Optional
 
+from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.models.module_info import ExternFunctionInfo
 
 
@@ -170,9 +171,18 @@ class GotoNode(StatementNode):
         self.node_type = ASTNodeType.GOTO
 
 
+class ExpressionType(Enum):
+    LITERAL = "literal"
+    VARIABLE = "variable"
+    CALL = "call"
+    PROPERTY_ACCESS = "prop"
+    CONSTRUCTOR = "ctor"
+    OPERATOR = "op"
+
+
 @dataclass
 class ExpressionNode(ASTNode):
-    expr_type: str = ""  # "literal", "variable", "call", etc.
+    expr_type: ExpressionType = field(default=ExpressionType.CALL, init=False)
     value: Any = None
     node_type: ASTNodeType = field(default=ASTNodeType.EXPRESSION, init=False)
 
@@ -186,7 +196,7 @@ class LiteralNode(ExpressionNode):
 
     def __post_init__(self):
         super().__post_init__()
-        self.expr_type = "literal"
+        self.expr_type = ExpressionType.LITERAL
 
 
 @dataclass
@@ -196,14 +206,60 @@ class VariableNode(ExpressionNode):
 
     def __post_init__(self):
         super().__post_init__()
-        self.expr_type = "variable"
+        self.expr_type = ExpressionType.VARIABLE
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CallNode(ExpressionNode):
-    function_info: Optional[ExternFunctionInfo] = None
+    function_info: ExternFunctionInfo
     arguments: List[ExpressionNode] = field(default_factory=list)
 
     def __post_init__(self):
         super().__post_init__()
-        self.expr_type = "call"
+        self.expr_type = ExpressionType.CALL
+
+
+class PropertyAccessType(Enum):
+    GET = "__get"
+    SET = "__set"
+
+    @classmethod
+    def literal_len(cls) -> int:
+        get_len = len(cls.GET.value)
+        set_len = len(cls.SET.value)
+        assert get_len == set_len
+        return get_len
+
+
+@dataclass(kw_only=True)
+class PropertyAccessNode(ExpressionNode):
+    type: PropertyAccessType
+    field: str
+    receiver: ExpressionNode
+    this: ExpressionNode
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.expr_type = ExpressionType.CALL
+
+
+@dataclass(kw_only=True)
+class OperatorNode(ExpressionNode):
+    operator: Operator
+    receiver: ExpressionNode
+    operands: List[ExpressionNode] = field(default_factory=list)
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.expr_type = ExpressionType.OPERATOR
+
+
+@dataclass(kw_only=True)
+class ConstructionNode(ExpressionNode):
+    type_name: str
+    arguments: List[ExpressionNode] = field(default_factory=list)
+    receiver: ExpressionNode
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.expr_type = ExpressionType.OPERATOR

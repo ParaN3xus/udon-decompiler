@@ -2,13 +2,14 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Optional
+
 from udon_decompiler import (
-    ProgramLoader,
     BytecodeParser,
-    ModuleInfoLoader,
-    UdonModuleInfo,
     DataFlowAnalyzer,
+    ModuleInfoLoader,
     ProgramCodeGenerator,
+    ProgramLoader,
+    UdonModuleInfo,
     UdonProgramData,
     logger,
 )
@@ -55,6 +56,7 @@ def process_file(
 
     except Exception as e:
         logger.error(f"Failed to decompile {json_file.name}: {str(e)}")
+        raise e
 
 
 def main():
@@ -78,7 +80,7 @@ def main():
         ModuleInfoLoader.load_from_file(str(args.info))
     except Exception as e:
         logger.error(f"Error loading ModuleInfo: {e}")
-        sys.exit(1)
+        raise e
 
     input_path: Path = args.input
     output_path: Path = args.output
