@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Optional
@@ -13,6 +14,7 @@ from udon_decompiler import (
     UdonProgramData,
     logger,
 )
+from udon_decompiler.utils.logger import set_logger_level
 
 
 def decompile_program_to_source(
@@ -20,6 +22,8 @@ def decompile_program_to_source(
 ) -> tuple[Optional[str], str]:
     bc_parser = BytecodeParser(program)
     instructions = bc_parser.parse()
+
+    logger.debug(instructions)
 
     analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
     function_analyzers = analyzer.analyze()
@@ -69,8 +73,15 @@ def main():
         default="./local/UdonModuleInfo.json",
         help="Path to UdonModuleInfo.json",
     )
-
+    parser.add_argument(
+        "--log",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set log level (default: INFO)",
+    )
     args = parser.parse_args()
+
+    set_logger_level(getattr(logging, args.log.upper(), logging.INFO))
 
     if not args.info.exists():
         logger.error(f"Module info file not found at {args.info}")

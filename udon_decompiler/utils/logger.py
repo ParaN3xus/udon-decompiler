@@ -23,3 +23,9 @@ def setup_logger(
 
 
 logger = setup_logger()
+
+
+def set_logger_level(level: "logging._Level"):
+    logger.setLevel(level)
+    for handler in logger.handlers:
+        handler.setLevel(level)
