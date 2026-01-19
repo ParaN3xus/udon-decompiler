@@ -6,6 +6,7 @@ from udon_decompiler.codegen.ast_nodes import (
     AssignmentNode,
     BlockNode,
     CallNode,
+    ConstructionNode,
     DoWhileNode,
     ExpressionNode,
     ExpressionStatementNode,
@@ -15,7 +16,9 @@ from udon_decompiler.codegen.ast_nodes import (
     IfNode,
     LabelNode,
     LiteralNode,
+    OperatorNode,
     ProgramNode,
+    PropertyAccessNode,
     StatementNode,
     VariableDeclNode,
     VariableNode,
@@ -247,17 +250,21 @@ class CSharpCodeGenerator:
         return lines
 
     def _generate_expression(self, expr: ExpressionNode) -> str:
-        if isinstance(expr, LiteralNode):
-            return self._generate_literal(expr)
-
-        elif isinstance(expr, VariableNode):
-            return expr.var_name
-
-        elif isinstance(expr, CallNode):
-            return self._generate_call(expr)
-
-        else:
-            return f"<{expr.expr_type}>"
+        match expr:
+            case LiteralNode():
+                return self._generate_literal(expr)
+            case VariableNode():
+                return expr.var_name
+            case CallNode():
+                return self._generate_call(expr)
+            case PropertyAccessNode():
+                return self._generate_property_access(expr)
+            case ConstructionNode():
+                return self._generate_construction(expr)
+            case OperatorNode():
+                return self._generate_operator(expr)
+            case _:
+                return f"<{expr.expr_type}>"
 
     def _generate_literal(self, expr: LiteralNode) -> str:
         if expr.literal_type == "System.String":
@@ -286,13 +293,13 @@ class CSharpCodeGenerator:
             return str(expr.value)
 
     def _generate_call(self, expr: CallNode) -> str:
-        if not expr.function_info:
-            raise Exception("Invalid CallNode")
+        if expr.function_info.is_static is None:
+            logger.warning("Can't determine if function is static! Assuming static.")
 
         caller = (
-            expr.function_info.type_name
-            if expr.function_info.is_static
-            else self._generate_expression(expr.arguments.pop(0))
+            self._generate_expression(expr.arguments.pop(0))
+            if not expr.function_info.is_static
+            else expr.function_info.type_name
         )
         func_name = expr.function_info.original_name
         if not expr.function_info.returns_void:
@@ -301,6 +308,24 @@ class CSharpCodeGenerator:
         args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
 
         return f"{'' if expr.function_info.returns_void else f'{receiver} = '}{caller}.{func_name or expr.function_info.function_name}({args})"
+
+    def _generate_property_access(self, expr: PropertyAccessNode) -> str:
+        receiver = self._generate_expression(expr.receiver)
+        this = self._generate_expression(expr.this)
+
+        return f"{receiver} = {this}.{expr.field}"
+
+    def _generate_construction(self, expr: ConstructionNode) -> str:
+        args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
+        receiver = self._generate_expression(expr.receiver)
+
+        return f"{receiver} = new {expr.type_name}({args})"
+
+    def _generate_operator(self, expr: OperatorNode) -> str:
+        receiver = self._generate_expression(expr.receiver)
+        oprs = [self._generate_expression(opr) for opr in expr.operands]
+
+        return f"{receiver} = {expr.operator.formatter.format(*oprs)}"
 
 
 class ProgramCodeGenerator:

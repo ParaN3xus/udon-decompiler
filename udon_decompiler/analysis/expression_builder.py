@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, Final, List, Optional
 
 from udon_decompiler.analysis.stack_simulator import (
     StackSimulator,
@@ -9,7 +9,11 @@ from udon_decompiler.analysis.stack_simulator import (
 )
 from udon_decompiler.analysis.variable_identifier import VariableIdentifier
 from udon_decompiler.models.instruction import Instruction, OpCode
-from udon_decompiler.models.module_info import ExternFunctionInfo, UdonModuleInfo
+from udon_decompiler.models.module_info import (
+    ExternFunctionInfo,
+    FunctionDefinitionType,
+    UdonModuleInfo,
+)
 from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.utils.logger import logger
 
@@ -17,13 +21,43 @@ from udon_decompiler.utils.logger import logger
 class ExpressionType(Enum):
     LITERAL = "literal"
     VARIABLE = "variable"  # var ref
-    # BINARY_OP = "binary_op"
-    # UNARY_OP = "unary_op"
-    CALL = "call"  # func call
-    # PROPERTY_ACCESS = "prop"      # prop access
+    OPERATOR = "op"
+    CALL = "call"
+    PROPERTY_ACCESS = "prop"
+    CONSTRUCTOR = "ctor"
     # ARRAY_ACCESS = "array"        # arr access
     ASSIGNMENT = "assignment"
     # CAST = "cast"                 # cast
+
+
+class Operator(Enum):
+    formatter: str
+
+    Addition = ("Addition", "{} + {}")
+    Subtraction = ("Subtraction", "{} - {}")
+    Multiplication = ("Multiplication", "{} * {}")
+    Division = ("Division", "{} / {}")
+    Remainder = ("Remainder", "{} % {}")
+    UnaryMinus = ("UnaryMinus", "-{}")
+    UnaryNegation = ("UnaryNegation", "!{}")
+    LogicalAnd = ("LogicalAnd", "{} & {}")
+    LogicalOr = ("LogicalOr", "{} | {}")
+    LogicalXor = ("LogicalXor", "{} ^ {}")
+    LeftShift = ("LeftShift", "{} << {}")
+    RightShift = ("RightShift", "{} >> {}")
+    Equality = ("Equality", "{} == {}")
+    Inequality = ("Inequality", "{} != {}")
+    GreaterThan = ("GreaterThan", "{} > {}")
+    GreaterThanOrEqual = ("GreaterThanOrEqual", "{} >= {}")
+    LessThan = ("LessThan", "{} < {}")
+    LessThanOrEqual = ("LessThanOrEqual", "{} <= {}")
+    ImplicitConversion = ("ImplicitConversion", "({}){}")
+
+    def __new__(cls, value, formatter):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.formatter = formatter
+        return obj
 
 
 @dataclass
@@ -32,19 +66,16 @@ class Expression:
     value: Any = None
     type_hint: Optional[str] = None
 
-    # complex expr
-    operator: Optional[str] = None
-    operands: List["Expression"] = field(default_factory=list)
+    # for op
+    operator: Optional[Operator] = None
 
-    # func
+    # for extern
     function_info: Optional[ExternFunctionInfo] = None
     arguments: List["Expression"] = field(default_factory=list)
 
     source_instruction: Optional[Instruction] = None
 
     def __post_init__(self):
-        if self.operands is None:
-            self.operands = []
         if self.arguments is None:
             self.arguments = []
 
@@ -60,6 +91,8 @@ class Expression:
 
 
 class ExpressionBuilder:
+    EXTERN_OP_PREFIX: Final[str] = "__op_"
+
     def __init__(
         self,
         program: UdonProgramData,
@@ -139,7 +172,7 @@ class ExpressionBuilder:
         return Expression(
             expr_type=ExpressionType.ASSIGNMENT,
             value=target_var,
-            operands=[source_expr] if source_expr else [],
+            arguments=[source_expr] if source_expr else [],
             source_instruction=instruction,
         )
 
@@ -177,12 +210,54 @@ class ExpressionBuilder:
                     if arg_expr:
                         arguments.append(arg_expr)
 
+        match func_info.def_type:
+            case FunctionDefinitionType.FIELD:
+                return Expression(
+                    expr_type=ExpressionType.PROPERTY_ACCESS,
+                    function_info=func_info,
+                    arguments=arguments,
+                    source_instruction=instruction,
+                )
+            case FunctionDefinitionType.CTOR:
+                return Expression(
+                    expr_type=ExpressionType.CONSTRUCTOR,
+                    function_info=func_info,
+                    arguments=arguments,
+                    source_instruction=instruction,
+                )
+            case FunctionDefinitionType.OPERATOR:
+                return Expression(
+                    expr_type=ExpressionType.OPERATOR,
+                    function_info=func_info,
+                    operator=self._build_op(
+                        func_info,
+                    ),
+                    arguments=arguments,
+                    source_instruction=instruction,
+                )
+
+        # FunctionDefinitionType.METHOD_INFO
         return Expression(
             expr_type=ExpressionType.CALL,
             function_info=func_info,
             arguments=arguments,
             source_instruction=instruction,
         )
+
+    def _build_op(
+        self,
+        func_info: ExternFunctionInfo,
+    ) -> Operator:
+        if not func_info.function_name.startswith(self.EXTERN_OP_PREFIX):
+            raise Exception("Invalid operator")
+
+        op = Operator(
+            func_info.function_name[len(self.EXTERN_OP_PREFIX) :].split(
+                "__", maxsplit=2
+            )[0]
+        )
+
+        return op
 
     def _stack_value_to_expression(
         self, stack_value: StackValue

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 
@@ -11,16 +12,31 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+class FunctionDefinitionType(Enum):
+    METHOD = "METHOD_INFO"
+    FIELD = "FIELD_INFO"
+    CTOR = "CTOR_INFO"
+    CONST = "CONST"
+    TYPE = "TYPE"
+    VARIABLE = "VARIABLE"
+    EVENT = "EVENT"
+    SPECIAL = "SPECIAL"
+    OPERATOR = "OPERATOR"
+    # there's no corresponding `NodeDefinitionInfo` in the `RootNodeRegistry`
+    # also change this in UdonModuleInfoExtractor.cs
+    UNKNOWN = "UNKNOWN"
+
+
 @dataclass
 class ExternFunctionInfo:
     signature: str
     parameter_count: int
     type_name: str
     function_name: str
-    def_type: str
+    original_name: str
+    def_type: FunctionDefinitionType
     is_static: Optional[bool] = None
     returns_void: Optional[bool] = None
-    original_name: Optional[str] = None
 
     def __repr__(self) -> str:
         extras = []
@@ -42,10 +58,10 @@ class ExternFunctionInfo:
 @dataclass
 class FunctionMetadata:
     parameter_count: int
-    def_type: str
+    original_name: str
+    def_type: FunctionDefinitionType
     is_static: Optional[bool] = None
     returns_void: Optional[bool] = None
-    original_name: Optional[str] = None
 
 
 @dataclass
@@ -105,7 +121,7 @@ class UdonModuleInfo(metaclass=Singleton):
 
             meta = FunctionMetadata(
                 parameter_count=func_data["parameterCount"],
-                def_type=func_data["defType"],
+                def_type=FunctionDefinitionType(func_data["defType"]),
                 is_static=func_data.get("isStatic"),
                 returns_void=func_data.get("returnsVoid"),
                 original_name=func_data.get("originalName"),
