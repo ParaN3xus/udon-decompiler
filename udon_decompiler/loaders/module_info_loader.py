@@ -27,7 +27,7 @@ class ModuleInfoLoader():
         return ModuleInfoLoader._parse_module_data(data)
 
     @staticmethod
-    def _parse_module_data(data: Dict[str, Dict[str, int]]) -> UdonModuleInfo:
+    def _parse_module_data(data: Dict[str, Dict[str, Any]]) -> UdonModuleInfo:
         module_info = UdonModuleInfo()
 
         for module_name, functions in data.items():

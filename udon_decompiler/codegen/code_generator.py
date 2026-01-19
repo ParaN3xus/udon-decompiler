@@ -257,12 +257,19 @@ class CSharpCodeGenerator:
             return str(expr.value)
 
     def _generate_call(self, expr: CallNode) -> str:
-        func_name = expr.function_signature
+        if not expr.function_info:
+            raise Exception("Invalid CallNode")
+
+        caller = expr.function_info.type_name if expr.function_info.is_static else self._generate_expression(
+            expr.arguments.pop(0))
+        func_name = expr.function_info.original_name
+        if not expr.function_info.returns_void:
+            receiver = self._generate_expression(expr.arguments.pop())
 
         args = ", ".join(self._generate_expression(arg)
                          for arg in expr.arguments)
 
-        return f"{func_name}({args})"
+        return f"{"" if expr.function_info.returns_void else f"{receiver} = "}{caller}.{func_name or expr.function_info.function_name}({args})"
 
 
 class ProgramCodeGenerator:

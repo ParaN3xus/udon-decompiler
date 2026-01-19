@@ -299,7 +299,7 @@ class ASTBuilder:
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
 
         return CallNode(
-            function_signature=expr.function_name or "<unknown>",
+            function_info=expr.function_info,
             arguments=args
         )
 
