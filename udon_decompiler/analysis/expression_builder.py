@@ -1,21 +1,25 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Any, Union
 from enum import Enum
+from typing import Any, List, Optional
 
+from udon_decompiler.analysis.stack_simulator import (
+    StackSimulator,
+    StackValue,
+    StackValueType,
+)
+from udon_decompiler.analysis.variable_identifier import VariableIdentifier
 from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.module_info import ExternFunctionInfo, UdonModuleInfo
 from udon_decompiler.models.program import UdonProgramData
-from udon_decompiler.models.module_info import UdonModuleInfo, ExternFunctionInfo
-from udon_decompiler.analysis.stack_simulator import StackSimulator, StackValue, StackValueType
-from udon_decompiler.analysis.variable_identifier import VariableIdentifier, Variable
 from udon_decompiler.utils.logger import logger
 
 
 class ExpressionType(Enum):
     LITERAL = "literal"
-    VARIABLE = "variable"         # var ref
+    VARIABLE = "variable"  # var ref
     # BINARY_OP = "binary_op"
     # UNARY_OP = "unary_op"
-    CALL = "call"                 # func call
+    CALL = "call"  # func call
     # PROPERTY_ACCESS = "prop"      # prop access
     # ARRAY_ACCESS = "array"        # arr access
     ASSIGNMENT = "assignment"
@@ -30,11 +34,11 @@ class Expression:
 
     # complex expr
     operator: Optional[str] = None
-    operands: List['Expression'] = field(default_factory=list)
+    operands: List["Expression"] = field(default_factory=list)
 
     # func
     function_info: Optional[ExternFunctionInfo] = None
-    arguments: List['Expression'] = field(default_factory=list)
+    arguments: List["Expression"] = field(default_factory=list)
 
     source_instruction: Optional[Instruction] = None
 
@@ -50,7 +54,7 @@ class Expression:
         elif self.expr_type == ExpressionType.VARIABLE:
             return f"Var({self.value})"
         elif self.expr_type == ExpressionType.CALL:
-            return f"Call({self.function_info.function_name if self.function_info else "<unknown>"}, {len(self.arguments)} args)"
+            return f"Call({self.function_info.function_name if self.function_info else '<unknown>'}, {len(self.arguments)} args)"
         else:
             return f"Expr({self.expr_type.value})"
 
@@ -61,7 +65,7 @@ class ExpressionBuilder:
         program: UdonProgramData,
         module_info: UdonModuleInfo,
         stack_simulator: StackSimulator,
-        variable_identifier: VariableIdentifier
+        variable_identifier: VariableIdentifier,
     ):
         self.program = program
         self.module_info = module_info
@@ -69,8 +73,7 @@ class ExpressionBuilder:
         self.variable_identifier = variable_identifier
 
     def build_expression_from_instruction(
-        self,
-        instruction: Instruction
+        self, instruction: Instruction
     ) -> Optional[Expression]:
         opcode = instruction.opcode
 
@@ -86,7 +89,6 @@ class ExpressionBuilder:
         return None
 
     def _build_push_expression(self, instruction: Instruction) -> Optional[Expression]:
-
         if instruction.operand is None:
             return None
 
@@ -99,7 +101,7 @@ class ExpressionBuilder:
                 expr_type=ExpressionType.VARIABLE,
                 value=variable.name,
                 type_hint=variable.type_hint,
-                source_instruction=instruction
+                source_instruction=instruction,
             )
 
         # in heap
@@ -109,7 +111,7 @@ class ExpressionBuilder:
                 expr_type=ExpressionType.LITERAL,
                 value=heap_entry.value.value,
                 type_hint=heap_entry.type,
-                source_instruction=instruction
+                source_instruction=instruction,
             )
 
         # int
@@ -117,7 +119,7 @@ class ExpressionBuilder:
             expr_type=ExpressionType.LITERAL,
             value=f"0x{address:08x}",
             type_hint="address",
-            source_instruction=instruction
+            source_instruction=instruction,
         )
 
     def _build_copy_expression(self, instruction: Instruction) -> Optional[Expression]:
@@ -131,18 +133,19 @@ class ExpressionBuilder:
         if not source_val or not target_val:
             return None
 
-        target_var = self.variable_identifier.get_variable_name(
-            target_val.value)
+        target_var = self.variable_identifier.get_variable_name(target_val.value)
         source_expr = self._stack_value_to_expression(source_val)
 
         return Expression(
             expr_type=ExpressionType.ASSIGNMENT,
             value=target_var,
             operands=[source_expr] if source_expr else [],
-            source_instruction=instruction
+            source_instruction=instruction,
         )
 
-    def _build_extern_expression(self, instruction: Instruction) -> Optional[Expression]:
+    def _build_extern_expression(
+        self, instruction: Instruction
+    ) -> Optional[Expression]:
         if instruction.operand is None:
             return None
 
@@ -160,7 +163,7 @@ class ExpressionBuilder:
             return Expression(
                 expr_type=ExpressionType.CALL,
                 function_info=None,
-                source_instruction=instruction
+                source_instruction=instruction,
             )
 
         prev_state = self._get_previous_state(instruction)
@@ -178,17 +181,19 @@ class ExpressionBuilder:
             expr_type=ExpressionType.CALL,
             function_info=func_info,
             arguments=arguments,
-            source_instruction=instruction
+            source_instruction=instruction,
         )
 
-    def _stack_value_to_expression(self, stack_value: StackValue) -> Optional[Expression]:
+    def _stack_value_to_expression(
+        self, stack_value: StackValue
+    ) -> Optional[Expression]:
         if stack_value.value_type == StackValueType.HEAP_ADDRESS:
             variable = self.variable_identifier.get_variable(stack_value.value)
             if variable:
                 return Expression(
                     expr_type=ExpressionType.VARIABLE,
                     value=variable.name,
-                    type_hint=variable.type_hint
+                    type_hint=variable.type_hint,
                 )
 
             # in heap
@@ -197,20 +202,20 @@ class ExpressionBuilder:
                 return Expression(
                     expr_type=ExpressionType.LITERAL,
                     value=heap_entry.value.value,
-                    type_hint=heap_entry.type
+                    type_hint=heap_entry.type,
                 )
 
         elif stack_value.value_type == StackValueType.IMMEDIATE:
             return Expression(
                 expr_type=ExpressionType.LITERAL,
                 value=stack_value.value,
-                type_hint=stack_value.type_hint
+                type_hint=stack_value.type_hint,
             )
 
         return Expression(
             expr_type=ExpressionType.LITERAL,
             value=f"0x{stack_value.value:08x}",
-            type_hint="unknown"
+            type_hint="unknown",
         )
 
     def _get_previous_state(self, instruction: Instruction):
@@ -220,7 +225,9 @@ class ExpressionBuilder:
                 if inst.address == instruction.address:
                     if i > 0:
                         prev_inst = block.instructions[i - 1]
-                        return self.stack_simulator.get_instruction_state(prev_inst.address)
+                        return self.stack_simulator.get_instruction_state(
+                            prev_inst.address
+                        )
                     else:
                         return self.stack_simulator.get_block_entry_state(block)
 

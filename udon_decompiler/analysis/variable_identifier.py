@@ -1,12 +1,16 @@
 from dataclasses import dataclass, field
-from typing import Dict, Set, Optional, List
+from typing import Dict, Set, Optional
 from enum import Enum
 
 from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.program import UdonProgramData, SymbolInfo
 from udon_decompiler.analysis.basic_block import BasicBlock
 from udon_decompiler.analysis.cfg import ControlFlowGraph
-from udon_decompiler.analysis.stack_simulator import StackFrame, StackSimulator, StackValue, StackValueType
+from udon_decompiler.analysis.stack_simulator import (
+    StackFrame,
+    StackSimulator,
+    StackValueType,
+)
 from udon_decompiler.utils.logger import logger
 
 
@@ -48,7 +52,7 @@ class VariableIdentifier:
         self,
         program: UdonProgramData,
         cfg: ControlFlowGraph,
-        stack_simulator: StackSimulator
+        stack_simulator: StackSimulator,
     ):
         self.program = program
         self.cfg = cfg
@@ -74,14 +78,13 @@ class VariableIdentifier:
         return self._variables
 
     def _identify_global_variables(self) -> None:
-
         for symbol_name, symbol in self.program.symbols.items():
             variable = Variable(
                 address=symbol.address,
                 name=symbol_name,
                 type_hint=symbol.type,
                 scope=VariableScope.GLOBAL,
-                original_symbol=symbol
+                original_symbol=symbol,
             )
 
             self._variables[symbol.address] = variable
@@ -90,8 +93,7 @@ class VariableIdentifier:
 
     def _analyze_block_variables(self, block: BasicBlock) -> None:
         for instruction in block.instructions:
-            state = self.stack_simulator.get_instruction_state(
-                instruction.address)
+            state = self.stack_simulator.get_instruction_state(instruction.address)
             if not state:
                 continue
 
@@ -110,13 +112,11 @@ class VariableIdentifier:
                     if source_val and target_val:
                         if target_val.value_type == StackValueType.HEAP_ADDRESS:
                             self._record_variable_write(
-                                target_val.value,
-                                instruction.address
+                                target_val.value, instruction.address
                             )
                         if source_val.value_type == StackValueType.HEAP_ADDRESS:
                             self._record_variable_read(
-                                source_val.value,
-                                instruction.address
+                                source_val.value, instruction.address
                             )
 
             elif instruction.opcode.name == "EXTERN":
@@ -139,6 +139,7 @@ class VariableIdentifier:
             return
 
         from ..models.module_info import UdonModuleInfo
+
         module_info = UdonModuleInfo()
 
         func_info = module_info.get_function_info(signature)
@@ -166,17 +167,13 @@ class VariableIdentifier:
                 continue
 
             if param_val.value_type == StackValueType.HEAP_ADDRESS:
-                self._record_variable_read(
-                    param_val.value,
-                    instruction.address
-                )
+                self._record_variable_read(param_val.value, instruction.address)
                 logger.debug(
                     f"EXTERN at 0x{instruction.address:08x}: "
                     f"parameter {i} reads variable at 0x{param_val.value:08x}"
                 )
 
     def _record_variable_read(self, address: int, instruction_address: int) -> None:
-
         if address not in self._variables:
             self._create_variable(address)
 
@@ -196,7 +193,7 @@ class VariableIdentifier:
                 name=symbol.name,
                 type_hint=symbol.type,
                 scope=VariableScope.GLOBAL,
-                original_symbol=symbol
+                original_symbol=symbol,
             )
         else:
             heap_entry = self.program.get_initial_heap_value(address)
@@ -208,7 +205,7 @@ class VariableIdentifier:
                 address=address,
                 name=var_name,
                 type_hint=type_hint,
-                scope=VariableScope.TEMPORARY
+                scope=VariableScope.TEMPORARY,
             )
 
         self._variables[address] = variable
@@ -241,7 +238,9 @@ class VariableIdentifier:
 
             # <1 w <1 r -> temp
 
-    def _get_previous_instruction_state(self, instruction: Instruction) -> Optional[StackFrame]:
+    def _get_previous_instruction_state(
+        self, instruction: Instruction
+    ) -> Optional[StackFrame]:
         block = self._find_block_containing(instruction.address)
         if not block:
             return None

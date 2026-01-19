@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Set, Optional, Dict
+from typing import List, Set, Optional
 from enum import Enum
 
 from udon_decompiler.analysis.cfg import ControlFlowGraph
@@ -55,8 +55,7 @@ class ControlFlowStructureIdentifier:
         self._structures: List[ControlStructure] = []
 
     def identify(self) -> List[ControlStructure]:
-        logger.info(
-            f"Identifying control structures for {self.cfg.function_name}...")
+        logger.info(f"Identifying control structures for {self.cfg.function_name}...")
 
         loops = self._identify_loops()
         self._structures.extend(loops)
@@ -85,7 +84,7 @@ class ControlFlowStructureIdentifier:
                 type=loop_type,
                 header=header,
                 exit=exit_block,
-                loop_body=loop_blocks - {header}
+                loop_body=loop_blocks - {header},
             )
             loops.append(structure)
 
@@ -123,17 +122,23 @@ class ControlFlowStructureIdentifier:
 
         # incase, downgraded
         blocks_with_external_pred = [
-            b for b in loop_blocks
+            b
+            for b in loop_blocks
             if any(p not in loop_blocks for p in self.cfg.get_predecessors(b))
         ]
 
-        return min(blocks_with_external_pred, key=lambda b: b.start_address) if blocks_with_external_pred else None
+        return (
+            min(blocks_with_external_pred, key=lambda b: b.start_address)
+            if blocks_with_external_pred
+            else None
+        )
 
     def _determine_loop_type(
         self, header: BasicBlock, loop_blocks: Set[BasicBlock]
     ) -> ControlStructureType:
         external_preds = [
-            pred for pred in self.cfg.get_predecessors(header)
+            pred
+            for pred in self.cfg.get_predecessors(header)
             if pred not in loop_blocks
         ]
 
@@ -179,14 +184,12 @@ class ControlFlowStructureIdentifier:
                 header=header,
                 exit=None,
                 true_branch=true_branch,
-                false_branch=false_branch
+                false_branch=false_branch,
             )
 
         else:
-            true_blocks = self._collect_blocks_between(
-                branch_true, merge_point)
-            false_blocks = self._collect_blocks_between(
-                branch_false, merge_point)
+            true_blocks = self._collect_blocks_between(branch_true, merge_point)
+            false_blocks = self._collect_blocks_between(branch_false, merge_point)
 
             if branch_false == merge_point or not false_blocks:
                 return ControlStructure(
@@ -194,7 +197,7 @@ class ControlFlowStructureIdentifier:
                     header=header,
                     exit=merge_point,
                     true_branch=true_blocks,
-                    false_branch=None
+                    false_branch=None,
                 )
             else:
                 return ControlStructure(
@@ -202,7 +205,7 @@ class ControlFlowStructureIdentifier:
                     header=header,
                     exit=merge_point,
                     true_branch=true_blocks,
-                    false_branch=false_blocks
+                    false_branch=false_blocks,
                 )
 
     def _find_merge_point(

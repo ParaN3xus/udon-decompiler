@@ -19,8 +19,8 @@ class BasicBlock:
     start_address: int
     end_address: int
     instructions: List[Instruction] = field(default_factory=list)
-    predecessors: Set['BasicBlock'] = field(default_factory=set)
-    successors: Set['BasicBlock'] = field(default_factory=set)
+    predecessors: Set["BasicBlock"] = field(default_factory=set)
+    successors: Set["BasicBlock"] = field(default_factory=set)
     block_type: BasicBlockType = BasicBlockType.NORMAL
 
     # if it's an function entry
@@ -50,10 +50,10 @@ class BasicBlock:
     def first_instruction(self) -> Optional[Instruction]:
         return self.instructions[0] if self.instructions else None
 
-    def add_predecessor(self, block: 'BasicBlock') -> None:
+    def add_predecessor(self, block: "BasicBlock") -> None:
         self.predecessors.add(block)
 
-    def add_successor(self, block: 'BasicBlock') -> None:
+    def add_successor(self, block: "BasicBlock") -> None:
         self.successors.add(block)
 
     def is_empty(self) -> bool:
@@ -64,14 +64,17 @@ class BasicBlock:
 
 
 class BasicBlockIdentifier:
-    def __init__(self, instructions: List[Instruction], entry_points: List[int], heap_initial_values: Dict[int, HeapEntry]):
+    def __init__(
+        self,
+        instructions: List[Instruction],
+        entry_points: List[int],
+        heap_initial_values: Dict[int, HeapEntry],
+    ):
         self.instructions = instructions
         self.entry_points = set(entry_points)
         self.heap_initial_values = heap_initial_values
 
-        self._address_to_instruction = {
-            inst.address: inst for inst in instructions
-        }
+        self._address_to_instruction = {inst.address: inst for inst in instructions}
         self._basic_blocks: List[BasicBlock] = []
         self._address_to_block: dict[int, BasicBlock] = {}
 
@@ -137,15 +140,13 @@ class BasicBlockIdentifier:
 
             end_addr = block_instructions[-1].address
 
-            block_type = self._determine_block_type(
-                start_addr, block_instructions
-            )
+            block_type = self._determine_block_type(start_addr, block_instructions)
 
             block = BasicBlock(
                 start_address=start_addr,
                 end_address=end_addr,
                 instructions=block_instructions,
-                block_type=block_type
+                block_type=block_type,
             )
 
             blocks.append(block)

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Set
+from typing import List, Optional, Dict
 from enum import Enum
 
 from udon_decompiler.models.instruction import Instruction, OpCode
-from udon_decompiler.models.program import UdonProgramData, HeapEntry, SymbolInfo
+from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.models.module_info import UdonModuleInfo
 from udon_decompiler.analysis.basic_block import BasicBlock
 from udon_decompiler.utils.logger import logger
@@ -42,14 +42,14 @@ class StackFrame:
             return self.stack[-(depth + 1)]
         return None
 
-    def copy(self) -> 'StackFrame':
+    def copy(self) -> "StackFrame":
         new_frame = StackFrame()
         new_frame.stack = [
             StackValue(
                 value=sv.value,
                 value_type=sv.value_type,
                 type_hint=sv.type_hint,
-                source_instruction=sv.source_instruction
+                source_instruction=sv.source_instruction,
             )
             for sv in self.stack
         ]
@@ -60,25 +60,17 @@ class StackFrame:
 
 
 class StackSimulator:
-    def __init__(
-        self,
-        program: UdonProgramData,
-        module_info: UdonModuleInfo
-    ):
+    def __init__(self, program: UdonProgramData, module_info: UdonModuleInfo):
         self.program = program
         self.module_info = module_info
 
         self._block_entry_states: Dict[BasicBlock, StackFrame] = {}
         self._block_exit_states: Dict[BasicBlock, StackFrame] = {}
-        self._instruction_states: Dict[int,
-                                       StackFrame] = {}  # address -> state
+        self._instruction_states: Dict[int, StackFrame] = {}  # address -> state
 
     def simulate_block(
-        self,
-        block: BasicBlock,
-        entry_state: Optional[StackFrame] = None
+        self, block: BasicBlock, entry_state: Optional[StackFrame] = None
     ) -> StackFrame:
-
         if entry_state is None:
             entry_state = StackFrame()
 
@@ -91,10 +83,8 @@ class StackSimulator:
         )
 
         for instruction in block.instructions:
-            current_state = self._simulate_instruction(
-                instruction, current_state)
-            self._instruction_states[instruction.address] = current_state.copy(
-            )
+            current_state = self._simulate_instruction(instruction, current_state)
+            self._instruction_states[instruction.address] = current_state.copy()
 
         self._block_exit_states[block] = current_state.copy()
 
@@ -106,9 +96,7 @@ class StackSimulator:
         return current_state
 
     def _simulate_instruction(
-        self,
-        instruction: Instruction,
-        state: StackFrame
+        self, instruction: Instruction, state: StackFrame
     ) -> StackFrame:
         opcode = instruction.opcode
 
@@ -118,8 +106,7 @@ class StackSimulator:
         elif opcode == OpCode.PUSH:
             operand = instruction.operand
             if operand is None:
-                logger.warning(
-                    f"PUSH at 0x{instruction.address:08x} has no operand")
+                logger.warning(f"PUSH at 0x{instruction.address:08x} has no operand")
                 return state
 
             heap_entry = self.program.get_initial_heap_value(operand)
@@ -135,12 +122,14 @@ class StackSimulator:
                 else:
                     value_type = StackValueType.IMMEDIATE
 
-            state.push(StackValue(
-                value=operand,
-                value_type=value_type,
-                type_hint=type_hint,
-                source_instruction=instruction
-            ))
+            state.push(
+                StackValue(
+                    value=operand,
+                    value_type=value_type,
+                    type_hint=type_hint,
+                    source_instruction=instruction,
+                )
+            )
 
         elif opcode == OpCode.POP:
             state.pop()
@@ -172,13 +161,10 @@ class StackSimulator:
         return state
 
     def _simulate_extern_call(
-        self,
-        instruction: Instruction,
-        state: StackFrame
+        self, instruction: Instruction, state: StackFrame
     ) -> None:
         if instruction.operand is None:
-            logger.warning(
-                f"EXTERN at 0x{instruction.address:08x} has no operand")
+            logger.warning(f"EXTERN at 0x{instruction.address:08x} has no operand")
             return
 
         heap_entry = self.program.get_initial_heap_value(instruction.operand)
@@ -192,16 +178,14 @@ class StackSimulator:
         signature = heap_entry.value.value
         if not isinstance(signature, str):
             logger.warning(
-                f"EXTERN at 0x{instruction.address:08x}: "
-                f"heap value is not a string"
+                f"EXTERN at 0x{instruction.address:08x}: heap value is not a string"
             )
             return
 
         func_info = self.module_info.get_function_info(signature)
         if not func_info:
             logger.warning(
-                f"EXTERN at 0x{instruction.address:08x}: "
-                f"unknown function {signature}"
+                f"EXTERN at 0x{instruction.address:08x}: unknown function {signature}"
             )
             return
 

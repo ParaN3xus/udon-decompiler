@@ -1,10 +1,28 @@
 from typing import Optional
 
-from udon_decompiler.models.program import UdonProgramData
-from udon_decompiler.analysis.variable_identifier import Variable
 from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
-from udon_decompiler.codegen.ast_nodes import *
+from udon_decompiler.analysis.variable_identifier import Variable
+from udon_decompiler.codegen.ast_nodes import (
+    AssignmentNode,
+    BlockNode,
+    CallNode,
+    DoWhileNode,
+    ExpressionNode,
+    ExpressionStatementNode,
+    FunctionNode,
+    GotoNode,
+    IfElseNode,
+    IfNode,
+    LabelNode,
+    LiteralNode,
+    ProgramNode,
+    StatementNode,
+    VariableDeclNode,
+    VariableNode,
+    WhileNode,
+)
 from udon_decompiler.codegen.formatter import CodeFormatter
+from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -17,13 +35,15 @@ class CSharpCodeGenerator:
 
         lines = []
 
-        lines.extend([
-            "// Decompiled Udon Program",
-            "// This is pseudo-code and may not compile directly",
-            "",
-            f"public class {class_name} : UdonSharpBehaviour",
-            "{",
-        ])
+        lines.extend(
+            [
+                "// Decompiled Udon Program",
+                "// This is pseudo-code and may not compile directly",
+                "",
+                f"public class {class_name} : UdonSharpBehaviour",
+                "{",
+            ]
+        )
 
         for global_var in program_node.global_variables:
             decl_lines = self._generate_variable_decl(global_var, 1)
@@ -58,8 +78,7 @@ class CSharpCodeGenerator:
         lines.append(f"{indent_str}{{")
 
         if func_node.body:
-            body_lines = self._generate_block(
-                func_node.body, indent=indent + 1)
+            body_lines = self._generate_block(func_node.body, indent=indent + 1)
             lines.extend(body_lines)
 
         lines.append(f"{indent_str}}}")
@@ -73,8 +92,7 @@ class CSharpCodeGenerator:
         name = func_node.name
 
         params = ", ".join(
-            f"{p.var_type or 'object'} {p.var_name}"
-            for p in func_node.parameters
+            f"{p.var_type or 'object'} {p.var_name}" for p in func_node.parameters
         )
 
         return f"public {return_type} {name}({params})"
@@ -140,7 +158,9 @@ class CSharpCodeGenerator:
         else:
             return [f"{indent_str}{stmt.target} = <unknown>;"]
 
-    def _generate_expression_statement(self, stmt: ExpressionStatementNode, indent: int) -> list[str]:
+    def _generate_expression_statement(
+        self, stmt: ExpressionStatementNode, indent: int
+    ) -> list[str]:
         indent_str = "    " * indent
 
         if stmt.expression:
@@ -153,8 +173,9 @@ class CSharpCodeGenerator:
         indent_str = "    " * indent
         lines = []
 
-        condition = self._generate_expression(
-            stmt.condition) if stmt.condition else "false"
+        condition = (
+            self._generate_expression(stmt.condition) if stmt.condition else "false"
+        )
         lines.append(f"{indent_str}if ({condition})")
         lines.append(f"{indent_str}{{")
 
@@ -169,8 +190,9 @@ class CSharpCodeGenerator:
         indent_str = "    " * indent
         lines = []
 
-        condition = self._generate_expression(
-            stmt.condition) if stmt.condition else "false"
+        condition = (
+            self._generate_expression(stmt.condition) if stmt.condition else "false"
+        )
         lines.append(f"{indent_str}if ({condition})")
         lines.append(f"{indent_str}{{")
 
@@ -192,8 +214,9 @@ class CSharpCodeGenerator:
         indent_str = "    " * indent
         lines = []
 
-        condition = self._generate_expression(
-            stmt.condition) if stmt.condition else "true"
+        condition = (
+            self._generate_expression(stmt.condition) if stmt.condition else "true"
+        )
         lines.append(f"{indent_str}while ({condition})")
         lines.append(f"{indent_str}{{")
 
@@ -216,8 +239,9 @@ class CSharpCodeGenerator:
 
         lines.append(f"{indent_str}}}")
 
-        condition = self._generate_expression(
-            stmt.condition) if stmt.condition else "true"
+        condition = (
+            self._generate_expression(stmt.condition) if stmt.condition else "true"
+        )
         lines.append(f"{indent_str}while ({condition});")
 
         return lines
@@ -236,7 +260,6 @@ class CSharpCodeGenerator:
             return f"<{expr.expr_type}>"
 
     def _generate_literal(self, expr: LiteralNode) -> str:
-
         if expr.literal_type == "System.String":
             value = str(expr.value).replace('"', '\\"')
             return f'"{value}"'
@@ -247,8 +270,14 @@ class CSharpCodeGenerator:
         elif expr.literal_type == "System.Int32" or expr.literal_type == "System.Int64":
             return str(expr.value)
 
-        elif expr.literal_type == "System.Single" or expr.literal_type == "System.Double":
-            return f"{expr.value}f" if expr.literal_type == "System.Single" else str(expr.value)
+        elif (
+            expr.literal_type == "System.Single" or expr.literal_type == "System.Double"
+        ):
+            return (
+                f"{expr.value}f"
+                if expr.literal_type == "System.Single"
+                else str(expr.value)
+            )
 
         elif expr.value is None:
             return "null"
@@ -260,16 +289,18 @@ class CSharpCodeGenerator:
         if not expr.function_info:
             raise Exception("Invalid CallNode")
 
-        caller = expr.function_info.type_name if expr.function_info.is_static else self._generate_expression(
-            expr.arguments.pop(0))
+        caller = (
+            expr.function_info.type_name
+            if expr.function_info.is_static
+            else self._generate_expression(expr.arguments.pop(0))
+        )
         func_name = expr.function_info.original_name
         if not expr.function_info.returns_void:
             receiver = self._generate_expression(expr.arguments.pop())
 
-        args = ", ".join(self._generate_expression(arg)
-                         for arg in expr.arguments)
+        args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
 
-        return f"{"" if expr.function_info.returns_void else f"{receiver} = "}{caller}.{func_name or expr.function_info.function_name}({args})"
+        return f"{'' if expr.function_info.returns_void else f'{receiver} = '}{caller}.{func_name or expr.function_info.function_name}({args})"
 
 
 class ProgramCodeGenerator:
@@ -282,8 +313,7 @@ class ProgramCodeGenerator:
         program: UdonProgramData,
         function_analyzers: dict[str, FunctionDataFlowAnalyzer],
     ) -> tuple[Optional[str], str]:
-        global_vars = cls._collect_and_generate_global_variables(
-            function_analyzers)
+        global_vars = cls._collect_and_generate_global_variables(function_analyzers)
 
         program_node = ProgramNode(global_variables=global_vars)
 
@@ -291,6 +321,7 @@ class ProgramCodeGenerator:
             logger.info(f"Generating function: {func_name}")
 
             from .ast_builder import ASTBuilder
+
             ast_builder = ASTBuilder(analyzer.program, analyzer)
             func_node = ast_builder.build()
 
@@ -310,7 +341,9 @@ class ProgramCodeGenerator:
         return class_name if not name_fallback else None, code
 
     @staticmethod
-    def _collect_and_generate_global_variables(function_analyzers: dict[str, FunctionDataFlowAnalyzer]) -> list[VariableDeclNode]:
+    def _collect_and_generate_global_variables(
+        function_analyzers: dict[str, FunctionDataFlowAnalyzer],
+    ) -> list[VariableDeclNode]:
         from udon_decompiler.analysis.variable_identifier import VariableScope
 
         logger.info("Collecting global variables from all functions...")
@@ -322,8 +355,7 @@ class ProgramCodeGenerator:
                 if var.scope == VariableScope.GLOBAL:
                     if var.address not in global_vars_by_address:
                         global_vars_by_address[var.address] = var
-                        logger.debug(
-                            f"Found global variable in {func_name}: {var}")
+                        logger.debug(f"Found global variable in {func_name}: {var}")
 
         res = []
 
@@ -347,9 +379,8 @@ class ProgramCodeGenerator:
                     var_name=var.name,
                     var_type=var.type_hint or "object",
                     initial_value=LiteralNode(
-                        value=initial_value,
-                        literal_type=var.type_hint
-                    )
+                        value=initial_value, literal_type=var.type_hint
+                    ),
                 )
             )
 
