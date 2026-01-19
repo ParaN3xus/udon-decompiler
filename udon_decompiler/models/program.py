@@ -22,7 +22,7 @@ class HeapEntryValue:
     def __repr__(self) -> str:
         if self.is_serializable:
             return f"HeapValue({repr(self.value)})"
-        return f"HeapValue(<non-serializable>)"
+        return "HeapValue(<non-serializable>)"
 
 
 @dataclass
@@ -72,25 +72,31 @@ class UdonProgramData:
 
     def get_class_name(self) -> Optional[str]:
         possible_class_name_symbol = self.get_symbol_by_address(
-            UdonProgramData.CLASS_NAME_ADDR)
+            UdonProgramData.CLASS_NAME_ADDR
+        )
         if not possible_class_name_symbol:
             logger.warning(
-                "Class name symbol not found! The Udon program might be broken!")
+                "Class name symbol not found! The Udon program might be broken!"
+            )
             return None
         if possible_class_name_symbol.name != UdonProgramData.CLASS_NAME_SYMBOL_NAME:
             logger.warning(
-                "Incorrect class name symbol found! The Udon program might be broken!")
+                "Incorrect class name symbol found! The Udon program might be broken!"
+            )
             return None
 
         possible_class_name_entry = self.get_initial_heap_value(
-            UdonProgramData.CLASS_NAME_ADDR)
+            UdonProgramData.CLASS_NAME_ADDR
+        )
         if not possible_class_name_entry:
             logger.warning(
-                "Class name entry not found! The Udon program might be broken!")
+                "Class name entry not found! The Udon program might be broken!"
+            )
             return None
         if not possible_class_name_entry.value.is_serializable:
             logger.warning(
-                "Class name entry is not serializable! The Udon program might be broken!")
+                "Class name entry is not serializable! The Udon program might be broken!"
+            )
             return None
 
         # todo: type verification

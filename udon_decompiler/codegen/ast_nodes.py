@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
 from enum import Enum
+from typing import Any, List, Optional
 
 from udon_decompiler.models.module_info import ExternFunctionInfo
 
@@ -26,10 +26,10 @@ class ASTNodeType(Enum):
 @dataclass
 class ASTNode:
     node_type: ASTNodeType
-    children: List['ASTNode'] = field(default_factory=list)
+    children: List["ASTNode"] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
 
-    def add_child(self, child: 'ASTNode') -> None:
+    def add_child(self, child: "ASTNode") -> None:
         self.children.append(child)
 
     def __repr__(self) -> str:
@@ -38,8 +38,8 @@ class ASTNode:
 
 @dataclass
 class ProgramNode(ASTNode):
-    functions: List['FunctionNode'] = field(default_factory=list)
-    global_variables: List['VariableDeclNode'] = field(default_factory=list)
+    functions: List["FunctionNode"] = field(default_factory=list)
+    global_variables: List["VariableDeclNode"] = field(default_factory=list)
     node_type: ASTNodeType = field(default=ASTNodeType.PROGRAM, init=False)
 
     def __post_init__(self):
@@ -49,9 +49,9 @@ class ProgramNode(ASTNode):
 @dataclass
 class FunctionNode(ASTNode):
     name: str = ""
-    parameters: List['VariableDeclNode'] = field(default_factory=list)
+    parameters: List["VariableDeclNode"] = field(default_factory=list)
     return_type: Optional[str] = None
-    body: Optional['BlockNode'] = None
+    body: Optional["BlockNode"] = None
     node_type: ASTNodeType = field(default=ASTNodeType.FUNCTION, init=False)
 
     def __post_init__(self):
@@ -60,13 +60,13 @@ class FunctionNode(ASTNode):
 
 @dataclass
 class BlockNode(ASTNode):
-    statements: List['StatementNode'] = field(default_factory=list)
+    statements: List["StatementNode"] = field(default_factory=list)
     node_type: ASTNodeType = field(default=ASTNodeType.BLOCK, init=False)
 
     def __post_init__(self):
         self.node_type = ASTNodeType.BLOCK
 
-    def add_statement(self, stmt: 'StatementNode') -> None:
+    def add_statement(self, stmt: "StatementNode") -> None:
         self.statements.append(stmt)
 
 
@@ -81,13 +81,13 @@ class StatementNode(ASTNode):
 
 @dataclass
 class ExpressionStatementNode(StatementNode):
-    expression: Optional['ExpressionNode'] = None
+    expression: Optional["ExpressionNode"] = None
 
 
 @dataclass
 class AssignmentNode(StatementNode):
     target: str = ""
-    value: Optional['ExpressionNode'] = None
+    value: Optional["ExpressionNode"] = None
     node_type: ASTNodeType = field(default=ASTNodeType.ASSIGNMENT, init=False)
 
     def __post_init__(self):
@@ -97,7 +97,7 @@ class AssignmentNode(StatementNode):
 
 @dataclass
 class IfNode(StatementNode):
-    condition: Optional['ExpressionNode'] = None
+    condition: Optional["ExpressionNode"] = None
     then_block: Optional[BlockNode] = None
     node_type: ASTNodeType = field(default=ASTNodeType.IF, init=False)
 
@@ -108,7 +108,7 @@ class IfNode(StatementNode):
 
 @dataclass
 class IfElseNode(StatementNode):
-    condition: Optional['ExpressionNode'] = None
+    condition: Optional["ExpressionNode"] = None
     then_block: Optional[BlockNode] = None
     else_block: Optional[BlockNode] = None
     node_type: ASTNodeType = field(default=ASTNodeType.IF_ELSE, init=False)
@@ -120,7 +120,7 @@ class IfElseNode(StatementNode):
 
 @dataclass
 class WhileNode(StatementNode):
-    condition: Optional['ExpressionNode'] = None
+    condition: Optional["ExpressionNode"] = None
     body: Optional[BlockNode] = None
     node_type: ASTNodeType = field(default=ASTNodeType.WHILE, init=False)
 
@@ -131,7 +131,7 @@ class WhileNode(StatementNode):
 
 @dataclass
 class DoWhileNode(StatementNode):
-    condition: Optional['ExpressionNode'] = None
+    condition: Optional["ExpressionNode"] = None
     body: Optional[BlockNode] = None
     node_type: ASTNodeType = field(default=ASTNodeType.DO_WHILE, init=False)
 
@@ -144,9 +144,8 @@ class DoWhileNode(StatementNode):
 class VariableDeclNode(StatementNode):
     var_name: str = ""
     var_type: Optional[str] = None
-    initial_value: Optional['ExpressionNode'] = None
-    node_type: ASTNodeType = field(
-        default=ASTNodeType.VARIABLE_DECL, init=False)
+    initial_value: Optional["ExpressionNode"] = None
+    node_type: ASTNodeType = field(default=ASTNodeType.VARIABLE_DECL, init=False)
 
     def __post_init__(self):
         super().__post_init__()

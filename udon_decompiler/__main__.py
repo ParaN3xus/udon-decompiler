@@ -10,11 +10,13 @@ from udon_decompiler import (
     DataFlowAnalyzer,
     ProgramCodeGenerator,
     UdonProgramData,
-    logger
+    logger,
 )
 
 
-def decompile_program_to_source(program: UdonProgramData, code_gen: ProgramCodeGenerator) -> tuple[Optional[str], str]:
+def decompile_program_to_source(
+    program: UdonProgramData, code_gen: ProgramCodeGenerator
+) -> tuple[Optional[str], str]:
     bc_parser = BytecodeParser(program)
     instructions = bc_parser.parse()
 
@@ -26,22 +28,27 @@ def decompile_program_to_source(program: UdonProgramData, code_gen: ProgramCodeG
     return class_name, code
 
 
-def process_file(json_file: Path, output_target: Path, is_target_file: bool, code_gen: ProgramCodeGenerator):
+def process_file(
+    json_file: Path,
+    output_target: Path,
+    is_target_file: bool,
+    code_gen: ProgramCodeGenerator,
+):
     try:
         program = ProgramLoader.load_from_file(str(json_file))
 
-        class_name, source_code = decompile_program_to_source(
-            program, code_gen)
+        class_name, source_code = decompile_program_to_source(program, code_gen)
 
         if is_target_file:
             final_path = output_target
             final_path.parent.mkdir(parents=True, exist_ok=True)
         else:
             output_target.mkdir(parents=True, exist_ok=True)
-            final_path = output_target / \
-                f"{class_name if class_name else json_file.stem}.cs"
+            final_path = (
+                output_target / f"{class_name if class_name else json_file.stem}.cs"
+            )
 
-        with open(final_path, 'w', encoding='utf-8') as f:
+        with open(final_path, "w", encoding="utf-8") as f:
             f.write(source_code)
 
         logger.info(f"Decompiled: {json_file.name} -> {final_path}")
@@ -52,11 +59,14 @@ def process_file(json_file: Path, output_target: Path, is_target_file: bool, cod
 
 def main():
     parser = argparse.ArgumentParser(description="UdonSharp Decompiler CLI")
-    parser.add_argument("input", type=Path,
-                        help="Input .json file or directory")
+    parser.add_argument("input", type=Path, help="Input .json file or directory")
     parser.add_argument("-o", "--output", type=Path, help="Output path")
-    parser.add_argument("--info", type=Path, default="./local/UdonModuleInfo.json",
-                        help="Path to UdonModuleInfo.json")
+    parser.add_argument(
+        "--info",
+        type=Path,
+        default="./local/UdonModuleInfo.json",
+        help="Path to UdonModuleInfo.json",
+    )
 
     args = parser.parse_args()
 
@@ -111,8 +121,7 @@ def main():
         for json_file in json_files:
             if json_file.name == "UdonModuleInfo.json":
                 continue
-            process_file(json_file, target,
-                         is_target_file=False, code_gen=code_gen)
+            process_file(json_file, target, is_target_file=False, code_gen=code_gen)
 
     logger.info("Done.")
 

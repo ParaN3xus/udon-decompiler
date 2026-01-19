@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 
 class CodeFormatter:
@@ -7,7 +6,6 @@ class CodeFormatter:
         self.indent_size = 4
 
     def format(self, code: str) -> str:
-
         lines = code.split("\n")
         formatted_lines = []
 
@@ -69,42 +67,9 @@ class CodeFormatter:
         return "\n".join(result)
 
     def add_spacing(self, code: str) -> str:
-        code = re.sub(r'([^=!<>])=([^=])', r'\1 = \2', code)
-        code = re.sub(r'([^<>!])([<>]=?|[!=]=)', r'\1 \2', code)
+        code = re.sub(r"([^=!<>])=([^=])", r"\1 = \2", code)
+        code = re.sub(r"([^<>!])([<>]=?|[!=]=)", r"\1 \2", code)
 
-        code = re.sub(r',([^\s])', r', \1', code)
+        code = re.sub(r",([^\s])", r", \1", code)
 
         return code
-
-
-class CommentGenerator:
-    @staticmethod
-    def add_instruction_address_comments(code: str, function_name: str, ast_builder) -> str:
-        # todo
-        return code
-
-    @staticmethod
-    def add_variable_info_comments(code: str, variables: dict) -> str:
-
-        lines = code.split("\n")
-        result = []
-
-        for line in lines:
-            result.append(line)
-
-            match = re.match(r'\s*(\w+)\s+(\w+);', line)
-            if match:
-                var_type = match.group(1)
-                var_name = match.group(2)
-
-                for var in variables.values():
-                    if var.name == var_name:
-                        indent = len(line) - len(line.lstrip())
-                        comment = " " * indent + \
-                            f"// Address: 0x{var.address:08x}"
-                        if var.type_hint:
-                            comment += f", Type: {var.type_hint}"
-                        result.append(comment)
-                        break
-
-        return "\n".join(result)

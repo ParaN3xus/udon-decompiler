@@ -33,17 +33,13 @@ class BytecodeParser:
 
         # big endian
         opcode_value = int.from_bytes(
-            bytecode[address:address+4],
-            byteorder='big',
-            signed=False
+            bytecode[address : address + 4], byteorder="big", signed=False
         )
 
         try:
             opcode = OpCode(opcode_value)
         except ValueError:
-            raise ValueError(
-                f"Unknown opcode {opcode_value} at address {address:08x}"
-            )
+            raise ValueError(f"Unknown opcode {opcode_value} at address {address:08x}")
 
         operand = None
         if opcode.has_operand:
@@ -53,16 +49,10 @@ class BytecodeParser:
                     f"expected operand but reached end of bytecode"
                 )
             operand = int.from_bytes(
-                bytecode[address+4:address+8],
-                byteorder='big',
-                signed=False
+                bytecode[address + 4 : address + 8], byteorder="big", signed=False
             )
 
-        return Instruction(
-            address=address,
-            opcode=opcode,
-            operand=operand
-        )
+        return Instruction(address=address, opcode=opcode, operand=operand)
 
     def get_instruction_at(self, address: int) -> Instruction | None:
         return self._address_to_instruction.get(address)

@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-
 class OpCode(IntEnum):
     NOP = 0
     PUSH = 1
@@ -26,7 +25,7 @@ class OpCode(IntEnum):
             OpCode.JUMP,
             OpCode.EXTERN,
             OpCode.ANNOTATION,
-            OpCode.JUMP_INDIRECT
+            OpCode.JUMP_INDIRECT,
         }
 
     @property
@@ -36,9 +35,9 @@ class OpCode(IntEnum):
 
 @dataclass
 class Instruction:
-    address: int 
+    address: int
     opcode: OpCode
-    operand: Optional[int] = None  
+    operand: Optional[int] = None
 
     def __str__(self) -> str:
         if self.operand is not None:
@@ -57,11 +56,7 @@ class Instruction:
         return self.address + self.size
 
     def is_jump(self) -> bool:
-        return self.opcode in {
-            OpCode.JUMP,
-            OpCode.JUMP_IF_FALSE,
-            OpCode.JUMP_INDIRECT
-        }
+        return self.opcode in {OpCode.JUMP, OpCode.JUMP_IF_FALSE, OpCode.JUMP_INDIRECT}
 
     def is_unconditional_jump(self) -> bool:
         return self.opcode == OpCode.JUMP

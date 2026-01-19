@@ -6,8 +6,7 @@ from udon_decompiler.models import UdonModuleInfo
 from udon_decompiler.utils import logger
 
 
-class ModuleInfoLoader():
-
+class ModuleInfoLoader:
     @staticmethod
     def load_from_file(file_path: str | Path) -> UdonModuleInfo:
         file_path = Path(file_path)
@@ -16,7 +15,7 @@ class ModuleInfoLoader():
         if not file_path.exists():
             raise FileNotFoundError(f"Module info file not found: {file_path}")
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         return ModuleInfoLoader._parse_module_data(data)

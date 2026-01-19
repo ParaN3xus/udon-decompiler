@@ -1,12 +1,12 @@
 from typing import Dict, List, Optional
 
-from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.analysis.cfg import CFGBuilder, ControlFlowGraph
+from udon_decompiler.analysis.expression_builder import Expression, ExpressionBuilder
+from udon_decompiler.analysis.stack_simulator import StackSimulator
+from udon_decompiler.analysis.variable_identifier import Variable, VariableIdentifier
 from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.module_info import UdonModuleInfo
-from udon_decompiler.analysis.cfg import ControlFlowGraph, CFGBuilder
-from udon_decompiler.analysis.stack_simulator import StackSimulator
-from udon_decompiler.analysis.variable_identifier import VariableIdentifier, Variable
-from udon_decompiler.analysis.expression_builder import ExpressionBuilder, Expression
+from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -17,7 +17,7 @@ class DataFlowAnalyzer:
         self,
         program: UdonProgramData,
         module_info: UdonModuleInfo,
-        instructions: List[Instruction]
+        instructions: List[Instruction],
     ):
         self.program = program
         self.module_info = module_info
@@ -28,37 +28,35 @@ class DataFlowAnalyzer:
 
         self.function_analyzers: Dict[str, FunctionDataFlowAnalyzer] = {}
 
-    def analyze(self) -> Dict[str, 'FunctionDataFlowAnalyzer']:
+    def analyze(self) -> Dict[str, "FunctionDataFlowAnalyzer"]:
         logger.info("Starting dataflow analysis for all functions...")
 
         for func_name, cfg in self.cfgs.items():
             logger.info(f"Analyzing function: {func_name}")
 
             analyzer = FunctionDataFlowAnalyzer(
-                program=self.program,
-                module_info=self.module_info,
-                cfg=cfg
+                program=self.program, module_info=self.module_info, cfg=cfg
             )
 
             analyzer.analyze()
             self.function_analyzers[func_name] = analyzer
 
-        logger.info(
-            f"Completed dataflow analysis for {len(self.cfgs)} functions")
+        logger.info(f"Completed dataflow analysis for {len(self.cfgs)} functions")
 
         return self.function_analyzers
 
-    def get_function_analyzer(self, function_name: str) -> Optional['FunctionDataFlowAnalyzer']:
+    def get_function_analyzer(
+        self, function_name: str
+    ) -> Optional["FunctionDataFlowAnalyzer"]:
         return self.function_analyzers.get(function_name)
 
 
 class FunctionDataFlowAnalyzer:
-
     def __init__(
         self,
         program: UdonProgramData,
         module_info: UdonModuleInfo,
-        cfg: ControlFlowGraph
+        cfg: ControlFlowGraph,
     ):
         self.program = program
         self.module_info = module_info
@@ -98,8 +96,7 @@ class FunctionDataFlowAnalyzer:
                 return
             visited.add(block)
 
-            exit_state = self.stack_simulator.simulate_block(
-                block, entry_state)
+            exit_state = self.stack_simulator.simulate_block(block, entry_state)
 
             # recur
             for successor in self.cfg.get_successors(block):
@@ -114,9 +111,7 @@ class FunctionDataFlowAnalyzer:
         logger.debug(f"Identifying variables for {self.cfg.function_name}...")
 
         self.variable_identifier = VariableIdentifier(
-            program=self.program,
-            cfg=self.cfg,
-            stack_simulator=self.stack_simulator
+            program=self.program, cfg=self.cfg, stack_simulator=self.stack_simulator
         )
 
         self.variables = self.variable_identifier.identify()
@@ -133,13 +128,14 @@ class FunctionDataFlowAnalyzer:
             program=self.program,
             module_info=self.module_info,
             stack_simulator=self.stack_simulator,
-            variable_identifier=self.variable_identifier
+            variable_identifier=self.variable_identifier,
         )
 
         for block in self.cfg.graph.nodes():
             for instruction in block.instructions:
                 expr = self.expression_builder.build_expression_from_instruction(
-                    instruction)
+                    instruction
+                )
                 if expr:
                     self.expressions[instruction.address] = expr
 

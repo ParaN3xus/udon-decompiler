@@ -6,13 +6,12 @@ from udon_decompiler.models import (
     SymbolInfo,
     HeapEntry,
     HeapEntryValue,
-    EntryPointInfo
+    EntryPointInfo,
 )
 from udon_decompiler.utils import logger
 
 
 class ProgramLoader:
-
     @staticmethod
     def load_from_file(file_path: str | Path) -> UdonProgramData:
         file_path = Path(file_path)
@@ -21,7 +20,7 @@ class ProgramLoader:
         if not file_path.exists():
             raise FileNotFoundError(f"Program file not found: {file_path}")
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         return ProgramLoader._parse_program_data(data)
@@ -35,41 +34,40 @@ class ProgramLoader:
     def _parse_program_data(data: Dict[str, Any]) -> UdonProgramData:
         try:
             symbols = {}
-            if 'symbols' in data:
-                for name, symbol_data in data['symbols'].items():
+            if "symbols" in data:
+                for name, symbol_data in data["symbols"].items():
                     symbols[name] = SymbolInfo(
-                        name=symbol_data['name'],
-                        type=symbol_data['type'],
-                        address=symbol_data['address']
+                        name=symbol_data["name"],
+                        type=symbol_data["type"],
+                        address=symbol_data["address"],
                     )
 
             entry_points = []
-            if 'entryPoints' in data:
-                for ep_data in data['entryPoints']:
-                    entry_points.append(EntryPointInfo(
-                        name=ep_data['name'],
-                        address=ep_data['address']
-                    ))
+            if "entryPoints" in data:
+                for ep_data in data["entryPoints"]:
+                    entry_points.append(
+                        EntryPointInfo(name=ep_data["name"], address=ep_data["address"])
+                    )
 
             heap_initial_values = {}
-            if 'heapInitialValues' in data:
-                for addr_str, heap_data in data['heapInitialValues'].items():
+            if "heapInitialValues" in data:
+                for addr_str, heap_data in data["heapInitialValues"].items():
                     address = int(addr_str)
                     heap_initial_values[address] = HeapEntry(
-                        address=heap_data['address'],
-                        type=heap_data['type'],
+                        address=heap_data["address"],
+                        type=heap_data["type"],
                         value=HeapEntryValue(
-                            is_serializable=heap_data['value']['isSerializable'],
-                            value=heap_data['value']['value']
-                        )
+                            is_serializable=heap_data["value"]["isSerializable"],
+                            value=heap_data["value"]["value"],
+                        ),
                     )
 
             program = UdonProgramData(
-                byte_code_hex=data['byteCodeHex'],
-                byte_code_length=data['byteCodeLength'],
+                byte_code_hex=data["byteCodeHex"],
+                byte_code_length=data["byteCodeLength"],
                 symbols=symbols,
                 entry_points=entry_points,
-                heap_initial_values=heap_initial_values
+                heap_initial_values=heap_initial_values,
             )
 
             logger.info(f"Successfully loaded program: {program}")

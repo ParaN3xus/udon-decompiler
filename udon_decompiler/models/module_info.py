@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple, List, Any
+from typing import Any, Dict, Optional, Tuple
 
 
 class Singleton(type):
@@ -33,8 +33,10 @@ class ExternFunctionInfo:
         if extras_str:
             extras_str = ", " + extras_str
 
-        return (f"Extern({self.signature}, params={self.parameter_count}, "
-                f"type={self.def_type}{extras_str})")
+        return (
+            f"Extern({self.signature}, params={self.parameter_count}, "
+            f"type={self.def_type}{extras_str})"
+        )
 
 
 @dataclass
@@ -77,7 +79,7 @@ class UdonModuleInfo(metaclass=Singleton):
                 def_type=func_meta.def_type,
                 is_static=func_meta.is_static,
                 returns_void=func_meta.returns_void,
-                original_name=func_meta.original_name
+                original_name=func_meta.original_name,
             )
         except Exception:
             return None
@@ -99,20 +101,19 @@ class UdonModuleInfo(metaclass=Singleton):
 
         func_dict = {}
         for func_data in functions_list:
-            name = func_data['name']
+            name = func_data["name"]
 
             meta = FunctionMetadata(
-                parameter_count=func_data['parameterCount'],
-                def_type=func_data['defType'],
-                is_static=func_data.get('isStatic'),
-                returns_void=func_data.get('returnsVoid'),
-                original_name=func_data.get('originalName')
+                parameter_count=func_data["parameterCount"],
+                def_type=func_data["defType"],
+                is_static=func_data.get("isStatic"),
+                returns_void=func_data.get("returnsVoid"),
+                original_name=func_data.get("originalName"),
             )
             func_dict[name] = meta
 
         self.modules[module_name] = ModuleMetadata(
-            type_name=type_name,
-            functions=func_dict
+            type_name=type_name, functions=func_dict
         )
 
     def get_parameter_count(self, signature: str) -> Optional[int]:

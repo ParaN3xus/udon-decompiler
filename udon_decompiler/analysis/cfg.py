@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Set, Optional
+from typing import Dict, List, Optional, Set
+
 import networkx as nx
 from pydot import Dot
 
+from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifier
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.program import UdonProgramData
-from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifier, BasicBlockType
 from udon_decompiler.utils.logger import logger
 
 
@@ -53,8 +54,9 @@ class ControlFlowGraph:
 
     def get_post_dominators(self) -> Dict[BasicBlock, Set[BasicBlock]]:
         reversed_graph = self.graph.reverse()
-        exit_nodes = [node for node in self.graph.nodes(
-        ) if self.graph.out_degree(node) == 0]
+        exit_nodes = [
+            node for node in self.graph.nodes() if self.graph.out_degree(node) == 0
+        ]
 
         if not exit_nodes:
             return {}
@@ -87,7 +89,7 @@ class ControlFlowGraph:
                     back_edges.append((src, dst))
 
             return back_edges
-        except:
+        except Exception:
             return []
 
     def get_loops(self) -> List[Set[BasicBlock]]:
@@ -120,11 +122,7 @@ class ControlFlowGraph:
 
 
 class CFGBuilder:
-    def __init__(
-        self,
-        program: UdonProgramData,
-        instructions: List[Instruction]
-    ):
+    def __init__(self, program: UdonProgramData, instructions: List[Instruction]):
         self.program = program
         self.instructions = instructions
         self._cfgs: Dict[str, ControlFlowGraph] = {}
@@ -136,7 +134,8 @@ class CFGBuilder:
 
         entry_addresses = [ep.address for ep in self.program.entry_points]
         identifier = BasicBlockIdentifier(
-            self.instructions, entry_addresses, self.program.heap_initial_values)
+            self.instructions, entry_addresses, self.program.heap_initial_values
+        )
         self._all_blocks = identifier.identify()
 
         for block in self._all_blocks:
@@ -182,8 +181,7 @@ class CFGBuilder:
 
             elif last_inst.opcode == OpCode.JUMP_INDIRECT:
                 if last_inst.operand is not None:
-                    heap_entry = self.program.get_initial_heap_value(
-                        last_inst.operand)
+                    heap_entry = self.program.get_initial_heap_value(last_inst.operand)
                     if heap_entry and heap_entry.value.is_serializable:
                         target = heap_entry.value.value
                         if isinstance(target, int):
@@ -197,7 +195,8 @@ class CFGBuilder:
                                 )
                             else:
                                 logger.warning(
-                                    f"Unable to resolve target basic block of the indirect jump at 0x{last_inst.address:08x}")
+                                    f"Unable to resolve target basic block of the indirect jump at 0x{last_inst.address:08x}"
+                                )
                         else:
                             logger.warning(
                                 f"Indirect jump at 0x{last_inst.address:08x}, "
@@ -230,10 +229,7 @@ class CFGBuilder:
                 )
                 continue
 
-            cfg = ControlFlowGraph(
-                entry_block=entry_block,
-                function_name=function_name
-            )
+            cfg = ControlFlowGraph(entry_block=entry_block, function_name=function_name)
 
             function_blocks = self._find_function_blocks(entry_block)
 
@@ -248,7 +244,8 @@ class CFGBuilder:
 
             cfgs[function_name] = cfg
             logger.info(
-                f"Built CFG for function {function_name}: {len(function_blocks)} blocks")
+                f"Built CFG for function {function_name}: {len(function_blocks)} blocks"
+            )
 
         return cfgs
 
