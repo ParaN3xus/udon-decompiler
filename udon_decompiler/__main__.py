@@ -70,8 +70,8 @@ def main():
         logger.error(f"Error loading ModuleInfo: {e}")
         sys.exit(1)
 
-    input_path = args.input
-    output_path = args.output
+    input_path: Path = args.input
+    output_path: Path = args.output
 
     if not input_path.exists():
         logger.error(f"Input path '{input_path}' does not exist.")
@@ -85,8 +85,8 @@ def main():
             sys.exit(1)
 
         if output_path is None:
-            target = input_path.with_suffix(".cs")
-            is_file = True
+            target = input_path.parent
+            is_file = False
         else:
             if output_path.suffix.lower() == ".cs":
                 target = output_path
