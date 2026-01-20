@@ -12,3 +12,6 @@ udon-decompiler = "udon_decompiler.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["udon_decompiler*"]
+
+[tool.ruff.lint]
+select = ["E501"]
