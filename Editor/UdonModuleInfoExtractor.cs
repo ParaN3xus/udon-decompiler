@@ -144,6 +144,8 @@ public class UdonModuleInfoExtractor : EditorWindow
             }
         }
 
+        FixResult(result);
+
         var settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented };
         string json = JsonConvert.SerializeObject(result, settings);
         string path = Path.Combine(Application.dataPath, "UdonModuleInfo.json");
@@ -152,6 +154,64 @@ public class UdonModuleInfoExtractor : EditorWindow
         AssetDatabase.Refresh();
         Debug.Log($"Module info saved to: {path}");
         Debug.Log($"Total modules extracted: {result.Count}");
+    }
+
+    private static void FixResult(Dictionary<string, ModuleDefinition> result)
+    {
+        foreach (var module in result.Values)
+        {
+            if (module.functions == null) continue;
+
+            foreach (var func in module.functions)
+            {
+                if (func.name.StartsWith("__op_"))
+                {
+                    func.defType = "OPERATOR";
+                    func.originalName = null;
+                    func.isStatic = null;
+                    func.returnsVoid = null;
+                }
+                else if (func.name.StartsWith("__ctor__"))
+                {
+                    func.defType = "CTOR_INFO";
+                    func.originalName = null;
+                    func.isStatic = null;
+                    func.returnsVoid = null;
+                }
+                else if (func.name.StartsWith("__get_") || func.name.StartsWith("__set_"))
+                {
+                    func.defType = "FIELD_INFO";
+                    func.isStatic = null;
+                    func.returnsVoid = null;
+
+                    if (func.name.Length > 6)
+                    {
+                        string withoutPrefix = func.name.Substring(6);
+                        int splitIndex = withoutPrefix.IndexOf("__");
+                        if (splitIndex > 0)
+                        {
+                            func.originalName = withoutPrefix.Substring(0, splitIndex);
+                        }
+                        else
+                        {
+                            func.originalName = withoutPrefix;
+                        }
+                    }
+                }
+                else
+                {
+                    if (func.defType == "OPERATOR" ||
+                        func.defType == "CTOR_INFO" ||
+                        func.defType == "FIELD_INFO")
+                    {
+                        func.defType = "METHOD_INFO";
+                        func.isStatic = true;
+                        func.returnsVoid = true;
+                        func.originalName = func.name;
+                    }
+                }
+            }
+        }
     }
 
     private static Dictionary<string, NodeInfoCache> BuildRegistryLookup()
