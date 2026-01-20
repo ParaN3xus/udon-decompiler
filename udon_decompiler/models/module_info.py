@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Final, Optional, Tuple
 
 
 class Singleton(type):
@@ -72,6 +72,12 @@ class ModuleMetadata:
 
 @dataclass
 class UdonModuleInfo(metaclass=Singleton):
+    UINT32ARRAY_GET_METHOD_NAME: Final[str] = (
+        "SystemUInt32Array.__Get__SystemInt32__SystemUInt32"
+    )
+    UINT32_TYPE_NAME: Final[str] = "System.UInt32"
+    ARRAY_TYPE_SUFFIX: Final[str] = "[]"
+
     # modules[module_name] = ModuleMetadata
     modules: Dict[str, ModuleMetadata] = field(default_factory=dict)
 

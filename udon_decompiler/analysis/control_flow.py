@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from typing import List, Set, Optional
 from enum import Enum
+from typing import List, Optional, Set
 
-from udon_decompiler.analysis.cfg import ControlFlowGraph
 from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockType
+from udon_decompiler.analysis.cfg import ControlFlowGraph
 from udon_decompiler.utils.logger import logger
 
 

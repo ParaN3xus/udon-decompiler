@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Final, List, Optional
 
 from udon_decompiler.utils import logger
 
@@ -9,6 +9,8 @@ class SymbolInfo:
     name: str
     type: str
     address: int
+
+    RETURN_JUMP_ADDR_SYMBOL_NAME: Final[str] = "__intnl_returnJump_SystemUInt32_0"
 
     def __repr__(self) -> str:
         return f"Symbol({self.name}: {self.type} @ 0x{self.address:08x})"
@@ -55,17 +57,17 @@ class UdonProgramData:
     CLASS_NAME_ADDR: int = 1
     CLASS_NAME_SYMBOL_NAME: str = "__refl_typename"
 
-    def get_symbol_by_address(self, address: int) -> Optional[SymbolInfo]:
+    def get_symbol_by_address(self, address: int) -> SymbolInfo:
         for symbol in self.symbols.values():
             if symbol.address == address:
                 return symbol
-        return None
+        raise Exception(f"Failed to find any symbols at 0x{address:08X}")
 
-    def get_entry_point_by_address(self, address: int) -> Optional[EntryPointInfo]:
+    def get_entry_point_by_address(self, address: int) -> EntryPointInfo:
         for entry_point in self.entry_points:
             if entry_point.address == address:
                 return entry_point
-        return None
+        raise Exception(f"Failed to find any entry points at 0x{address:08X}")
 
     def get_initial_heap_value(self, address: int) -> Optional[HeapEntry]:
         return self.heap_initial_values.get(address)

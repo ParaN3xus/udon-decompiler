@@ -23,7 +23,7 @@ def decompile_program_to_source(
     bc_parser = BytecodeParser(program)
     instructions = bc_parser.parse()
 
-    logger.debug(instructions)
+    logger.debug(f"ASM: {instructions}")
 
     analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
     function_analyzers = analyzer.analyze()
