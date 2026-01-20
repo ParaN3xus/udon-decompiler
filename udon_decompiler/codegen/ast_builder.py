@@ -115,7 +115,8 @@ class ASTBuilder:
             elif len(successors) > 1:
                 # shouldn't happen
                 logger.warning(
-                    f"Block 0x{block.start_address:08x} has multiple successors but no control structure"
+                    f"Block 0x{block.start_address:08x} has multiple successors but no "
+                    + "control structure"
                 )
 
     def _find_structure_with_header(
@@ -359,14 +360,23 @@ class ASTBuilder:
 
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
 
-        type = PropertyAccessType(
-            expr.function_info.original_name[: PropertyAccessType.literal_len()]
-        )
+        try:
+            type = PropertyAccessType(
+                expr.function_info.function_name[: PropertyAccessType.literal_len()]
+            )
+        except ValueError as e:
+            logger.error(
+                f"Failed to construct PropertyAccessType from "
+                + f"'{expr.function_info.function_name}'"
+            )
+            raise e
 
         return PropertyAccessNode(
             type=type,
+            is_static=len(args) == 1,
             field=expr.function_info.original_name,
-            receiver=args[1],
+            type_name=expr.function_info.type_name,
+            receiver=args[-1],
             this=args[0],
         )
 

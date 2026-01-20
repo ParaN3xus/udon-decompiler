@@ -19,6 +19,7 @@ from udon_decompiler.codegen.ast_nodes import (
     OperatorNode,
     ProgramNode,
     PropertyAccessNode,
+    PropertyAccessType,
     StatementNode,
     VariableDeclNode,
     VariableNode,
@@ -64,8 +65,6 @@ class CSharpCodeGenerator:
 
         if self.formatter:
             code = self.formatter.format(code)
-
-        logger.info(f"Code generation complete for {func_node.name}")
 
         return code
 
@@ -307,13 +306,25 @@ class CSharpCodeGenerator:
 
         args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
 
-        return f"{'' if expr.function_info.returns_void else f'{receiver} = '}{caller}.{func_name or expr.function_info.function_name}({args})"
+        provider_str = (
+            f"{caller}.{func_name or expr.function_info.function_name}({args})"
+        )
+        receiver_str = f"{'' if expr.function_info.returns_void else f'{receiver} = '}"
+        return f"{receiver_str}{provider_str}"
 
     def _generate_property_access(self, expr: PropertyAccessNode) -> str:
-        receiver = self._generate_expression(expr.receiver)
-        this = self._generate_expression(expr.this)
+        val = self._generate_expression(expr.receiver)
+        this = (
+            expr.type_name if expr.is_static else self._generate_expression(expr.this)
+        )
+        prop = f"{this}.{expr.field}"
+        match expr.type:
+            case PropertyAccessType.GET:
+                receiver, provider = val, prop
+            case PropertyAccessType.SET:
+                receiver, provider = prop, val
 
-        return f"{receiver} = {this}.{expr.field}"
+        return f"{receiver} = {provider}"
 
     def _generate_construction(self, expr: ConstructionNode) -> str:
         args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
