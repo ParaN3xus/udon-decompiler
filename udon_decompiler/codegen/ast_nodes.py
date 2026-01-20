@@ -234,6 +234,8 @@ class PropertyAccessType(Enum):
 @dataclass(kw_only=True)
 class PropertyAccessNode(ExpressionNode):
     type: PropertyAccessType
+    type_name: str
+    is_static: bool
     field: str
     receiver: ExpressionNode
     this: ExpressionNode
