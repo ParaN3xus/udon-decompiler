@@ -133,10 +133,11 @@ class CFGBuilder:
         logger.info("Building control flow graphs...")
 
         entry_addresses = [ep.address for ep in self.program.entry_points]
-        identifier = BasicBlockIdentifier(
-            self.instructions, entry_addresses, self.program.heap_initial_values
+        self.identifier = BasicBlockIdentifier(
+            self.instructions, entry_addresses, self.program
         )
-        self._all_blocks = identifier.identify()
+        self._all_blocks = self.identifier.identify()
+        logger.debug(f"Basic Blocks: {self._all_blocks}")
 
         for block in self._all_blocks:
             self._address_to_block[block.start_address] = block
@@ -161,59 +162,46 @@ class CFGBuilder:
                 target = last_inst.get_jump_target()
                 if target is not None:
                     target_block = self._get_block_starting_at(target)
-                    if target_block:
-                        block.add_successor(target_block)
-                        target_block.add_predecessor(block)
+                    block.add_successor(target_block)
+                    target_block.add_predecessor(block)
 
             elif last_inst.opcode == OpCode.JUMP_IF_FALSE:
                 target = last_inst.get_jump_target()
                 if target is not None:
                     target_block = self._get_block_starting_at(target)
-                    if target_block:
-                        block.add_successor(target_block)
-                        target_block.add_predecessor(block)
+                    block.add_successor(target_block)
+                    target_block.add_predecessor(block)
 
                 next_addr = last_inst.next_address
                 next_block = self._get_block_starting_at(next_addr)
-                if next_block:
-                    block.add_successor(next_block)
-                    next_block.add_predecessor(block)
+                block.add_successor(next_block)
+                next_block.add_predecessor(block)
 
             elif last_inst.opcode == OpCode.JUMP_INDIRECT:
                 if last_inst.operand is not None:
-                    heap_entry = self.program.get_initial_heap_value(last_inst.operand)
-                    if heap_entry and heap_entry.value.is_serializable:
-                        target = heap_entry.value.value
-                        if isinstance(target, int):
-                            target_block = self._get_block_starting_at(target)
-                            if target_block:
-                                block.add_successor(target_block)
-                                target_block.add_predecessor(block)
-                                logger.debug(
-                                    f"Resolved indirect jump at 0x{last_inst.address:08x}"
-                                    f"to 0x{target:08x}"
-                                )
-                            else:
-                                logger.warning(
-                                    f"Unable to resolve target basic block of the indirect jump at 0x{last_inst.address:08x}"
-                                )
-                        else:
-                            logger.warning(
-                                f"Indirect jump at 0x{last_inst.address:08x}, "
-                                f"heap value is not an integer"
-                            )
+                    if last_inst.address in self.identifier.return_indir_jumps:
+                        # return jumps are ignored, since we only care about jumps
+                        # inside a function
+                        continue
+                    if last_inst.address in self.identifier.switch_cases_indir_jumps:
+                        targets = self.identifier.switch_cases_indir_jumps[
+                            last_inst.address
+                        ]
+                        for target in targets:
+                            next_block = self._get_block_starting_at(target)
+                            block.add_successor(next_block)
+                            next_block.add_predecessor(block)
 
             else:
                 next_addr = last_inst.next_address
                 next_block = self._get_block_starting_at(next_addr)
-                if next_block:
-                    block.add_successor(next_block)
-                    next_block.add_predecessor(block)
+                block.add_successor(next_block)
+                next_block.add_predecessor(block)
 
         logger.info("CFG edges built successfully")
 
-    def _get_block_starting_at(self, address: int) -> Optional[BasicBlock]:
-        return self._address_to_block.get(address)
+    def _get_block_starting_at(self, address: int) -> BasicBlock:
+        return self._address_to_block[address]
 
     def _build_function_cfgs(self) -> Dict[str, ControlFlowGraph]:
         cfgs = {}
@@ -232,6 +220,8 @@ class CFGBuilder:
             cfg = ControlFlowGraph(entry_block=entry_block, function_name=function_name)
 
             function_blocks = self._find_function_blocks(entry_block)
+
+            logger.debug(f"Basic blocks of function {function_name}: {function_blocks}")
 
             for block in function_blocks:
                 block.function_name = function_name

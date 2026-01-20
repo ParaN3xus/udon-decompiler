@@ -1,17 +1,18 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Set, Optional
 from enum import Enum
+from typing import List, Optional, Set
 
-from udon_decompiler.models.program import HeapEntry
 from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.module_info import UdonModuleInfo
+from udon_decompiler.models.program import SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
 class BasicBlockType(Enum):
     NORMAL = "normal"
-    ENTRY = "entry"
     CONDITIONAL = "conditional"
     JUMP = "jump"
+    RETURN = "return"
 
 
 @dataclass
@@ -22,8 +23,9 @@ class BasicBlock:
     predecessors: Set["BasicBlock"] = field(default_factory=set)
     successors: Set["BasicBlock"] = field(default_factory=set)
     block_type: BasicBlockType = BasicBlockType.NORMAL
+    is_entry: bool = False
 
-    # if it's an function entry
+    # if it's a function entry
     function_name: Optional[str] = None
 
     def __hash__(self):
@@ -64,15 +66,19 @@ class BasicBlock:
 
 
 class BasicBlockIdentifier:
+    switch_cases_indir_jumps: dict[int, List[int]] = {}
+    return_indir_jumps: List[int] = []
+
     def __init__(
         self,
         instructions: List[Instruction],
         entry_points: List[int],
-        heap_initial_values: Dict[int, HeapEntry],
+        program: UdonProgramData,
     ):
         self.instructions = instructions
         self.entry_points = set(entry_points)
-        self.heap_initial_values = heap_initial_values
+        self.heap_initial_values = program.heap_initial_values
+        self.program = program
 
         self._address_to_instruction = {inst.address: inst for inst in instructions}
         self._basic_blocks: List[BasicBlock] = []
@@ -93,13 +99,12 @@ class BasicBlockIdentifier:
 
     def _find_block_starts(self) -> Set[int]:
         block_starts = set()
-
         block_starts.update(self.entry_points)
 
         if self.instructions:
             block_starts.add(self.instructions[0].address)
 
-        for inst in self.instructions:
+        for idx, inst in enumerate(self.instructions):
             if inst.opcode == OpCode.JUMP or inst.opcode == OpCode.JUMP_IF_FALSE:
                 target = inst.get_jump_target()
                 if target is not None:
@@ -110,17 +115,83 @@ class BasicBlockIdentifier:
                     block_starts.add(next_addr)
 
             elif inst.opcode == OpCode.JUMP_INDIRECT:
-                if inst.operand is not None:
-                    heap_entry = self.heap_initial_values.get(inst.operand)
-                    if heap_entry and heap_entry.value.is_serializable:
-                        target = heap_entry.value.value
-                        if isinstance(target, int):
-                            block_starts.add(target)
-                            logger.debug(
-                                f"Assuming indirect jump target {target} as block start from heap's initial value in addr {inst.operand}"
-                            )
+                if not inst.operand:
+                    raise Exception(
+                        "Invalid JUMP_INDIRECT instruction: missing operand!"
+                    )
+
+                operand_sym = self.program.get_symbol_by_address(inst.operand)
+
+                if operand_sym.name == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME:
+                    """
+                    This is ignored because a return jump only targets 0xffffffff
+                    (halt) or the next line following a function call. For a halt
+                    jump, no basic block needs to be created; for a real return
+                    jump, the basic block was already created during the processing
+                    of the call jump.
+                    """
+                    self.return_indir_jumps.append(inst.address)
+                    continue
+
+                switch_targets = self._get_switch_targets(idx, operand_sym)
+                if switch_targets:
+                    block_starts.update(switch_targets)
 
         return block_starts
+
+    def _get_switch_targets(self, jump_idx: int, operand_sym: SymbolInfo) -> List[int]:
+        try:
+            extern_inst = self.instructions[jump_idx - 1]
+            assert extern_inst.opcode == OpCode.EXTERN and extern_inst.operand
+            extern_f = self.program.get_initial_heap_value(extern_inst.operand)
+            assert (
+                extern_f
+                and extern_f.value.value == UdonModuleInfo.UINT32ARRAY_GET_METHOD_NAME
+            )
+
+            push_addr_inst = self.instructions[jump_idx - 2]
+            assert push_addr_inst.opcode == OpCode.PUSH and push_addr_inst.operand
+            target_sym = self.program.get_symbol_by_address(push_addr_inst.operand)
+            assert target_sym.name == operand_sym.name
+
+            push_switch_exp_inst = self.instructions[jump_idx - 3]
+            assert (
+                push_switch_exp_inst.opcode == OpCode.PUSH
+                and push_switch_exp_inst.operand
+            )
+            # switch_exp_sym = self.program.get_symbol_by_address(
+            #     push_switch_exp_inst.operand
+            # )
+            # assert switch_exp_sym.type == UdonModuleInfo.UINT32_TYPE_NAME
+
+            push_addr_table_inst = self.instructions[jump_idx - 4]
+            assert (
+                push_addr_table_inst.opcode == OpCode.PUSH
+                and push_addr_table_inst.operand
+            )
+            addr_table_sym = self.program.get_symbol_by_address(
+                push_addr_table_inst.operand
+            )
+            assert addr_table_sym.type == (
+                UdonModuleInfo.UINT32_TYPE_NAME + UdonModuleInfo.ARRAY_TYPE_SUFFIX
+            )
+            addr_table_heap_entry = self.heap_initial_values.get(addr_table_sym.address)
+            assert addr_table_heap_entry
+            addr_table = addr_table_heap_entry.value.value
+            assert isinstance(addr_table, list)
+
+            self.switch_cases_indir_jumps[self.instructions[jump_idx].address] = (
+                addr_table
+            )
+
+            return addr_table
+
+        except Exception:
+            logger.warning(
+                "Unrecognized JUMP_INDIRECT encountered at %s! Ignoring...",
+                self.instructions[jump_idx].address,
+            )
+            return []
 
     def _split_into_blocks(self, block_starts: Set[int]) -> List[BasicBlock]:
         sorted_starts = sorted(block_starts)
@@ -140,13 +211,14 @@ class BasicBlockIdentifier:
 
             end_addr = block_instructions[-1].address
 
-            block_type = self._determine_block_type(start_addr, block_instructions)
+            block_type = self._determine_block_type(block_instructions)
 
             block = BasicBlock(
                 start_address=start_addr,
                 end_address=end_addr,
                 instructions=block_instructions,
                 block_type=block_type,
+                is_entry=start_addr in self.entry_points,
             )
 
             blocks.append(block)
@@ -179,12 +251,7 @@ class BasicBlockIdentifier:
 
         return instructions
 
-    def _determine_block_type(
-        self, start_addr: int, instructions: List[Instruction]
-    ) -> BasicBlockType:
-        if start_addr in self.entry_points:
-            return BasicBlockType.ENTRY
-
+    def _determine_block_type(self, instructions: List[Instruction]) -> BasicBlockType:
         if not instructions:
             return BasicBlockType.NORMAL
 
@@ -193,6 +260,10 @@ class BasicBlockIdentifier:
         if last_inst.is_conditional_jump():
             return BasicBlockType.CONDITIONAL
         elif last_inst.is_unconditional_jump():
+            return BasicBlockType.JUMP
+        elif last_inst.opcode == OpCode.JUMP_INDIRECT:
+            if last_inst.address in self.return_indir_jumps:
+                return BasicBlockType.RETURN
             return BasicBlockType.JUMP
 
         return BasicBlockType.NORMAL
