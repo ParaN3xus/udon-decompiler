@@ -100,6 +100,7 @@ def main():
         logger.error(f"Input path '{input_path}' does not exist.")
         sys.exit(1)
 
+    # todo: make this singleton
     code_gen = ProgramCodeGenerator()
 
     if input_path.is_file():
