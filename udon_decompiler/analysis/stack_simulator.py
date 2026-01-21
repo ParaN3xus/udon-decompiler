@@ -143,6 +143,7 @@ class StackSimulator:
                 )
 
         elif opcode == OpCode.JUMP or opcode == OpCode.JUMP_INDIRECT:
+            # todo: calling internal function pops stack
             pass
 
         elif opcode == OpCode.EXTERN:

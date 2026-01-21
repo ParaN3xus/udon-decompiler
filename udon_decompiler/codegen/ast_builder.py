@@ -48,7 +48,8 @@ class ASTBuilder:
     def build(self) -> FunctionNode:
         logger.info(f"Building AST for function {self.cfg.function_name}...")
 
-        func_node = FunctionNode(
+        # todo: function name here
+        func_node: FunctionNode = FunctionNode(
             name=self.cfg.function_name or "unknown_function",
             return_type="void",
         )
