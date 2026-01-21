@@ -97,7 +97,7 @@ class VariableIdentifier:
     def _analyze_block_variables(self, block: BasicBlock) -> None:
         for instruction in block.instructions:
             state = self.stack_simulator.get_instruction_state(instruction.address)
-            if not state:
+            if state is None:
                 continue
 
             if instruction.opcode.name == "PUSH" and instruction.operand is not None:
@@ -130,7 +130,7 @@ class VariableIdentifier:
             return
 
         heap_entry = self.program.get_initial_heap_value(instruction.operand)
-        if not heap_entry or not heap_entry.value.is_serializable:
+        if heap_entry is None or not heap_entry.value.is_serializable:
             return
 
         signature = heap_entry.value.value
@@ -138,7 +138,7 @@ class VariableIdentifier:
             return
 
         prev_state = self._get_previous_instruction_state(instruction)
-        if not prev_state:
+        if prev_state is None:
             return
 
         from ..models.module_info import UdonModuleInfo
@@ -146,7 +146,7 @@ class VariableIdentifier:
         module_info = UdonModuleInfo()
 
         func_info = module_info.get_function_info(signature)
-        if not func_info:
+        if func_info is None:
             logger.debug(
                 f"EXTERN at 0x{instruction.address:08x}: "
                 f"unknown function signature {signature}"
@@ -166,7 +166,7 @@ class VariableIdentifier:
         for i in range(param_count):
             param_val = prev_state.peek(param_count - 1 - i)
 
-            if not param_val:
+            if param_val is None:
                 continue
 
             if param_val.value_type == StackValueType.HEAP_ADDRESS:
@@ -245,7 +245,7 @@ class VariableIdentifier:
         self, instruction: Instruction
     ) -> Optional[StackFrame]:
         block = self._find_block_containing(instruction.address)
-        if not block:
+        if block is None:
             return None
 
         inst_index = None

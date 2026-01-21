@@ -156,16 +156,14 @@ class CFGBuilder:
         for inst in self.instructions:
             if inst.opcode != OpCode.PUSH:
                 continue
-            if not inst.operand:
+            if inst.operand is None:
                 raise Exception("Invalid PUSH instruction! An operand expected!")
 
             sym = self.program.get_symbol_by_address(inst.operand)
-            if not sym:
-                continue
             if sym.name != SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
                 continue
             val = self.program.get_initial_heap_value(inst.operand)
-            if not val:
+            if val is None:
                 raise Exception("Invalid symbol! Initial value not found!")
             if val.value.value != Instruction.HALT_JUMP_ADDR:
                 continue
@@ -180,8 +178,6 @@ class CFGBuilder:
 
         for block in self._all_blocks:
             last_inst = block.last_instruction
-            if not last_inst:
-                continue
 
             if last_inst.opcode == OpCode.JUMP:
                 target = last_inst.get_jump_target()
@@ -244,7 +240,7 @@ class CFGBuilder:
             function_name = entry_point.name
             entry_block = self._address_to_block.get(entry_point.address)
 
-            if not entry_block:
+            if entry_block is None:
                 logger.warning(
                     f"Cannot find entry block for function {function_name} "
                     f"at address 0x{entry_point.address:08x}"

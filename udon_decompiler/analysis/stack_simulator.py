@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
 from enum import Enum
+from typing import Dict, List, Optional
 
-from udon_decompiler.models.instruction import Instruction, OpCode
-from udon_decompiler.models.program import UdonProgramData
-from udon_decompiler.models.module_info import UdonModuleInfo
 from udon_decompiler.analysis.basic_block import BasicBlock
+from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.module_info import UdonModuleInfo
+from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -168,7 +168,7 @@ class StackSimulator:
             return
 
         heap_entry = self.program.get_initial_heap_value(instruction.operand)
-        if not heap_entry or not heap_entry.value.is_serializable:
+        if heap_entry is None or not heap_entry.value.is_serializable:
             logger.warning(
                 f"EXTERN at 0x{instruction.address:08x}: "
                 f"cannot resolve function signature from heap"
@@ -183,7 +183,7 @@ class StackSimulator:
             return
 
         func_info = self.module_info.get_function_info(signature)
-        if not func_info:
+        if func_info is None:
             logger.warning(
                 f"EXTERN at 0x{instruction.address:08x}: unknown function {signature}"
             )

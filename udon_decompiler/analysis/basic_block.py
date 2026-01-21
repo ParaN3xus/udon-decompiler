@@ -115,7 +115,7 @@ class BasicBlockIdentifier:
                     block_starts.add(next_addr)
 
             elif inst.opcode == OpCode.JUMP_INDIRECT:
-                if not inst.operand:
+                if inst.operand is None:
                     raise Exception(
                         "Invalid JUMP_INDIRECT instruction: missing operand!"
                     )
