@@ -249,7 +249,7 @@ class CFGBuilder:
                 continue
 
             function_blocks = self._find_function_blocks(entry_block)
-            if entry_block.function_name is None:
+            if function_name is None:
                 self._identify_function_name(entry_point, function_blocks)
                 function_name = entry_point.name
 
