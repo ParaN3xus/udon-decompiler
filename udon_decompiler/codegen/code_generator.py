@@ -292,24 +292,25 @@ class CSharpCodeGenerator:
             return str(expr.value)
 
     def _generate_call(self, expr: CallNode) -> str:
-        if expr.function_info.is_static is None:
+        if not expr.is_external:
+            return f"{expr.function_name}()"
+
+        if expr.is_static is None:
             logger.warning("Can't determine if function is static! Assuming static.")
 
         caller = (
             self._generate_expression(expr.arguments.pop(0))
-            if not expr.function_info.is_static
-            else expr.function_info.type_name
+            if not expr.is_static
+            else expr.type_name
         )
-        func_name = expr.function_info.original_name
-        if not expr.function_info.returns_void:
+        func_name = expr.original_name
+        if not expr.returns_void:
             receiver = self._generate_expression(expr.arguments.pop())
 
         args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
 
-        provider_str = (
-            f"{caller}.{func_name or expr.function_info.function_name}({args})"
-        )
-        receiver_str = f"{'' if expr.function_info.returns_void else f'{receiver} = '}"
+        provider_str = f"{caller}.{func_name or expr.function_name}({args})"
+        receiver_str = f"{'' if expr.returns_void else f'{receiver} = '}"
         return f"{receiver_str}{provider_str}"
 
     def _generate_property_access(self, expr: PropertyAccessNode) -> str:
