@@ -251,6 +251,7 @@ class CFGBuilder:
 
             function_blocks = self._find_function_blocks(entry_block)
 
+            # todo: shouldn't use function name when it's not yet determined
             logger.debug(f"Basic blocks of function {function_name}: {function_blocks}")
 
             for block in function_blocks:

@@ -65,6 +65,7 @@ class VariableIdentifier:
         self._temp_counter = 0
 
     def identify(self) -> Dict[int, Variable]:
+        # todo: llm shits here, i have to do a through review and refactor
         logger.info(f"Identifying variables in {self.cfg.function_name}...")
 
         self._identify_global_variables()
