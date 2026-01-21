@@ -86,11 +86,11 @@ class UdonModuleInfo(metaclass=Singleton):
             (module_name, func_name) = self.parse_signature(signature)
 
             module_meta = self.modules.get(module_name)
-            if not module_meta:
+            if module_meta is None:
                 return None
 
             func_meta = module_meta.functions.get(func_name)
-            if not func_meta:
+            if func_meta is None:
                 return None
 
             return ExternFunctionInfo(

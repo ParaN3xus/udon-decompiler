@@ -98,7 +98,7 @@ class UdonProgramData:
         possible_class_name_symbol = self.get_symbol_by_address(
             UdonProgramData.CLASS_NAME_ADDR
         )
-        if not possible_class_name_symbol:
+        if possible_class_name_symbol is None:
             logger.warning(
                 "Class name symbol not found! The Udon program might be broken!"
             )
@@ -112,7 +112,7 @@ class UdonProgramData:
         possible_class_name_entry = self.get_initial_heap_value(
             UdonProgramData.CLASS_NAME_ADDR
         )
-        if not possible_class_name_entry:
+        if possible_class_name_entry is None:
             logger.warning(
                 "Class name entry not found! The Udon program might be broken!"
             )

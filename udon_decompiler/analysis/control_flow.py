@@ -73,7 +73,7 @@ class ControlFlowStructureIdentifier:
 
         for loop_blocks in detected_loop_blocks:
             header = self._find_loop_header(loop_blocks)
-            if not header:
+            if header is None:
                 continue
 
             loop_type = self._determine_loop_type(header, loop_blocks)
@@ -174,7 +174,7 @@ class ControlFlowStructureIdentifier:
 
         merge_point = self._find_merge_point(header, branch_true, branch_false)
 
-        if not merge_point:
+        if merge_point is None:
             # if xxx { return a; } else { return b; }
             true_branch = self._collect_reachable_blocks(branch_true, None)
             false_branch = self._collect_reachable_blocks(branch_false, None)
@@ -215,7 +215,7 @@ class ControlFlowStructureIdentifier:
 
         header_post_doms = post_dominators.get(header, set())
 
-        if not header_post_doms:
+        if header_post_doms is None:
             return None
 
         true_post_doms = post_dominators.get(branch_true, set())
@@ -223,7 +223,7 @@ class ControlFlowStructureIdentifier:
 
         common_post_doms = header_post_doms & true_post_doms & false_post_doms
 
-        if not common_post_doms:
+        if common_post_doms is None:
             return None
 
         candidates = common_post_doms.copy()

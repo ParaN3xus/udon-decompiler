@@ -71,6 +71,6 @@ class Instruction:
             raise Exception(
                 "Trying to get jump target on a non-direct-jump instruction!"
             )
-        if not self.operand:
+        if self.operand is None:
             raise Exception("Invalid jump instruction! An operand expected!")
         return self.operand

@@ -289,7 +289,7 @@ class ASTBuilder:
     def _translate_instruction(self, inst: Instruction) -> Optional[StatementNode]:
         expr = self.analyzer.get_expression(inst.address)
 
-        if not expr:
+        if expr is None:
             return None
 
         match expr.expr_type:
@@ -329,7 +329,7 @@ class ASTBuilder:
         return AssignmentNode(target=target, value=value_expr, address=inst.address)
 
     def _create_call_expression(self, expr: Expression) -> CallNode:
-        if not expr.function_info:
+        if expr.function_info is None:
             raise Exception("Invalid call expression! function_info expected!")
 
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
@@ -337,10 +337,10 @@ class ASTBuilder:
         return CallNode(function_info=expr.function_info, arguments=args)
 
     def _create_operator_expression(self, expr: Expression) -> OperatorNode:
-        if not expr.function_info:
+        if expr.function_info is None:
             raise Exception("Invalid call expression! function_info expected!")
 
-        if not expr.operator:
+        if expr.operator is None:
             raise Exception("Invalid operator expression! A valid operator expected!")
 
         oprs = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
@@ -355,7 +355,7 @@ class ASTBuilder:
     def _create_property_access_expression(
         self, expr: Expression
     ) -> PropertyAccessNode:
-        if not expr.function_info:
+        if expr.function_info is None:
             raise Exception("Invalid call expression! function_info expected!")
 
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
@@ -381,7 +381,7 @@ class ASTBuilder:
         )
 
     def _create_construction_expression(self, expr: Expression) -> ConstructionNode:
-        if not expr.function_info:
+        if expr.function_info is None:
             raise Exception("Invalid call expression! function_info expected!")
 
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]

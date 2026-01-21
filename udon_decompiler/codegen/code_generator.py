@@ -365,7 +365,7 @@ class ProgramCodeGenerator:
 
         class_name = program.get_class_name()
         name_fallback = False
-        if not class_name:
+        if class_name is None:
             cls._class_counter += 1
             name_fallback = True
             class_name = f"DecompiledClass_{cls._class_counter}"

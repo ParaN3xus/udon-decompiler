@@ -112,14 +112,13 @@ class ExpressionBuilder:
     ) -> Optional[Expression]:
         opcode = instruction.opcode
 
-        if opcode == OpCode.PUSH:
-            return self._build_push_expression(instruction)
-
-        elif opcode == OpCode.COPY:
-            return self._build_copy_expression(instruction)
-
-        elif opcode == OpCode.EXTERN:
-            return self._build_extern_expression(instruction)
+        match opcode:
+            case OpCode.PUSH:
+                return self._build_push_expression(instruction)
+            case OpCode.COPY:
+                return self._build_copy_expression(instruction)
+            case OpCode.EXTERN:
+                return self._build_extern_expression(instruction)
 
         return None
 
@@ -159,13 +158,13 @@ class ExpressionBuilder:
 
     def _build_copy_expression(self, instruction: Instruction) -> Optional[Expression]:
         prev_state = self._get_previous_state(instruction)
-        if not prev_state or len(prev_state.stack) < 2:
+        if prev_state is None or len(prev_state.stack) < 2:
             return None
 
         target_val = prev_state.peek(0)
         source_val = prev_state.peek(1)
 
-        if not source_val or not target_val:
+        if source_val is None or not target_val:
             return None
 
         target_var = self.variable_identifier.get_variable_name(target_val.value)
@@ -185,7 +184,7 @@ class ExpressionBuilder:
             return None
 
         heap_entry = self.program.get_initial_heap_value(instruction.operand)
-        if not heap_entry or not heap_entry.value.is_serializable:
+        if heap_entry is None or not heap_entry.value.is_serializable:
             return None
 
         signature = heap_entry.value.value
@@ -193,7 +192,7 @@ class ExpressionBuilder:
             return None
 
         func_info = self.module_info.get_function_info(signature)
-        if not func_info:
+        if func_info is None:
             logger.warning(f"Unknown function: {signature}")
             return Expression(
                 expr_type=ExpressionType.CALL,
