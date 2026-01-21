@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, Final, List, Optional
 
+from udon_decompiler.models.instruction import OpCode
 from udon_decompiler.utils import logger
 
 
@@ -11,6 +12,7 @@ class SymbolInfo:
     address: int
 
     RETURN_JUMP_ADDR_SYMBOL_NAME: Final[str] = "__intnl_returnJump_SystemUInt32_0"
+    HALT_JUMP_ADDR_SYMBOL_NAME: Final[str] = "__const_SystemUInt32_0"
 
     def __repr__(self) -> str:
         return f"Symbol({self.name}: {self.type} @ 0x{self.address:08x})"
@@ -39,11 +41,31 @@ class HeapEntry:
 
 @dataclass
 class EntryPointInfo:
-    name: str
+    """
+    Information of entry points (functions)
+
+    Attributes:
+        name: The name of the function, can be None if undertermined
+        address: The address of the `PUSH, __const_SystemUInt32_0` instruction
+    """
+
+    name: Optional[str]
     address: int
+
+    @property
+    def call_jump_target(self) -> int:
+        return self.address + OpCode.PUSH.size
 
     def __repr__(self) -> str:
         return f"EntryPoint({self.name} @ 0x{self.address:08x})"
+
+    def __hash__(self) -> int:
+        return self.address
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, EntryPointInfo):
+            return False
+        return self.address == other.address
 
 
 @dataclass

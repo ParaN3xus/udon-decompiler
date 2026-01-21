@@ -1,6 +1,6 @@
-from enum import IntEnum
 from dataclasses import dataclass
-from typing import Optional
+from enum import IntEnum
+from typing import Final, Optional
 
 
 class OpCode(IntEnum):
@@ -39,6 +39,8 @@ class Instruction:
     opcode: OpCode
     operand: Optional[int] = None
 
+    HALT_JUMP_ADDR: Final[int] = 0xFFFFFFFF
+
     def __str__(self) -> str:
         if self.operand is not None:
             return f"{self.address:08x}: {self.opcode.name} 0x{self.operand:08x}"
@@ -64,7 +66,11 @@ class Instruction:
     def is_conditional_jump(self) -> bool:
         return self.opcode == OpCode.JUMP_IF_FALSE
 
-    def get_jump_target(self) -> Optional[int]:
-        if self.opcode in {OpCode.JUMP, OpCode.JUMP_IF_FALSE}:
-            return self.operand
-        return None
+    def get_jump_target(self) -> int:
+        if self.opcode not in {OpCode.JUMP, OpCode.JUMP_IF_FALSE}:
+            raise Exception(
+                "Trying to get jump target on a non-direct-jump instruction!"
+            )
+        if not self.operand:
+            raise Exception("Invalid jump instruction! An operand expected!")
+        return self.operand

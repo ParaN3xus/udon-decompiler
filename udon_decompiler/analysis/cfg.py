@@ -6,7 +6,7 @@ from pydot import Dot
 
 from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifier
 from udon_decompiler.models.instruction import Instruction, OpCode
-from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -132,7 +132,8 @@ class CFGBuilder:
     def build(self) -> Dict[str, ControlFlowGraph]:
         logger.info("Building control flow graphs...")
 
-        entry_addresses = [ep.address for ep in self.program.entry_points]
+        self.entry_points = self._identify_entry_points()
+        entry_addresses = [e.address for e in self.entry_points]
         self.identifier = BasicBlockIdentifier(
             self.instructions, entry_addresses, self.program
         )
@@ -150,6 +151,30 @@ class CFGBuilder:
 
         return self._cfgs
 
+    def _identify_entry_points(self) -> List[EntryPointInfo]:
+        res = set(self.program.entry_points)
+        for inst in self.instructions:
+            if inst.opcode != OpCode.PUSH:
+                continue
+            if not inst.operand:
+                raise Exception("Invalid PUSH instruction! An operand expected!")
+
+            sym = self.program.get_symbol_by_address(inst.operand)
+            if not sym:
+                continue
+            if sym.name != SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
+                continue
+            val = self.program.get_initial_heap_value(inst.operand)
+            if not val:
+                raise Exception("Invalid symbol! Initial value not found!")
+            if val.value.value != Instruction.HALT_JUMP_ADDR:
+                continue
+
+            # this is a halt jump! the next inst is a function entry!
+            res.add(EntryPointInfo(name=None, address=inst.address))
+
+        return list(res)
+
     def _build_edges(self) -> None:
         logger.info("Building CFG edges...")
 
@@ -160,7 +185,16 @@ class CFGBuilder:
 
             if last_inst.opcode == OpCode.JUMP:
                 target = last_inst.get_jump_target()
-                if target is not None:
+                is_call_jump = any(
+                    ep.call_jump_target == target for ep in self.entry_points
+                )
+                if is_call_jump:
+                    returning_block = self._get_block_starting_at(
+                        last_inst.next_address
+                    )
+                    block.add_successor(returning_block)
+                    returning_block.add_predecessor(block)
+                else:
                     target_block = self._get_block_starting_at(target)
                     block.add_successor(target_block)
                     target_block.add_predecessor(block)
@@ -206,7 +240,7 @@ class CFGBuilder:
     def _build_function_cfgs(self) -> Dict[str, ControlFlowGraph]:
         cfgs = {}
 
-        for entry_point in self.program.entry_points:
+        for entry_point in self.entry_points:
             function_name = entry_point.name
             entry_block = self._address_to_block.get(entry_point.address)
 
@@ -251,14 +285,7 @@ class CFGBuilder:
             visited.add(block)
 
             for successor in block.successors:
-                is_other_entry = any(
-                    ep.address == successor.start_address
-                    for ep in self.program.entry_points
-                    if ep.address != entry_block.start_address
-                )
-
-                if not is_other_entry and successor not in visited:
-                    stack.append(successor)
+                stack.append(successor)
 
         return visited
 

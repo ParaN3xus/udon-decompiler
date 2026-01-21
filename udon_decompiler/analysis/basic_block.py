@@ -45,12 +45,12 @@ class BasicBlock:
         )
 
     @property
-    def last_instruction(self) -> Optional[Instruction]:
-        return self.instructions[-1] if self.instructions else None
+    def last_instruction(self) -> Instruction:
+        return self.instructions[-1]
 
     @property
-    def first_instruction(self) -> Optional[Instruction]:
-        return self.instructions[0] if self.instructions else None
+    def first_instruction(self) -> Instruction:
+        return self.instructions[0]
 
     def add_predecessor(self, block: "BasicBlock") -> None:
         self.predecessors.add(block)
