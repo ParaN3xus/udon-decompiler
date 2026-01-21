@@ -22,23 +22,24 @@ class ControlStructure:
     header: BasicBlock
     exit: Optional[BasicBlock] = None
 
-    true_branch: Set[BasicBlock] = field(default_factory=set)
-    false_branch: Optional[Set[BasicBlock]] = None
+    true_branch: List[BasicBlock] = field(default_factory=list)
+    false_branch: Optional[List[BasicBlock]] = None
 
-    loop_body: Optional[Set[BasicBlock]] = None
+    loop_body: Optional[List[BasicBlock]] = None
 
     @property
-    def body(self) -> Set[BasicBlock]:
-        result = {self.header}
+    def body(self) -> List[BasicBlock]:
+        result = [self.header]
 
         if self.type in (ControlStructureType.IF, ControlStructureType.IF_ELSE):
-            result |= self.true_branch
+            result.extend(self.true_branch)
             if self.false_branch:
-                result |= self.false_branch
+                result.extend(self.false_branch)
         elif self.type in (ControlStructureType.WHILE, ControlStructureType.DO_WHILE):
             if self.loop_body:
-                result |= self.loop_body
+                result.extend(self.loop_body)
 
+        result.sort()
         return result
 
     def __repr__(self) -> str:
@@ -77,14 +78,18 @@ class ControlFlowStructureIdentifier:
                 continue
 
             loop_type = self._determine_loop_type(header, loop_blocks)
-
             exit_block = self._find_loop_exit(loop_blocks)
+
+            body_set = loop_blocks - {header}
+
+            loop_body_list = list(body_set)
+            loop_body_list.sort()
 
             structure = ControlStructure(
                 type=loop_type,
                 header=header,
                 exit=exit_block,
-                loop_body=loop_blocks - {header},
+                loop_body=loop_body_list,
             )
             loops.append(structure)
 
@@ -235,9 +240,10 @@ class ControlFlowStructureIdentifier:
 
         return candidates.pop() if candidates else None
 
-    def _get_reachable_blocks_dfs(self, start: BasicBlock) -> Set[BasicBlock]:
+    def _get_reachable_blocks_dfs(self, start: BasicBlock) -> List[BasicBlock]:
         visited = set()
         stack = [start]
+        result_list = []
 
         while stack:
             block = stack.pop()
@@ -245,19 +251,22 @@ class ControlFlowStructureIdentifier:
                 continue
 
             visited.add(block)
+            result_list.append(block)
+
             for succ in self.cfg.get_successors(block):
                 if succ not in visited:
                     stack.append(succ)
 
-        return visited
+        result_list.sort()
+        return result_list
 
     def _collect_blocks_between(
         self, start: BasicBlock, end: Optional[BasicBlock]
-    ) -> Set[BasicBlock]:
+    ) -> List[BasicBlock]:
         if end is None:
             return self._get_reachable_blocks_dfs(start)
 
-        blocks = set()
+        blocks_list = []
         stack = [start]
         visited = set()
 
@@ -267,18 +276,19 @@ class ControlFlowStructureIdentifier:
                 continue
 
             visited.add(block)
-            blocks.add(block)
+            blocks_list.append(block)
 
             for succ in self.cfg.get_successors(block):
                 if succ not in visited and succ != end:
                     stack.append(succ)
 
-        return blocks
+        blocks_list.sort()
+        return blocks_list
 
     def _collect_reachable_blocks(
         self, start: BasicBlock, exclude: Optional[BasicBlock]
-    ) -> Set[BasicBlock]:
-        blocks = {start}
+    ) -> List[BasicBlock]:
+        blocks = [start]
         stack = [start]
         visited = {start}
 
@@ -290,9 +300,10 @@ class ControlFlowStructureIdentifier:
                     continue
 
                 visited.add(succ)
-                blocks.add(succ)
+                blocks.append(succ)
                 stack.append(succ)
 
+        blocks.sort()
         return blocks
 
     @property
