@@ -46,11 +46,15 @@ class ASTBuilder:
         self._label_counter = 0
 
     def build(self) -> FunctionNode:
+        if self.cfg.function_name is None:
+            raise Exception(
+                "Invalid function! function_name shouldn't be None at this stage!"
+            )
+
         logger.info(f"Building AST for function {self.cfg.function_name}...")
 
-        # todo: function name here
         func_node: FunctionNode = FunctionNode(
-            name=self.cfg.function_name or "unknown_function",
+            name=self.cfg.function_name,
             return_type="void",
         )
 
@@ -296,10 +300,15 @@ class ASTBuilder:
         match expr.expr_type:
             case ExpressionType.ASSIGNMENT:
                 return self._create_assignment_statement(expr, inst)
-            case ExpressionType.CALL:
-                call_expr = self._create_call_expression(expr)
+            case ExpressionType.INTERNAL_CALL:
+                internal_call_expr = self._create_internal_call_expression(expr)
                 return ExpressionStatementNode(
-                    expression=call_expr, address=inst.address
+                    expression=internal_call_expr, address=inst.address
+                )
+            case ExpressionType.EXTERNAL_CALL:
+                external_call_expr = self._create_external_call_expression(expr)
+                return ExpressionStatementNode(
+                    expression=external_call_expr, address=inst.address
                 )
             case ExpressionType.PROPERTY_ACCESS:
                 prop_acc_expr = self._create_property_access_expression(expr)
@@ -314,6 +323,8 @@ class ASTBuilder:
             case ExpressionType.OPERATOR:
                 op_expr = self._create_operator_expression(expr)
                 return ExpressionStatementNode(expression=op_expr, address=inst.address)
+            case ExpressionType.LITERAL | ExpressionType.VARIABLE:
+                raise Exception("Unexpected orphan literl or variable expression!")
 
         # todo: other expr type ignored
         return None
@@ -329,13 +340,48 @@ class ASTBuilder:
 
         return AssignmentNode(target=target, value=value_expr, address=inst.address)
 
-    def _create_call_expression(self, expr: Expression) -> CallNode:
+    def _create_internal_call_expression(self, expr: Expression) -> CallNode:
+        if expr.entry_point is None:
+            raise Exception("Invalid internal call expression! entry_point expected!")
+        if expr.entry_point.name is None:
+            raise Exception(
+                "Invalid internal call expression! "
+                + "function_name shouldn't be null at this stage!"
+            )
+
+        return CallNode(
+            is_external=False,
+            function_name=expr.entry_point.name,
+            arguments=[],
+        )
+
+    def _create_external_call_expression(self, expr: Expression) -> CallNode:
         if expr.function_info is None:
-            raise Exception("Invalid call expression! function_info expected!")
+            raise Exception("Invalid external call expression! function_info expected!")
 
         args = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
 
-        return CallNode(function_info=expr.function_info, arguments=args)
+        is_static = (
+            expr.function_info.is_static
+            if expr.function_info.is_static is not None
+            else True
+        )
+
+        returns_void = (
+            expr.function_info.returns_void
+            if expr.function_info.returns_void is not None
+            else True
+        )
+
+        return CallNode(
+            is_external=True,
+            type_name=expr.function_info.type_name,
+            function_name=expr.function_info.function_name,
+            original_name=expr.function_info.original_name,
+            is_static=is_static,
+            returns_void=returns_void,
+            arguments=args,
+        )
 
     def _create_operator_expression(self, expr: Expression) -> OperatorNode:
         if expr.function_info is None:
@@ -397,8 +443,8 @@ class ASTBuilder:
             return LiteralNode(value=expr.value, literal_type=expr.type_hint)
         elif expr.expr_type == ExpressionType.VARIABLE:
             return VariableNode(var_name=str(expr.value), var_type=expr.type_hint)
-        elif expr.expr_type == ExpressionType.CALL:
-            return self._create_call_expression(expr)
+        elif expr.expr_type == ExpressionType.EXTERNAL_CALL:
+            return self._create_external_call_expression(expr)
         elif expr.expr_type == ExpressionType.OPERATOR:
             return self._create_operator_expression(expr)
         elif expr.expr_type == ExpressionType.PROPERTY_ACCESS:

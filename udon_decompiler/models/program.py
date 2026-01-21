@@ -17,6 +17,26 @@ class SymbolInfo:
     def __repr__(self) -> str:
         return f"Symbol({self.name}: {self.type} @ 0x{self.address:08x})"
 
+    @staticmethod
+    def try_parse_function_return(symbol_name: str) -> Optional[str]:
+        # __{id1}___{id2}_{methodName}__ret
+        if (
+            len(symbol_name) < 14
+            or not symbol_name.startswith("__")
+            or not symbol_name.endswith("__ret")
+        ):
+            return None
+        body = symbol_name[2:-5]
+        if "___" not in body:
+            return None
+        id1_str, _, rest = body.partition("___")
+        if "_" not in rest:
+            return None
+        id2_str, _, method_name = rest.partition("_")
+        if id1_str.isdigit() and id2_str.isdigit() and method_name:
+            return method_name
+        return None
+
 
 @dataclass
 class HeapEntryValue:
@@ -76,6 +96,7 @@ class UdonProgramData:
     entry_points: List[EntryPointInfo] = field(default_factory=list)
     heap_initial_values: Dict[int, HeapEntry] = field(default_factory=dict)
 
+    _generated_func_id: int = 0
     CLASS_NAME_ADDR: int = 1
     CLASS_NAME_SYMBOL_NAME: str = "__refl_typename"
 

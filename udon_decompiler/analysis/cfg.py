@@ -8,6 +8,7 @@ from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifie
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
+from udon_decompiler.utils.utils import sliding_window
 
 
 @dataclass
@@ -132,8 +133,8 @@ class CFGBuilder:
     def build(self) -> Dict[str, ControlFlowGraph]:
         logger.info("Building control flow graphs...")
 
-        self.entry_points = self._identify_entry_points()
-        entry_addresses = [e.address for e in self.entry_points]
+        self._identify_entry_points()
+        entry_addresses = [e.address for e in self.program.entry_points]
         self.identifier = BasicBlockIdentifier(
             self.instructions, entry_addresses, self.program
         )
@@ -151,7 +152,7 @@ class CFGBuilder:
 
         return self._cfgs
 
-    def _identify_entry_points(self) -> List[EntryPointInfo]:
+    def _identify_entry_points(self):
         res = set(self.program.entry_points)
         for inst in self.instructions:
             if inst.opcode != OpCode.PUSH:
@@ -171,7 +172,7 @@ class CFGBuilder:
             # this is a halt jump! the next inst is a function entry!
             res.add(EntryPointInfo(name=None, address=inst.address))
 
-        return list(res)
+        self.program.entry_points = list(res)
 
     def _build_edges(self) -> None:
         logger.info("Building CFG edges...")
@@ -182,7 +183,7 @@ class CFGBuilder:
             if last_inst.opcode == OpCode.JUMP:
                 target = last_inst.get_jump_target()
                 is_call_jump = any(
-                    ep.call_jump_target == target for ep in self.entry_points
+                    ep.call_jump_target == target for ep in self.program.entry_points
                 )
                 if is_call_jump:
                     returning_block = self._get_block_starting_at(
@@ -236,7 +237,7 @@ class CFGBuilder:
     def _build_function_cfgs(self) -> Dict[str, ControlFlowGraph]:
         cfgs = {}
 
-        for entry_point in self.entry_points:
+        for entry_point in self.program.entry_points:
             function_name = entry_point.name
             entry_block = self._address_to_block.get(entry_point.address)
 
@@ -247,11 +248,13 @@ class CFGBuilder:
                 )
                 continue
 
+            function_blocks = self._find_function_blocks(entry_block)
+            if entry_block.function_name is None:
+                self._identify_function_name(entry_point, function_blocks)
+                function_name = entry_point.name
+
             cfg = ControlFlowGraph(entry_block=entry_block, function_name=function_name)
 
-            function_blocks = self._find_function_blocks(entry_block)
-
-            # todo: shouldn't use function name when it's not yet determined
             logger.debug(f"Basic blocks of function {function_name}: {function_blocks}")
 
             for block in function_blocks:
@@ -270,7 +273,11 @@ class CFGBuilder:
 
         return cfgs
 
-    def _find_function_blocks(self, entry_block: BasicBlock) -> Set[BasicBlock]:
+    def _find_function_blocks(self, entry_block: BasicBlock) -> List[BasicBlock]:
+        """
+        Return all blocks of the function that begin with the given entry_block.
+        Order guaranteed.
+        """
         visited = set()
         stack = [entry_block]
 
@@ -284,7 +291,39 @@ class CFGBuilder:
             for successor in block.successors:
                 stack.append(successor)
 
-        return visited
+        res = list(visited)
+        res.sort()
+        return res
+
+    def _identify_function_name(
+        self, entry_point: EntryPointInfo, function_blocks: List[BasicBlock]
+    ):
+        instructions = [
+            inst for block in function_blocks for inst in block.instructions
+        ]
+
+        # find a --copy-> __*___*_name__ret
+        for _, inst2, inst3 in sliding_window(instructions, 3):
+            if inst3.opcode != OpCode.COPY:
+                continue
+            if inst2.opcode != OpCode.PUSH:
+                logger.warning(
+                    "Detected orphan COPY without a near PUSH. "
+                    + "The program may be broken."
+                )
+                continue
+            if inst2.operand is None:
+                raise Exception("Invalid PUSH instruction! An operand expected!")
+            sym = self.program.get_symbol_by_address(inst2.operand)
+            if sym is None:
+                continue
+            method_name = SymbolInfo.try_parse_function_return(sym.name)
+            if method_name is not None:
+                entry_point.name = method_name
+                return
+
+        entry_point.name = f"function_{self.program._generated_func_id}"
+        self.program._generated_func_id += 1
 
     @property
     def cfgs(self) -> Dict[str, ControlFlowGraph]:

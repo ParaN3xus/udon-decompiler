@@ -6,7 +6,7 @@ from udon_decompiler.analysis.stack_simulator import StackSimulator
 from udon_decompiler.analysis.variable_identifier import Variable, VariableIdentifier
 from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.module_info import UdonModuleInfo
-from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -35,7 +35,9 @@ class DataFlowAnalyzer:
             logger.info(f"Analyzing function: {func_name}")
 
             analyzer = FunctionDataFlowAnalyzer(
-                program=self.program, module_info=self.module_info, cfg=cfg
+                program=self.program,
+                module_info=self.module_info,
+                cfg=cfg,
             )
 
             analyzer.analyze()

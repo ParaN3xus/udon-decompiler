@@ -36,6 +36,9 @@ class BasicBlock:
             return False
         return self.start_address == other.start_address
 
+    def __lt__(self, other: "BasicBlock"):
+        return self.start_address < other.start_address
+
     def __repr__(self) -> str:
         return (
             f"BasicBlock(0x{self.start_address:08x}-0x{self.end_address:08x}, "

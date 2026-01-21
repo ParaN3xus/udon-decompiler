@@ -14,7 +14,7 @@ from udon_decompiler.models.module_info import (
     FunctionDefinitionType,
     UdonModuleInfo,
 )
-from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -22,7 +22,8 @@ class ExpressionType(Enum):
     LITERAL = "literal"
     VARIABLE = "variable"  # var ref
     OPERATOR = "op"
-    CALL = "call"
+    EXTERNAL_CALL = "ext_call"
+    INTERNAL_CALL = "int_call"
     PROPERTY_ACCESS = "prop"
     CONSTRUCTOR = "ctor"
     # ARRAY_ACCESS = "array"        # arr access
@@ -73,18 +74,22 @@ class Expression:
     function_info: Optional[ExternFunctionInfo] = None
     arguments: List["Expression"] = field(default_factory=list)
 
+    # for internal call
+    entry_point: Optional[EntryPointInfo] = None
+
     source_instruction: Optional[Instruction] = None
 
     def __post_init__(self):
         if self.arguments is None:
             self.arguments = []
 
+    # todo: fill all new types
     def __repr__(self) -> str:
         if self.expr_type == ExpressionType.LITERAL:
             return f"Literal({self.value})"
         elif self.expr_type == ExpressionType.VARIABLE:
             return f"Var({self.value})"
-        elif self.expr_type == ExpressionType.CALL:
+        elif self.expr_type == ExpressionType.EXTERNAL_CALL:
             return f"Call({
                 self.function_info.function_name if self.function_info else '<unknown>'
             }, {len(self.arguments)} args)"
@@ -113,48 +118,25 @@ class ExpressionBuilder:
         opcode = instruction.opcode
 
         match opcode:
-            case OpCode.PUSH:
-                return self._build_push_expression(instruction)
             case OpCode.COPY:
                 return self._build_copy_expression(instruction)
             case OpCode.EXTERN:
                 return self._build_extern_expression(instruction)
+            case OpCode.JUMP:
+                return self._build_jump_expression(instruction)
+            case OpCode.JUMP_INDIRECT:
+                # todo: return
+                pass
+            case (
+                OpCode.JUMP_IF_FALSE
+                | OpCode.NOP
+                | OpCode.ANNOTATION
+                | OpCode.POP
+                | OpCode.PUSH
+            ):
+                return None
 
         return None
-
-    def _build_push_expression(self, instruction: Instruction) -> Optional[Expression]:
-        if instruction.operand is None:
-            return None
-
-        address = instruction.operand
-
-        # is var
-        variable = self.variable_identifier.get_variable(address)
-        if variable:
-            return Expression(
-                expr_type=ExpressionType.VARIABLE,
-                value=variable.name,
-                type_hint=variable.type_hint,
-                source_instruction=instruction,
-            )
-
-        # in heap
-        heap_entry = self.program.get_initial_heap_value(address)
-        if heap_entry:
-            return Expression(
-                expr_type=ExpressionType.LITERAL,
-                value=heap_entry.value.value,
-                type_hint=heap_entry.type,
-                source_instruction=instruction,
-            )
-
-        # int
-        return Expression(
-            expr_type=ExpressionType.LITERAL,
-            value=f"0x{address:08x}",
-            type_hint="address",
-            source_instruction=instruction,
-        )
 
     def _build_copy_expression(self, instruction: Instruction) -> Optional[Expression]:
         prev_state = self._get_previous_state(instruction)
@@ -195,7 +177,7 @@ class ExpressionBuilder:
         if func_info is None:
             logger.warning(f"Unknown function: {signature}")
             return Expression(
-                expr_type=ExpressionType.CALL,
+                expr_type=ExpressionType.EXTERNAL_CALL,
                 function_info=None,
                 source_instruction=instruction,
             )
@@ -236,12 +218,43 @@ class ExpressionBuilder:
                     arguments=arguments,
                     source_instruction=instruction,
                 )
+            case FunctionDefinitionType.METHOD:
+                return Expression(
+                    expr_type=ExpressionType.EXTERNAL_CALL,
+                    function_info=func_info,
+                    arguments=arguments,
+                    source_instruction=instruction,
+                )
+            case FunctionDefinitionType.SPECIAL | FunctionDefinitionType.UNKNOWN:
+                # todo, this is a fallback
+                return Expression(
+                    expr_type=ExpressionType.EXTERNAL_CALL,
+                    function_info=func_info,
+                    arguments=arguments,
+                    source_instruction=instruction,
+                )
+            case (
+                FunctionDefinitionType.CONST
+                | FunctionDefinitionType.TYPE
+                | FunctionDefinitionType.VARIABLE
+                | FunctionDefinitionType.EVENT
+            ):
+                # these shouldn't happen
+                raise Exception("Unexpected FunctionDefinitionType encountered!")
 
-        # FunctionDefinitionType.METHOD_INFO
+    def _build_jump_expression(self, instruction: Instruction) -> Optional[Expression]:
+        target = instruction.get_jump_target()
+
+        target_ep = next(
+            (ep for ep in self.program.entry_points if ep.call_jump_target == target),
+            None,
+        )
+        if target_ep is None:
+            return None
+
         return Expression(
-            expr_type=ExpressionType.CALL,
-            function_info=func_info,
-            arguments=arguments,
+            expr_type=ExpressionType.INTERNAL_CALL,
+            entry_point=target_ep,
             source_instruction=instruction,
         )
 

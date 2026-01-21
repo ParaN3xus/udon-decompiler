@@ -49,6 +49,7 @@ class ProgramNode(ASTNode):
 
 @dataclass
 class FunctionNode(ASTNode):
+    # todo: is_public
     name: str = ""
     parameters: List["VariableDeclNode"] = field(default_factory=list)
     return_type: Optional[str] = None
@@ -211,7 +212,12 @@ class VariableNode(ExpressionNode):
 
 @dataclass(kw_only=True)
 class CallNode(ExpressionNode):
-    function_info: ExternFunctionInfo
+    is_external: bool
+    function_name: str
+    type_name: str = ""
+    original_name: str = ""
+    is_static: bool = True
+    returns_void: bool = True
     arguments: List[ExpressionNode] = field(default_factory=list)
 
     def __post_init__(self):
