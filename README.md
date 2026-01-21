@@ -14,6 +14,7 @@ The Udon Decompiler.
 
 ## TODO
 
+- [ ] Remove `todo:` marks from code
 - [ ] Editor Tools
   - [ ] `UdonModuleInfoExtractor` for different VRChat World SDK version
   - [ ] `UdonProgramDumper` supporting different `serializedProgramCompressedBytes` formats
