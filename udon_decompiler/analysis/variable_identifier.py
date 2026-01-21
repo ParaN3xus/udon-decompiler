@@ -1,9 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Dict, Set, Optional
 from enum import Enum
+from typing import Dict, Optional, Set
 
-from udon_decompiler.models.instruction import Instruction
-from udon_decompiler.models.program import UdonProgramData, SymbolInfo
 from udon_decompiler.analysis.basic_block import BasicBlock
 from udon_decompiler.analysis.cfg import ControlFlowGraph
 from udon_decompiler.analysis.stack_simulator import (
@@ -11,6 +9,8 @@ from udon_decompiler.analysis.stack_simulator import (
     StackSimulator,
     StackValueType,
 )
+from udon_decompiler.models.instruction import Instruction
+from udon_decompiler.models.program import SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -44,7 +44,10 @@ class Variable:
 
     def __repr__(self) -> str:
         type_str = f": {self.type_hint}" if self.type_hint else ""
-        return f"Variable({self.name}{type_str} @ 0x{self.address:08x}, scope={self.scope.value})"
+        return (
+            f"Variable({self.name}{type_str} @ 0x{self.address:08x}, "
+            + "scope={self.scope.value})"
+        )
 
 
 class VariableIdentifier:

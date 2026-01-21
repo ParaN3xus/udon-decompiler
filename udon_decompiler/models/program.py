@@ -97,7 +97,8 @@ class UdonProgramData:
             return None
         if not possible_class_name_entry.value.is_serializable:
             logger.warning(
-                "Class name entry is not serializable! The Udon program might be broken!"
+                "Class name entry is not serializable! "
+                + "The Udon program might be broken!"
             )
             return None
 
