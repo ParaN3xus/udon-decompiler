@@ -13,6 +13,7 @@ from udon_decompiler.utils.utils import sliding_window
 
 @dataclass
 class ControlFlowGraph:
+    is_function_public: bool
     entry_block: BasicBlock
     function_name: Optional[str] = None
     graph: nx.DiGraph = field(default_factory=nx.DiGraph)
@@ -239,27 +240,33 @@ class CFGBuilder:
         cfgs = {}
 
         for entry_point in self.program.entry_points:
-            function_name = entry_point.name
             entry_block = self._address_to_block.get(entry_point.address)
 
             if entry_block is None:
                 logger.warning(
-                    f"Cannot find entry block for function {function_name} "
+                    f"Cannot find entry block for function "
                     f"at address 0x{entry_point.address:08x}"
                 )
                 continue
 
             function_blocks = self._find_function_blocks(entry_block)
-            if function_name is None:
+            is_function_public = True
+            if entry_point.name is None:
+                is_function_public = False
                 self._identify_function_name(entry_point, function_blocks)
-                function_name = entry_point.name
 
-            cfg = ControlFlowGraph(entry_block=entry_block, function_name=function_name)
+            cfg = ControlFlowGraph(
+                entry_block=entry_block,
+                function_name=entry_point.name,
+                is_function_public=is_function_public,
+            )
 
-            logger.debug(f"Basic blocks of function {function_name}: {function_blocks}")
+            logger.debug(
+                f"Basic blocks of function {entry_point.name}: {function_blocks}"
+            )
 
             for block in function_blocks:
-                block.function_name = function_name
+                block.function_name = entry_point.name
                 cfg.graph.add_node(block)
 
             for block in function_blocks:
@@ -267,9 +274,10 @@ class CFGBuilder:
                     if successor in function_blocks:
                         cfg.graph.add_edge(block, successor)
 
-            cfgs[function_name] = cfg
+            cfgs[entry_point.name] = cfg
             logger.info(
-                f"Built CFG for function {function_name}: {len(function_blocks)} blocks"
+                f"Built CFG for function {entry_point.name}: "
+                f"{len(function_blocks)} blocks"
             )
 
         return cfgs

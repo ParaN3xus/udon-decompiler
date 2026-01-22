@@ -60,8 +60,8 @@ class ASTBuilder:
         logger.info(f"Building AST for function {self.cfg.function_name}...")
 
         func_node: FunctionNode = FunctionNode(
+            is_public=self.cfg.is_function_public,
             name=self.cfg.function_name,
-            return_type="void",
         )
 
         struct_identifier = ControlFlowStructureIdentifier(self.cfg)
