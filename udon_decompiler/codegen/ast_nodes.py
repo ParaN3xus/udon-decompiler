@@ -172,6 +172,13 @@ class GotoNode(StatementNode):
         self.node_type = ASTNodeType.GOTO
 
 
+@dataclass
+class ReturnNode(StatementNode):
+    def __post_init__(self):
+        super().__post_init__()
+        self.node_type = ASTNodeType.RETURN
+
+
 class ExpressionType(Enum):
     LITERAL = "literal"
     VARIABLE = "variable"
