@@ -70,7 +70,7 @@ class BasicBlock:
 
 class BasicBlockIdentifier:
     switch_cases_indir_jumps: dict[int, List[int]] = {}
-    return_indir_jumps: List[int] = []
+    return_jumps: List[int] = []
 
     def __init__(
         self,
@@ -110,7 +110,10 @@ class BasicBlockIdentifier:
         for idx, inst in enumerate(self.instructions):
             if inst.opcode == OpCode.JUMP or inst.opcode == OpCode.JUMP_IF_FALSE:
                 target = inst.get_jump_target()
-                if target is not None:
+
+                if target > self.instructions[-1].address:
+                    self.return_jumps.append(inst.address)
+                else:
                     block_starts.add(target)
 
                 next_addr = inst.next_address
@@ -133,7 +136,7 @@ class BasicBlockIdentifier:
                     jump, the basic block was already created during the processing
                     of the call jump.
                     """
-                    self.return_indir_jumps.append(inst.address)
+                    self.return_jumps.append(inst.address)
                     continue
 
                 switch_targets = self._get_switch_targets(idx, operand_sym)
@@ -260,13 +263,14 @@ class BasicBlockIdentifier:
 
         last_inst = instructions[-1]
 
+        if last_inst.address in self.return_jumps:
+            return BasicBlockType.RETURN
+
         if last_inst.is_conditional_jump():
             return BasicBlockType.CONDITIONAL
         elif last_inst.is_unconditional_jump():
             return BasicBlockType.JUMP
         elif last_inst.opcode == OpCode.JUMP_INDIRECT:
-            if last_inst.address in self.return_indir_jumps:
-                return BasicBlockType.RETURN
             return BasicBlockType.JUMP
 
         return BasicBlockType.NORMAL
