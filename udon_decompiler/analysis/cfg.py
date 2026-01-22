@@ -311,7 +311,7 @@ class CFGBuilder:
             if inst2.opcode != OpCode.PUSH:
                 logger.warning(
                     "Detected orphan COPY without a near PUSH. "
-                    + "The program may be broken."
+                    "The program may be broken."
                 )
                 continue
             if inst2.operand is None:

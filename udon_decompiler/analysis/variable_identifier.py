@@ -46,7 +46,7 @@ class Variable:
         type_str = f": {self.type_hint}" if self.type_hint else ""
         return (
             f"Variable({self.name}{type_str} @ 0x{self.address:08x}, "
-            + "scope={self.scope.value})"
+            "scope={self.scope.value})"
         )
 
 
