@@ -7,7 +7,6 @@ from udon_decompiler.analysis.cfg import ControlFlowGraph
 from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
     StackSimulator,
-    StackValueType,
 )
 from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.program import SymbolInfo, UdonProgramData
@@ -114,14 +113,12 @@ class VariableIdentifier:
                     target_val = prev_state.peek(1)
 
                     if source_val and target_val:
-                        if target_val.value_type == StackValueType.HEAP_ADDRESS:
-                            self._record_variable_write(
-                                target_val.value, instruction.address
-                            )
-                        if source_val.value_type == StackValueType.HEAP_ADDRESS:
-                            self._record_variable_read(
-                                source_val.value, instruction.address
-                            )
+                        self._record_variable_write(
+                            target_val.value, instruction.address
+                        )
+                        self._record_variable_read(
+                            source_val.value, instruction.address
+                        )
 
             elif instruction.opcode.name == "EXTERN":
                 self._analyze_extern_variables(instruction, state)
@@ -170,12 +167,11 @@ class VariableIdentifier:
             if param_val is None:
                 continue
 
-            if param_val.value_type == StackValueType.HEAP_ADDRESS:
-                self._record_variable_read(param_val.value, instruction.address)
-                logger.debug(
-                    f"EXTERN at 0x{instruction.address:08x}: "
-                    f"parameter {i} reads variable at 0x{param_val.value:08x}"
-                )
+            self._record_variable_read(param_val.value, instruction.address)
+            logger.debug(
+                f"EXTERN at 0x{instruction.address:08x}: "
+                f"parameter {i} reads variable at 0x{param_val.value:08x}"
+            )
 
     def _record_variable_read(self, address: int, instruction_address: int) -> None:
         if address not in self._variables:

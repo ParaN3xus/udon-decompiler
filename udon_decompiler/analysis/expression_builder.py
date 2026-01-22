@@ -5,7 +5,6 @@ from typing import Any, Final, List, Optional
 from udon_decompiler.analysis.stack_simulator import (
     StackSimulator,
     StackValue,
-    StackValueType,
 )
 from udon_decompiler.analysis.variable_identifier import VariableIdentifier
 from udon_decompiler.models.instruction import Instruction, OpCode
@@ -299,36 +298,24 @@ class ExpressionBuilder:
     def _stack_value_to_expression(
         self, stack_value: StackValue
     ) -> Optional[Expression]:
-        if stack_value.value_type == StackValueType.HEAP_ADDRESS:
-            variable = self.variable_identifier.get_variable(stack_value.value)
-            if variable:
-                return Expression(
-                    expr_type=ExpressionType.VARIABLE,
-                    value=variable.name,
-                    type_hint=variable.type_hint,
-                )
-
-            # in heap
-            heap_entry = self.program.get_initial_heap_value(stack_value.value)
-            if heap_entry and heap_entry.value.is_serializable:
-                return Expression(
-                    expr_type=ExpressionType.LITERAL,
-                    value=heap_entry.value.value,
-                    type_hint=heap_entry.type,
-                )
-
-        elif stack_value.value_type == StackValueType.IMMEDIATE:
+        variable = self.variable_identifier.get_variable(stack_value.value)
+        if variable:
             return Expression(
-                expr_type=ExpressionType.LITERAL,
-                value=stack_value.value,
-                type_hint=stack_value.type_hint,
+                expr_type=ExpressionType.VARIABLE,
+                value=variable.name,
+                type_hint=variable.type_hint,
             )
 
-        return Expression(
-            expr_type=ExpressionType.LITERAL,
-            value=f"0x{stack_value.value:08x}",
-            type_hint="unknown",
-        )
+        # in heap
+        heap_entry = self.program.get_initial_heap_value(stack_value.value)
+        if heap_entry and heap_entry.value.is_serializable:
+            return Expression(
+                expr_type=ExpressionType.LITERAL,
+                value=heap_entry.value.value,
+                type_hint=heap_entry.type,
+            )
+
+        raise Exception("Unknown stack value!")
 
     def _get_previous_state(self, instruction: Instruction):
         # todo: use cfg to find previous instruction and block
