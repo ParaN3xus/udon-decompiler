@@ -142,7 +142,8 @@ class ExpressionBuilder:
             case OpCode.JUMP:
                 return self._build_jump_expression(instruction)
             case OpCode.JUMP_INDIRECT:
-                # todo: return
+                # don't worry about returns, they are appended to the block's statements
+                # when the block's type is RETURN
                 pass
             case (
                 OpCode.JUMP_IF_FALSE
