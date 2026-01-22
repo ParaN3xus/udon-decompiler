@@ -1,6 +1,6 @@
 from typing import List, Optional, Set
 
-from udon_decompiler.analysis.basic_block import BasicBlock
+from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockType
 from udon_decompiler.analysis.control_flow import (
     ControlFlowStructureIdentifier,
     ControlStructure,
@@ -23,6 +23,7 @@ from udon_decompiler.codegen.ast_nodes import (
     OperatorNode,
     PropertyAccessNode,
     PropertyAccessType,
+    ReturnNode,
     StatementNode,
     VariableDeclNode,
     VariableNode,
@@ -290,6 +291,9 @@ class ASTBuilder:
             stmt = self._translate_instruction(inst)
             if stmt:
                 parent_block.add_statement(stmt)
+
+        if block.block_type == BasicBlockType.RETURN:
+            parent_block.add_statement(ReturnNode())
 
     def _translate_instruction(self, inst: Instruction) -> Optional[StatementNode]:
         expr = self.analyzer.get_expression(inst.address)

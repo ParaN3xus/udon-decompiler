@@ -20,6 +20,7 @@ from udon_decompiler.codegen.ast_nodes import (
     ProgramNode,
     PropertyAccessNode,
     PropertyAccessType,
+    ReturnNode,
     StatementNode,
     VariableDeclNode,
     VariableNode,
@@ -111,35 +112,29 @@ class CSharpCodeGenerator:
     def _generate_statement(self, stmt: StatementNode, indent: int = 0) -> list[str]:
         indent_str = "    " * indent
 
-        if isinstance(stmt, VariableDeclNode):
-            return self._generate_variable_decl(stmt, indent)
-
-        elif isinstance(stmt, AssignmentNode):
-            return self._generate_assignment(stmt, indent)
-
-        elif isinstance(stmt, ExpressionStatementNode):
-            return self._generate_expression_statement(stmt, indent)
-
-        elif isinstance(stmt, IfNode):
-            return self._generate_if(stmt, indent)
-
-        elif isinstance(stmt, IfElseNode):
-            return self._generate_if_else(stmt, indent)
-
-        elif isinstance(stmt, WhileNode):
-            return self._generate_while(stmt, indent)
-
-        elif isinstance(stmt, DoWhileNode):
-            return self._generate_do_while(stmt, indent)
-
-        elif isinstance(stmt, LabelNode):
-            return [f"{indent_str}{stmt.label_name}:"]
-
-        elif isinstance(stmt, GotoNode):
-            return [f"{indent_str}goto {stmt.target_label};"]
-
-        else:
-            return [f"{indent_str}// Unknown statement type: {stmt.node_type.value}"]
+        match stmt:
+            case VariableDeclNode():
+                return self._generate_variable_decl(stmt, indent)
+            case AssignmentNode():
+                return self._generate_assignment(stmt, indent)
+            case ExpressionStatementNode():
+                return self._generate_expression_statement(stmt, indent)
+            case IfNode():
+                return self._generate_if(stmt, indent)
+            case IfElseNode():
+                return self._generate_if_else(stmt, indent)
+            case WhileNode():
+                return self._generate_while(stmt, indent)
+            case DoWhileNode():
+                return self._generate_do_while(stmt, indent)
+            case LabelNode():
+                return [f"{indent_str}{stmt.label_name}:"]
+            case GotoNode():
+                return [f"{indent_str}goto {stmt.target_label};"]
+            case ReturnNode():
+                return ["return;"]
+            case StatementNode():
+                raise Exception("Unexpected raw StatementNode!")
 
     def _generate_variable_decl(self, stmt: VariableDeclNode, indent: int) -> list[str]:
         indent_str = "    " * indent
