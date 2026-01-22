@@ -7,7 +7,11 @@ from udon_decompiler.analysis.control_flow import (
     ControlStructureType,
 )
 from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
-from udon_decompiler.analysis.expression_builder import Expression, ExpressionType
+from udon_decompiler.analysis.expression_builder import (
+    Expression,
+    ExpressionType,
+    Operator,
+)
 from udon_decompiler.codegen.ast_nodes import (
     AssignmentNode,
     BlockNode,
@@ -25,6 +29,7 @@ from udon_decompiler.codegen.ast_nodes import (
     PropertyAccessType,
     ReturnNode,
     StatementNode,
+    TypeNode,
     VariableDeclNode,
     VariableNode,
     WhileNode,
@@ -395,6 +400,9 @@ class ASTBuilder:
             raise Exception("Invalid operator expression! A valid operator expected!")
 
         oprs = [self._convert_expression_to_ast(arg) for arg in expr.arguments]
+
+        if expr.operator == Operator.ImplicitConversion:
+            oprs.insert(0, TypeNode(type_name=expr.function_info.type_name))
         receiver = oprs.pop()
 
         return OperatorNode(

@@ -36,7 +36,7 @@ class Operator(Enum):
 
     Addition = ("Addition", "{} + {}")
     Subtraction = ("Subtraction", "{} - {}")
-    Multiplication = ("Multiplication", "{} * {}")
+    Multiplication = (("Multiplication", "Multiply"), "{} * {}")
     Division = ("Division", "{} / {}")
     Remainder = ("Remainder", "{} % {}")
     UnaryMinus = ("UnaryMinus", "-{}")
@@ -52,13 +52,31 @@ class Operator(Enum):
     GreaterThanOrEqual = ("GreaterThanOrEqual", "{} >= {}")
     LessThan = ("LessThan", "{} < {}")
     LessThanOrEqual = ("LessThanOrEqual", "{} <= {}")
-    ImplicitConversion = ("ImplicitConversion", "({}){}")
+    ImplicitConversion = ("Implicit", "({}){}")
 
-    def __new__(cls, value, formatter):
+    def __new__(cls, names, formatter):
         obj = object.__new__(cls)
-        obj._value_ = value
+
+        if isinstance(names, str):
+            names = (names,)
+
+        obj._value_ = names
         obj.formatter = formatter
         return obj
+
+    @classmethod
+    def from_name(cls, name: str):
+        if not hasattr(cls, "_lookup_cache"):
+            cls._lookup_cache = {}
+            for member in cls:
+                for alias in member.value:
+                    cls._lookup_cache[alias] = member
+
+        res = cls._lookup_cache.get(name)
+        if res is None:
+            raise Exception(f"Invalid operator: {name}")
+
+        return res
 
 
 @dataclass
@@ -270,7 +288,7 @@ class ExpressionBuilder:
         if not func_info.function_name.startswith(self.EXTERN_OP_PREFIX):
             raise Exception("Invalid operator")
 
-        op = Operator(
+        op = Operator.from_name(
             func_info.function_name[len(self.EXTERN_OP_PREFIX) :].split(
                 "__", maxsplit=2
             )[0]

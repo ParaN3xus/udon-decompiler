@@ -22,6 +22,7 @@ from udon_decompiler.codegen.ast_nodes import (
     PropertyAccessType,
     ReturnNode,
     StatementNode,
+    TypeNode,
     VariableDeclNode,
     VariableNode,
     WhileNode,
@@ -257,6 +258,8 @@ class CSharpCodeGenerator:
                 return self._generate_construction(expr)
             case OperatorNode():
                 return self._generate_operator(expr)
+            case TypeNode():
+                return expr.type_name
             case _:
                 return f"<{expr.expr_type}>"
 
