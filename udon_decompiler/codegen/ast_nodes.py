@@ -186,6 +186,7 @@ class ExpressionType(Enum):
     PROPERTY_ACCESS = "prop"
     CONSTRUCTOR = "ctor"
     OPERATOR = "op"
+    TYPE = "type"
 
 
 @dataclass
@@ -278,3 +279,12 @@ class ConstructionNode(ExpressionNode):
     def __post_init__(self):
         super().__post_init__()
         self.expr_type = ExpressionType.OPERATOR
+
+
+@dataclass(kw_only=True)
+class TypeNode(ExpressionNode):
+    type_name: str
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.expr_type = ExpressionType.TYPE
