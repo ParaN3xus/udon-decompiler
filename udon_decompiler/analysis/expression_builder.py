@@ -14,7 +14,7 @@ from udon_decompiler.models.module_info import (
     FunctionDefinitionType,
     UdonModuleInfo,
 )
-from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
+from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -150,6 +150,11 @@ class ExpressionBuilder:
             return None
 
         target_var = self.variable_identifier.get_variable_name(target_val.value)
+
+        # igonre assign return jump target
+        if target_var == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME:
+            return None
+
         source_expr = self._stack_value_to_expression(source_val)
 
         return Expression(
