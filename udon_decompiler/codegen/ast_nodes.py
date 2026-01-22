@@ -47,10 +47,10 @@ class ProgramNode(ASTNode):
         self.node_type = ASTNodeType.PROGRAM
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FunctionNode(ASTNode):
-    # todo: is_public
-    name: str = ""
+    is_public: bool
+    name: str
     parameters: List["VariableDeclNode"] = field(default_factory=list)
     return_type: Optional[str] = None
     body: Optional["BlockNode"] = None

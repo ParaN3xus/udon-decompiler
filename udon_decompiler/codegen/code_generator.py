@@ -99,7 +99,9 @@ class CSharpCodeGenerator:
             f"{p.var_type or 'object'} {p.var_name}" for p in func_node.parameters
         )
 
-        return f"public {return_type} {name}({params})"
+        return (
+            f"{'public ' if func_node.is_public else ''}{return_type} {name}({params})"
+        )
 
     def _generate_block(self, block: BlockNode, indent: int = 0) -> list[str]:
         lines = []
