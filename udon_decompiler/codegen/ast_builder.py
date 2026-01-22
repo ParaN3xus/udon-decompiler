@@ -122,7 +122,7 @@ class ASTBuilder:
                 # shouldn't happen
                 logger.warning(
                     f"Block 0x{block.start_address:08x} has multiple successors but no "
-                    + "control structure"
+                    "control structure"
                 )
 
     def _find_structure_with_header(
@@ -350,7 +350,7 @@ class ASTBuilder:
         if expr.entry_point.name is None:
             raise Exception(
                 "Invalid internal call expression! "
-                + "function_name shouldn't be null at this stage!"
+                "function_name shouldn't be null at this stage!"
             )
 
         return CallNode(
@@ -418,7 +418,7 @@ class ASTBuilder:
         except ValueError as e:
             logger.error(
                 f"Failed to construct PropertyAccessType from "
-                + f"'{expr.function_info.function_name}'"
+                f"'{expr.function_info.function_name}'"
             )
             raise e
 
