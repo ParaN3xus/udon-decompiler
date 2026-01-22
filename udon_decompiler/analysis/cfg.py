@@ -304,6 +304,14 @@ class CFGBuilder:
 
         candidate_names = []
 
+        # todo: there can be other types of assigning ret
+        # like
+        # __0___0_fibonacci__ret <- __intnl_SystemInt32_2 + ret
+        # PUSH, __intnl_SystemInt32_2
+        # PUSH, __0___0_fibonacci__ret
+        # PUSH, __0___0_fibonacci__ret
+        # EXTERN, "SystemInt32.__op_Addition__SystemInt32_SystemInt32__SystemInt32"
+
         # find a --copy-> __*___*_name__ret
         for _, inst2, inst3 in sliding_window(instructions, 3):
             if inst3.opcode != OpCode.COPY:
