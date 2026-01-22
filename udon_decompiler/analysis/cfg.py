@@ -302,6 +302,8 @@ class CFGBuilder:
             inst for block in function_blocks for inst in block.instructions
         ]
 
+        candidate_names = []
+
         # find a --copy-> __*___*_name__ret
         for _, inst2, inst3 in sliding_window(instructions, 3):
             if inst3.opcode != OpCode.COPY:
@@ -319,8 +321,19 @@ class CFGBuilder:
                 continue
             method_name = SymbolInfo.try_parse_function_return(sym.name)
             if method_name is not None:
-                entry_point.name = method_name
-                return
+                candidate_names.append(method_name)
+
+        if candidate_names:
+            distinct_names = set(candidate_names)
+            if len(distinct_names) > 1:
+                logger.warning(
+                    f"Conflicting function names detected for entry point at "
+                    f"{entry_point.address}: {distinct_names}. "
+                    f"Using the first found name: '{candidate_names[0]}'."
+                )
+
+            entry_point.name = candidate_names[0]
+            return
 
         entry_point.name = f"function_{self.program._generated_func_id}"
         self.program._generated_func_id += 1
