@@ -163,6 +163,9 @@ class ControlFlowStructureIdentifier:
 
             # unconditional
             if len(successors) != 2:
+                logger.warning(
+                    "Invalid conditional block! More successors expected! Ignoring..."
+                )
                 continue
 
             structure = self._analyze_conditional_structure(block, successors)
@@ -174,8 +177,8 @@ class ControlFlowStructureIdentifier:
     def _analyze_conditional_structure(
         self, header: BasicBlock, successors: List[BasicBlock]
     ) -> Optional[ControlStructure]:
-        branch_true = successors[0]
-        branch_false = successors[1]
+        branch_false = successors[0]
+        branch_true = successors[1]
 
         merge_point = self._find_merge_point(header, branch_true, branch_false)
 
@@ -191,7 +194,6 @@ class ControlFlowStructureIdentifier:
                 true_branch=true_branch,
                 false_branch=false_branch,
             )
-
         else:
             true_blocks = self._collect_blocks_between(branch_true, merge_point)
             false_blocks = self._collect_blocks_between(branch_false, merge_point)
@@ -218,27 +220,32 @@ class ControlFlowStructureIdentifier:
     ) -> Optional[BasicBlock]:
         post_dominators = self.cfg.get_post_dominators()
 
-        header_post_doms = post_dominators.get(header, set())
+        def get_reflexive_pdoms(block: BasicBlock) -> set[BasicBlock]:
+            pdoms = post_dominators.get(block, set()).copy()
+            pdoms.add(block)
+            return pdoms
 
-        if header_post_doms is None:
+        header_pdoms = get_reflexive_pdoms(header)
+        true_pdoms = get_reflexive_pdoms(branch_true)
+        false_pdoms = get_reflexive_pdoms(branch_false)
+
+        common_candidates = header_pdoms & true_pdoms & false_pdoms
+
+        if not common_candidates:
             return None
 
-        true_post_doms = post_dominators.get(branch_true, set())
-        false_post_doms = post_dominators.get(branch_false, set())
+        best_candidate = None
+        max_pdom_size = -1
 
-        common_post_doms = header_post_doms & true_post_doms & false_post_doms
+        for candidate in common_candidates:
+            candidate_pdoms = get_reflexive_pdoms(candidate)
+            size = len(candidate_pdoms)
 
-        if common_post_doms is None:
-            return None
+            if size > max_pdom_size:
+                max_pdom_size = size
+                best_candidate = candidate
 
-        candidates = common_post_doms.copy()
-        for pd1 in common_post_doms:
-            for pd2 in common_post_doms:
-                if pd1 != pd2 and pd2 in post_dominators.get(pd1, set()):
-                    candidates.discard(pd1)
-                    break
-
-        return candidates.pop() if candidates else None
+        return best_candidate
 
     def _get_reachable_blocks_dfs(self, start: BasicBlock) -> List[BasicBlock]:
         visited = set()

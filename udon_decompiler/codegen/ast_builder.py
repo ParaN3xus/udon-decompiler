@@ -101,9 +101,13 @@ class ASTBuilder:
         parent_block: BlockNode,
         structures: List[ControlStructure],
         visited: Optional[Set[BasicBlock]] = None,
+        allowed_blocks: Optional[Set[BasicBlock]] = None,
     ) -> None:
         if visited is None:
             visited = set()
+
+        if allowed_blocks is not None and block not in allowed_blocks:
+            return
 
         if block in visited:
             return
@@ -114,6 +118,12 @@ class ASTBuilder:
 
         if structure:
             self._build_control_structure(structure, parent_block, structures, visited)
+
+            follow_node = self._get_structure_follow_node(structure)
+            if follow_node:
+                self._build_block_statements(
+                    follow_node, parent_block, structures, visited, allowed_blocks
+                )
         else:
             self._translate_basic_block(block, parent_block)
 
@@ -121,7 +131,7 @@ class ASTBuilder:
 
             if len(successors) == 1:
                 self._build_block_statements(
-                    successors[0], parent_block, structures, visited
+                    successors[0], parent_block, structures, visited, allowed_blocks
                 )
             elif len(successors) > 1:
                 # shouldn't happen
@@ -178,11 +188,17 @@ class ASTBuilder:
         condition = self._extract_condition_from_block(structure.header)
 
         then_block = BlockNode()
+        true_branch_scope = set(structure.true_branch)
 
         for block in structure.true_branch:
             if block not in visited:
-                self._build_block_statements(block, then_block, all_structures, visited)
-
+                self._build_block_statements(
+                    block,
+                    then_block,
+                    all_structures,
+                    visited,
+                    allowed_blocks=true_branch_scope,
+                )
         if_node = IfNode(
             condition=condition,
             then_block=then_block,
@@ -203,15 +219,27 @@ class ASTBuilder:
         then_block = BlockNode()
         else_block = BlockNode()
 
+        true_scope = set(structure.true_branch)
         for block in structure.true_branch:
             if block not in visited:
-                self._build_block_statements(block, then_block, all_structures, visited)
+                self._build_block_statements(
+                    block,
+                    then_block,
+                    all_structures,
+                    visited,
+                    allowed_blocks=true_scope,
+                )
 
         if structure.false_branch:
+            false_scope = set(structure.false_branch)
             for block in structure.false_branch:
                 if block not in visited:
                     self._build_block_statements(
-                        block, else_block, all_structures, visited
+                        block,
+                        else_block,
+                        all_structures,
+                        visited,
+                        allowed_blocks=false_scope,
                     )
 
         if_else_node = IfElseNode(
@@ -235,9 +263,16 @@ class ASTBuilder:
         body = BlockNode()
 
         if structure.loop_body:
+            loop_scope = set(structure.loop_body)
             for block in structure.loop_body:
                 if block not in visited:
-                    self._build_block_statements(block, body, all_structures, visited)
+                    self._build_block_statements(
+                        block,
+                        body,
+                        all_structures,
+                        visited,
+                        allowed_blocks=loop_scope,
+                    )
 
         while_node = WhileNode(
             condition=condition, body=body, address=structure.header.start_address
@@ -257,15 +292,52 @@ class ASTBuilder:
         body = BlockNode()
 
         if structure.loop_body:
+            loop_scope = set(structure.loop_body)
             for block in structure.loop_body:
                 if block not in visited:
-                    self._build_block_statements(block, body, all_structures, visited)
+                    self._build_block_statements(
+                        block,
+                        body,
+                        all_structures,
+                        visited,
+                        allowed_blocks=loop_scope,
+                    )
 
         do_while_node = DoWhileNode(
             condition=condition, body=body, address=structure.header.start_address
         )
 
         parent_block.add_statement(do_while_node)
+
+    def _get_structure_follow_node(
+        self, structure: ControlStructure
+    ) -> Optional[BasicBlock]:
+        internal_blocks = set()
+        internal_blocks.add(structure.header)
+
+        match structure.type:
+            case ControlStructureType.IF:
+                if structure.true_branch:
+                    internal_blocks.update(structure.true_branch)
+            case ControlStructureType.IF_ELSE:
+                if structure.true_branch:
+                    internal_blocks.update(structure.true_branch)
+                if structure.false_branch:
+                    internal_blocks.update(structure.false_branch)
+            case ControlStructureType.WHILE:
+                if structure.loop_body:
+                    internal_blocks.update(structure.loop_body)
+            case ControlStructureType.DO_WHILE:
+                if structure.loop_body:
+                    internal_blocks.update(structure.loop_body)
+
+        for block in internal_blocks:
+            successors = self.cfg.get_successors(block)
+            for succ in successors:
+                if succ not in internal_blocks:
+                    return succ
+
+        return None
 
     def _extract_condition_from_block(
         self, block: BasicBlock

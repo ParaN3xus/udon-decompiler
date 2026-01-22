@@ -204,11 +204,13 @@ class CFGBuilder:
 
             elif last_inst.opcode == OpCode.JUMP_IF_FALSE:
                 target = last_inst.get_jump_target()
-                if target is not None:
-                    target_block = self._get_block_starting_at(target)
-                    block.add_successor(target_block)
-                    target_block.add_predecessor(block)
 
+                # "FALSE" branch
+                target_block = self._get_block_starting_at(target)
+                block.add_successor(target_block)
+                target_block.add_predecessor(block)
+
+                # "TRUE" branch
                 next_addr = last_inst.next_address
                 next_block = self._get_block_starting_at(next_addr)
                 block.add_successor(next_block)
