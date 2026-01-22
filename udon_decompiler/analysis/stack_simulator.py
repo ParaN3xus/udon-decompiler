@@ -9,22 +9,15 @@ from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
-class StackValueType(Enum):
-    IMMEDIATE = "immediate"
-    HEAP_ADDRESS = "heap_addr"
-    UNKNOWN = "unknown"
-
-
 @dataclass
 class StackValue:
     value: int
-    value_type: StackValueType
     type_hint: Optional[str] = None
     source_instruction: Optional[Instruction] = None
 
     def __repr__(self) -> str:
         type_str = f": {self.type_hint}" if self.type_hint else ""
-        return f"StackValue({self.value_type.value}={self.value}{type_str})"
+        return f"StackValue({self.value}{type_str})"
 
 
 @dataclass
@@ -47,7 +40,6 @@ class StackFrame:
         new_frame.stack = [
             StackValue(
                 value=sv.value,
-                value_type=sv.value_type,
                 type_hint=sv.type_hint,
                 source_instruction=sv.source_instruction,
             )
@@ -110,26 +102,29 @@ class StackSimulator:
                 return state
 
             heap_entry = self.program.get_initial_heap_value(operand)
-            type_hint = None
-            value_type = StackValueType.HEAP_ADDRESS
 
             if heap_entry:
-                type_hint = heap_entry.type
-            else:
-                symbol = self.program.get_symbol_by_address(operand)
-                if symbol:
-                    type_hint = symbol.type
-                else:
-                    value_type = StackValueType.IMMEDIATE
-
-            state.push(
-                StackValue(
-                    value=operand,
-                    value_type=value_type,
-                    type_hint=type_hint,
-                    source_instruction=instruction,
+                state.push(
+                    StackValue(
+                        value=operand,
+                        type_hint=heap_entry.type,
+                        source_instruction=instruction,
+                    )
                 )
-            )
+                return state
+
+            symbol = self.program.get_symbol_by_address(operand)
+            if symbol:
+                state.push(
+                    StackValue(
+                        value=operand,
+                        type_hint=symbol.type,
+                        source_instruction=instruction,
+                    )
+                )
+                return state
+
+            raise Exception("Unknown stack value!")
 
         elif opcode == OpCode.POP:
             state.pop()
