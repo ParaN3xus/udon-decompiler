@@ -107,9 +107,9 @@ class Expression:
         elif self.expr_type == ExpressionType.VARIABLE:
             return f"Var({self.value})"
         elif self.expr_type == ExpressionType.EXTERNAL_CALL:
-            return f"Call({
-                self.function_info.function_name if self.function_info else '<unknown>'
-            }, {len(self.arguments)} args)"
+            return f"""Call({
+                self.function_info.function_name if self.function_info else "<unknown>"
+            }, {len(self.arguments)} args)"""
         else:
             return f"Expr({self.expr_type.value})"
 
