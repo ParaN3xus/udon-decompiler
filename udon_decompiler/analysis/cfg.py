@@ -180,6 +180,11 @@ class CFGBuilder:
         for block in self._all_blocks:
             last_inst = block.last_instruction
 
+            if last_inst.address in self.identifier.return_jumps:
+                # return jumps are ignored, since we only care about jumps
+                # inside a function
+                continue
+
             if last_inst.opcode == OpCode.JUMP:
                 target = last_inst.get_jump_target()
                 is_call_jump = any(
@@ -210,10 +215,6 @@ class CFGBuilder:
 
             elif last_inst.opcode == OpCode.JUMP_INDIRECT:
                 if last_inst.operand is not None:
-                    if last_inst.address in self.identifier.return_indir_jumps:
-                        # return jumps are ignored, since we only care about jumps
-                        # inside a function
-                        continue
                     if last_inst.address in self.identifier.switch_cases_indir_jumps:
                         targets = self.identifier.switch_cases_indir_jumps[
                             last_inst.address
