@@ -92,68 +92,67 @@ class StackSimulator:
     ) -> StackFrame:
         opcode = instruction.opcode
 
-        if opcode == OpCode.NOP or opcode == OpCode.ANNOTATION:
-            pass
-
-        elif opcode == OpCode.PUSH:
-            operand = instruction.operand
-            if operand is None:
-                logger.warning(f"PUSH at 0x{instruction.address:08x} has no operand")
-                return state
-
-            heap_entry = self.program.get_initial_heap_value(operand)
-
-            if heap_entry:
-                state.push(
-                    StackValue(
-                        value=operand,
-                        type_hint=heap_entry.type,
-                        source_instruction=instruction,
+        match opcode:
+            case OpCode.NOP | OpCode.ANNOTATION:
+                pass
+            case OpCode.PUSH:
+                operand = instruction.operand
+                if operand is None:
+                    logger.warning(
+                        f"PUSH at 0x{instruction.address:08x} has no operand"
                     )
-                )
-                return state
+                    return state
 
-            symbol = self.program.get_symbol_by_address(operand)
-            if symbol:
-                state.push(
-                    StackValue(
-                        value=operand,
-                        type_hint=symbol.type,
-                        source_instruction=instruction,
+                heap_entry = self.program.get_initial_heap_value(operand)
+                if heap_entry:
+                    state.push(
+                        StackValue(
+                            value=operand,
+                            type_hint=heap_entry.type,
+                            source_instruction=instruction,
+                        )
                     )
+                    return state
+
+                symbol = self.program.get_symbol_by_address(operand)
+                if symbol:
+                    state.push(
+                        StackValue(
+                            value=operand,
+                            type_hint=symbol.type,
+                            source_instruction=instruction,
+                        )
+                    )
+                    return state
+                raise Exception("Unknown stack value!")
+            case OpCode.POP:
+                state.pop()
+            case OpCode.JUMP_IF_FALSE:
+                cond_value = state.pop()
+                if cond_value and cond_value.type_hint != "System.Boolean":
+                    logger.debug(
+                        f"JUMP_IF_FALSE at 0x{instruction.address:08x} "
+                        f"popped non-boolean: {cond_value}"
+                    )
+            case OpCode.JUMP:
+                target = instruction.get_jump_target()
+                is_call_jump = any(
+                    ep.call_jump_target == target for ep in self.program.entry_points
                 )
-                return state
-
-            raise Exception("Unknown stack value!")
-
-        elif opcode == OpCode.POP:
-            state.pop()
-
-        elif opcode == OpCode.JUMP_IF_FALSE:
-            cond_value = state.pop()
-            if cond_value and cond_value.type_hint != "System.Boolean":
-                logger.debug(
-                    f"JUMP_IF_FALSE at 0x{instruction.address:08x} "
-                    f"popped non-boolean: {cond_value}"
-                )
-
-        elif opcode == OpCode.JUMP or opcode == OpCode.JUMP_INDIRECT:
-            # todo: calling internal function pops stack
-            pass
-
-        elif opcode == OpCode.EXTERN:
-            self._simulate_extern_call(instruction, state)
-
-        elif opcode == OpCode.COPY:
-            source = state.pop()
-            target = state.pop()
-
-            if source and target:
-                logger.debug(
-                    f"COPY at 0x{instruction.address:08x}: "
-                    f"heap[0x{target.value:08x}] = heap[0x{source.value:08x}]"
-                )
-
+                if is_call_jump:
+                    state.pop()
+            case OpCode.JUMP_INDIRECT:
+                pass
+            case OpCode.EXTERN:
+                self._simulate_extern_call(instruction, state)
+            case OpCode.COPY:
+                source = state.pop()
+                target = state.pop()
+                if source and target:
+                    logger.debug(
+                        f"COPY at 0x{instruction.address:08x}: "
+                        f"heap[0x{target.value:08x}] = heap[0x{source.value:08x}]"
+                    )
         return state
 
     def _simulate_extern_call(

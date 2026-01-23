@@ -98,7 +98,7 @@ class FunctionDataFlowAnalyzer:
                 return
             visited.add(block)
 
-            # todo: review this, especially states about calling internal functions
+            # todo: review this
             exit_state = self.stack_simulator.simulate_block(block, entry_state)
 
             # recur
