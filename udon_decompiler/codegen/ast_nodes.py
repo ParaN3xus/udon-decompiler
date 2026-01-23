@@ -249,17 +249,18 @@ class PropertyAccessType(Enum):
 
 @dataclass(kw_only=True)
 class PropertyAccessNode(ExpressionNode):
-    type: PropertyAccessType
+    access_type: PropertyAccessType
     type_name: str
     is_static: bool
     field: str
-    receiver: Optional[ExpressionNode]
-    this: ExpressionNode
+    this: Optional[ExpressionNode] = None
+    target: Optional[ExpressionNode] = None
+    value: Optional[ExpressionNode] = None
     emit_as_expression: bool = False
 
     def __post_init__(self):
         super().__post_init__()
-        self.expr_type = ExpressionType.CALL
+        self.expr_type = ExpressionType.PROPERTY_ACCESS
 
 
 @dataclass(kw_only=True)
@@ -283,7 +284,7 @@ class ConstructionNode(ExpressionNode):
 
     def __post_init__(self):
         super().__post_init__()
-        self.expr_type = ExpressionType.OPERATOR
+        self.expr_type = ExpressionType.CONSTRUCTOR
 
 
 @dataclass(kw_only=True)
