@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Tuple
 
 from udon_decompiler.analysis.basic_block import BasicBlock
 from udon_decompiler.analysis.cfg import ControlFlowGraph
@@ -64,15 +64,12 @@ class VariableIdentifier:
         self._temp_counter = 0
 
     def identify(self) -> Dict[int, Variable]:
-        # todo: llm shits here, i have to do a through review and refactor
         logger.info(f"Identifying variables in {self.cfg.function_name}...")
 
-        self._identify_global_variables()
+        self._initialize_variables_from_symbols()
 
         for block in self.cfg.graph.nodes():
             self._analyze_block_variables(block)
-
-        self._infer_variable_scopes()
 
         logger.info(
             f"Identified {len(self._variables)} variables in {self.cfg.function_name}"
@@ -80,19 +77,20 @@ class VariableIdentifier:
 
         return self._variables
 
-    def _identify_global_variables(self) -> None:
+    def _initialize_variables_from_symbols(self) -> None:
         for symbol_name, symbol in self.program.symbols.items():
+            scope, resolved_name = self._classify_symbol(symbol_name)
             variable = Variable(
                 address=symbol.address,
-                name=symbol_name,
+                name=resolved_name,
                 type_hint=symbol.type,
-                scope=VariableScope.GLOBAL,
+                scope=scope,
                 original_symbol=symbol,
             )
 
             self._variables[symbol.address] = variable
 
-            logger.debug(f"Global variable: {variable}")
+            logger.debug(f"Variable: {variable}")
 
     def _analyze_block_variables(self, block: BasicBlock) -> None:
         for instruction in block.instructions:
@@ -135,8 +133,8 @@ class VariableIdentifier:
         if not isinstance(signature, str):
             return
 
-        prev_state = self._get_previous_instruction_state(instruction)
-        if prev_state is None:
+        frame = state or self._get_previous_instruction_state(instruction)
+        if frame is None:
             return
 
         from ..models.module_info import UdonModuleInfo
@@ -152,26 +150,46 @@ class VariableIdentifier:
             return
 
         param_count = func_info.parameter_count
+        returns_void = func_info.returns_void
+        if returns_void is None:
+            from ..models.module_info import FunctionDefinitionType
 
-        if len(prev_state.stack) < param_count:
+            if func_info.def_type == FunctionDefinitionType.OPERATOR:
+                returns_void = False
+            elif func_info.def_type == FunctionDefinitionType.FIELD:
+                returns_void = not func_info.function_name.startswith("__get")
+            elif func_info.def_type == FunctionDefinitionType.CTOR:
+                returns_void = False
+            else:
+                returns_void = True
+
+        if len(frame.stack) < param_count:
             logger.warning(
                 f"EXTERN at 0x{instruction.address:08x}: "
-                f"stack has {len(prev_state.stack)} values but function {signature} "
+                f"stack has {len(frame.stack)} values but function {signature} "
                 f"requires {param_count} parameters"
             )
             return
 
         for i in range(param_count):
-            param_val = prev_state.peek(param_count - 1 - i)
+            param_val = frame.peek(param_count - 1 - i)
 
             if param_val is None:
                 continue
 
-            self._record_variable_read(param_val.value, instruction.address)
-            logger.debug(
-                f"EXTERN at 0x{instruction.address:08x}: "
-                f"parameter {i} reads variable at 0x{param_val.value:08x}"
-            )
+            is_output_param = not returns_void and i == param_count - 1
+            if is_output_param:
+                self._record_variable_write(param_val.value, instruction.address)
+                logger.debug(
+                    f"EXTERN at 0x{instruction.address:08x}: "
+                    f"parameter {i} writes variable at 0x{param_val.value:08x}"
+                )
+            else:
+                self._record_variable_read(param_val.value, instruction.address)
+                logger.debug(
+                    f"EXTERN at 0x{instruction.address:08x}: "
+                    f"parameter {i} reads variable at 0x{param_val.value:08x}"
+                )
 
     def _record_variable_read(self, address: int, instruction_address: int) -> None:
         if address not in self._variables:
@@ -186,27 +204,32 @@ class VariableIdentifier:
         self._variables[address].write_locations.add(instruction_address)
 
     def _create_variable(self, address: int) -> Variable:
-        symbol = self.program.get_symbol_by_address(address)
-        if symbol:
-            variable = Variable(
-                address=address,
-                name=symbol.name,
-                type_hint=symbol.type,
-                scope=VariableScope.GLOBAL,
-                original_symbol=symbol,
-            )
-        else:
+        try:
+            symbol = self.program.get_symbol_by_address(address)
+        except Exception:
+            symbol = None
+
+        if symbol is None:
             heap_entry = self.program.get_initial_heap_value(address)
             type_hint = heap_entry.type if heap_entry else None
-
             var_name = self._generate_temp_name()
-
             variable = Variable(
                 address=address,
                 name=var_name,
                 type_hint=type_hint,
                 scope=VariableScope.TEMPORARY,
             )
+            self._variables[address] = variable
+            return variable
+
+        scope, resolved_name = self._classify_symbol(symbol.name)
+        variable = Variable(
+            address=address,
+            name=resolved_name,
+            type_hint=symbol.type,
+            scope=scope,
+            original_symbol=symbol,
+        )
 
         self._variables[address] = variable
         return variable
@@ -216,27 +239,33 @@ class VariableIdentifier:
         self._temp_counter += 1
         return name
 
-    def _infer_variable_scopes(self) -> None:
-        for variable in self._variables.values():
-            if variable.scope != VariableScope.TEMPORARY:
-                # todo: fake global
-                continue
+    def _classify_symbol(self, symbol_name: str) -> Tuple[VariableScope, str]:
+        if symbol_name.startswith(SymbolInfo.CONST_SYMBOL_PREFIX):
+            return VariableScope.GLOBAL, symbol_name
 
-            # 1w nr -> func param
-            if len(variable.write_locations) == 1 and len(variable.read_locations) > 0:
-                write_addr = next(iter(variable.write_locations))
-                if write_addr < self.cfg.entry_block.start_address + 100:
-                    variable.scope = VariableScope.PARAMETER
-                    variable.name = f"param_{variable.address:x}"
-                    continue
+        if symbol_name.startswith(SymbolInfo.INTERNAL_SYMBOL_PREFIX):
+            return VariableScope.TEMPORARY, symbol_name
 
-            # nw | nr -> local var
-            if len(variable.write_locations) > 1 or len(variable.read_locations) > 1:
-                variable.scope = VariableScope.LOCAL
-                variable.name = f"local_{variable.address:x}"
-                continue
+        if symbol_name.startswith(SymbolInfo.GLOBAL_INTERNAL_SYMBOL_PREFIX):
+            return VariableScope.TEMPORARY, symbol_name
 
-            # <1 w <1 r -> temp
+        if symbol_name.startswith(SymbolInfo.LOCAL_SYMBOL_PREFIX):
+            return VariableScope.LOCAL, symbol_name
+
+        if symbol_name.startswith(SymbolInfo.THIS_SYMBOL_PREFIX):
+            return VariableScope.GLOBAL, self._resolve_this_symbol(symbol_name)
+
+        # params or fields - treat as global
+        return VariableScope.GLOBAL, symbol_name
+
+    def _resolve_this_symbol(self, symbol_name: str) -> str:
+        if "VRCUdonUdonBehaviour" in symbol_name:
+            return "this"
+        if "UnityEngineTransform" in symbol_name:
+            return "this.transform"
+        if "UnityEngineGameObject" in symbol_name:
+            return "this.gameObject"
+        return "this"
 
     def _get_previous_instruction_state(
         self, instruction: Instruction
