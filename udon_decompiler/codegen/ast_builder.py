@@ -34,7 +34,7 @@ from udon_decompiler.codegen.ast_nodes import (
     VariableNode,
     WhileNode,
 )
-from udon_decompiler.models.instruction import Instruction
+from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.program import UdonProgramData
 from udon_decompiler.utils.logger import logger
 
@@ -185,6 +185,7 @@ class ASTBuilder:
         all_structures: List[ControlStructure],
         visited: Set[BasicBlock],
     ) -> None:
+        self._translate_basic_block(structure.header, parent_block)
         condition = self._extract_condition_from_block(structure.header)
 
         then_block = BlockNode()
@@ -214,6 +215,7 @@ class ASTBuilder:
         all_structures: List[ControlStructure],
         visited: Set[BasicBlock],
     ) -> None:
+        self._translate_basic_block(structure.header, parent_block)
         condition = self._extract_condition_from_block(structure.header)
 
         then_block = BlockNode()
@@ -258,6 +260,7 @@ class ASTBuilder:
         all_structures: List[ControlStructure],
         visited: Set[BasicBlock],
     ) -> None:
+        self._translate_basic_block(structure.header, parent_block)
         condition = self._extract_condition_from_block(structure.header)
 
         body = BlockNode()
@@ -287,8 +290,6 @@ class ASTBuilder:
         all_structures: List[ControlStructure],
         visited: Set[BasicBlock],
     ) -> None:
-        condition = self._extract_condition_from_block(structure.header)
-
         body = BlockNode()
 
         if structure.loop_body:
@@ -342,22 +343,18 @@ class ASTBuilder:
     def _extract_condition_from_block(
         self, block: BasicBlock
     ) -> Optional[ExpressionNode]:
-        for inst in block.instructions:
-            if inst.opcode.name == "JUMP_IF_FALSE":
-                # get cond var
-                state = self.analyzer.stack_simulator.get_instruction_state(
-                    inst.address
-                )
-                if state and len(state.stack) > 0:
-                    cond_value = state.peek(0)
-                    if cond_value:
-                        var = self.analyzer.variable_identifier.get_variable(
-                            cond_value.value
-                        )
-                        if var:
-                            return VariableNode(
-                                var_name=var.name, var_type=var.type_hint
-                            )
+        inst = block.last_instruction
+        if inst.opcode == OpCode.JUMP_IF_FALSE:
+            # get cond var
+            state = self.analyzer.stack_simulator.get_instruction_state(inst.address)
+            if state and len(state.stack) > 0:
+                cond_value = state.peek(0)
+                if cond_value:
+                    var = self.analyzer.variable_identifier.get_variable(
+                        cond_value.value
+                    )
+                    if var:
+                        return VariableNode(var_name=var.name, var_type=var.type_hint)
 
         return VariableNode(var_name="<condition>")
 
