@@ -226,6 +226,8 @@ class CallNode(ExpressionNode):
     original_name: str = ""
     is_static: bool = True
     returns_void: bool = True
+    receiver: Optional["ExpressionNode"] = None
+    emit_as_expression: bool = False
     arguments: List[ExpressionNode] = field(default_factory=list)
 
     def __post_init__(self):
@@ -251,8 +253,9 @@ class PropertyAccessNode(ExpressionNode):
     type_name: str
     is_static: bool
     field: str
-    receiver: ExpressionNode
+    receiver: Optional[ExpressionNode]
     this: ExpressionNode
+    emit_as_expression: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -262,7 +265,8 @@ class PropertyAccessNode(ExpressionNode):
 @dataclass(kw_only=True)
 class OperatorNode(ExpressionNode):
     operator: Operator
-    receiver: ExpressionNode
+    receiver: Optional[ExpressionNode]
+    emit_as_expression: bool = False
     operands: List[ExpressionNode] = field(default_factory=list)
 
     def __post_init__(self):
@@ -274,7 +278,8 @@ class OperatorNode(ExpressionNode):
 class ConstructionNode(ExpressionNode):
     type_name: str
     arguments: List[ExpressionNode] = field(default_factory=list)
-    receiver: ExpressionNode
+    receiver: Optional[ExpressionNode]
+    emit_as_expression: bool = False
 
     def __post_init__(self):
         super().__post_init__()
