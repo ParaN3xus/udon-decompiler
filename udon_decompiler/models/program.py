@@ -14,6 +14,12 @@ class SymbolInfo:
     RETURN_JUMP_ADDR_SYMBOL_NAME: Final[str] = "__intnl_returnJump_SystemUInt32_0"
     HALT_JUMP_ADDR_SYMBOL_NAME: Final[str] = "__const_SystemUInt32_0"
 
+    CONST_SYMBOL_PREFIX: Final[str] = "__const_"
+    INTERNAL_SYMBOL_PREFIX: Final[str] = "__intnl_"
+    GLOBAL_INTERNAL_SYMBOL_PREFIX: Final[str] = "__gintnl_"
+    LOCAL_SYMBOL_PREFIX: Final[str] = "__lcl_"
+    THIS_SYMBOL_PREFIX: Final[str] = "__this_"
+
     def __repr__(self) -> str:
         return f"Symbol({self.name}: {self.type} @ 0x{self.address:08x})"
 
