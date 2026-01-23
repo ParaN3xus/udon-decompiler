@@ -134,7 +134,19 @@ class ASTBuilder:
                     successors[0], parent_block, structures, visited, allowed_blocks
                 )
             elif len(successors) > 1:
-                # shouldn't happen
+                if allowed_blocks is not None:
+                    # condintional block at the end of the do-while body
+                    allowed_succs = [s for s in successors if s in allowed_blocks]
+                    if len(allowed_succs) == 1:
+                        self._build_block_statements(
+                            allowed_succs[0],
+                            parent_block,
+                            structures,
+                            visited,
+                            allowed_blocks,
+                        )
+                        return
+
                 logger.warning(
                     f"Block 0x{block.start_address:08x} has multiple successors but no "
                     "control structure"
@@ -292,17 +304,28 @@ class ASTBuilder:
     ) -> None:
         body = BlockNode()
 
-        if structure.loop_body:
-            loop_scope = set(structure.loop_body)
-            for block in structure.loop_body:
-                if block not in visited:
-                    self._build_block_statements(
-                        block,
-                        body,
-                        all_structures,
-                        visited,
-                        allowed_blocks=loop_scope,
-                    )
+        condition_block = structure.condition_block or structure.header
+        condition = self._extract_condition_from_block(condition_block)
+
+        if structure.loop_body is None:
+            raise Exception("Invalid do-while structure: loop_body is None!")
+        loop_scope = set(structure.loop_body)
+        loop_scope.add(structure.header)
+
+        filtered_structures = [s for s in all_structures if s is not structure]
+        local_visited = visited.copy()
+        local_visited.discard(structure.header)
+        if structure.condition_block:
+            local_visited.discard(structure.condition_block)
+
+        self._build_block_statements(
+            structure.header,
+            body,
+            filtered_structures,
+            local_visited,
+            allowed_blocks=loop_scope,
+        )
+        visited.update(local_visited)
 
         do_while_node = DoWhileNode(
             condition=condition, body=body, address=structure.header.start_address

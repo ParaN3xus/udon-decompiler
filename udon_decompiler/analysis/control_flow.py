@@ -4,6 +4,7 @@ from typing import List, Optional, Set
 
 from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockType
 from udon_decompiler.analysis.cfg import ControlFlowGraph
+from udon_decompiler.models.instruction import OpCode
 from udon_decompiler.utils.logger import logger
 
 
@@ -21,6 +22,8 @@ class ControlStructure:
     type: ControlStructureType
     header: BasicBlock
     exit: Optional[BasicBlock] = None
+    # For loops, the block that contains the loop condition (if any).
+    condition_block: Optional[BasicBlock] = None
 
     true_branch: List[BasicBlock] = field(default_factory=list)
     false_branch: Optional[List[BasicBlock]] = None
@@ -79,6 +82,15 @@ class ControlFlowStructureIdentifier:
 
             loop_type = self._determine_loop_type(header, loop_blocks)
             exit_block = self._find_loop_exit(loop_blocks)
+            condition_block = None
+            if loop_type == ControlStructureType.WHILE:
+                condition_block = (
+                    header if header.block_type == BasicBlockType.CONDITIONAL else None
+                )
+            elif loop_type == ControlStructureType.DO_WHILE:
+                condition_block = self._find_do_while_condition_block(
+                    loop_blocks, exit_block
+                )
 
             body_set = loop_blocks - {header}
 
@@ -89,6 +101,7 @@ class ControlFlowStructureIdentifier:
                 type=loop_type,
                 header=header,
                 exit=exit_block,
+                condition_block=condition_block,
                 loop_body=loop_body_list,
             )
             loops.append(structure)
@@ -101,6 +114,26 @@ class ControlFlowStructureIdentifier:
                 if succ not in loop_blocks:
                     return succ
         return None
+
+    def _find_do_while_condition_block(
+        self, loop_blocks: Set[BasicBlock], exit_block: Optional[BasicBlock]
+    ) -> Optional[BasicBlock]:
+        if exit_block is None:
+            return None
+
+        candidates = []
+        for block in loop_blocks:
+            if block.block_type != BasicBlockType.CONDITIONAL:
+                continue
+            succs = self.cfg.get_successors(block)
+            if exit_block in succs and any(s in loop_blocks for s in succs):
+                candidates.append(block)
+
+        if not candidates:
+            return None
+
+        # Prefer the latest conditional in the loop (tail condition).
+        return max(candidates)
 
     def _find_loop_header(self, loop_blocks: Set[BasicBlock]) -> Optional[BasicBlock]:
         """
@@ -141,22 +174,59 @@ class ControlFlowStructureIdentifier:
     def _determine_loop_type(
         self, header: BasicBlock, loop_blocks: Set[BasicBlock]
     ) -> ControlStructureType:
-        external_preds = [
-            pred
-            for pred in self.cfg.get_predecessors(header)
-            if pred not in loop_blocks
-        ]
-
-        if external_preds and header.block_type == BasicBlockType.CONDITIONAL:
-            return ControlStructureType.WHILE
-        else:
+        # while true
+        if header.block_type != BasicBlockType.CONDITIONAL:
             return ControlStructureType.DO_WHILE
+
+        successors = self.cfg.get_successors(header)
+
+        inner_successors = []
+        outer_successors = []
+
+        for succ in successors:
+            if succ in loop_blocks:
+                inner_successors.append(succ)
+            else:
+                outer_successors.append(succ)
+
+        # while -> jump outer in the header
+        # do while -> jump outer at the end
+        if not outer_successors:
+            return ControlStructureType.DO_WHILE
+
+        if not inner_successors:
+            raise Exception("Invalid loop! inner_successors expected!")
+
+        first_inner_succ = inner_successors[0]
+
+        if self._is_pure_latch(first_inner_succ):
+            return ControlStructureType.DO_WHILE
+
+        return ControlStructureType.WHILE
+
+    def _is_pure_latch(self, block: BasicBlock) -> bool:
+        instructions = block.instructions
+
+        if len(instructions) != 1:
+            return False
+
+        inst = instructions[0]
+        return inst.opcode == OpCode.JUMP
 
     def _identify_conditionals(self) -> List[ControlStructure]:
         conditionals = []
+        loop_condition_blocks = {
+            s.condition_block
+            for s in self._structures
+            if s.type in (ControlStructureType.WHILE, ControlStructureType.DO_WHILE)
+            and s.condition_block is not None
+        }
 
         for block in self.cfg.graph.nodes():
+            block: BasicBlock
             if block.block_type != BasicBlockType.CONDITIONAL:
+                continue
+            if block in loop_condition_blocks:
                 continue
 
             successors = self.cfg.get_successors(block)
