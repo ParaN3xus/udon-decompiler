@@ -58,7 +58,8 @@ class StackSimulator:
 
         self._block_entry_states: Dict[BasicBlock, StackFrame] = {}
         self._block_exit_states: Dict[BasicBlock, StackFrame] = {}
-        self._instruction_states: Dict[int, StackFrame] = {}  # address -> state
+        # address -> state before the instruection at the address executes
+        self._instruction_states: Dict[int, StackFrame] = {}
 
     def simulate_block(
         self, block: BasicBlock, entry_state: Optional[StackFrame] = None
@@ -75,8 +76,8 @@ class StackSimulator:
         )
 
         for instruction in block.instructions:
-            current_state = self._simulate_instruction(instruction, current_state)
             self._instruction_states[instruction.address] = current_state.copy()
+            current_state = self._simulate_instruction(instruction, current_state)
 
         self._block_exit_states[block] = current_state.copy()
 
@@ -211,4 +212,7 @@ class StackSimulator:
         return self._block_exit_states.get(block)
 
     def get_instruction_state(self, address: int) -> Optional[StackFrame]:
+        """
+        Returns the StackFrame **before** the instruction at the given address executes.
+        """
         return self._instruction_states.get(address)
