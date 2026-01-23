@@ -28,7 +28,7 @@ from udon_decompiler.codegen.ast_nodes import (
     WhileNode,
 )
 from udon_decompiler.codegen.formatter import CodeFormatter
-from udon_decompiler.models.program import UdonProgramData
+from udon_decompiler.models.program import SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -298,45 +298,70 @@ class CSharpCodeGenerator:
         if expr.is_static is None:
             logger.warning("Can't determine if function is static! Assuming static.")
 
-        caller = (
-            self._generate_expression(expr.arguments.pop(0))
-            if not expr.is_static
-            else expr.type_name
-        )
+        args = list(expr.arguments)
+        if expr.is_static:
+            caller = expr.type_name
+        else:
+            caller = self._generate_expression(args.pop(0))
         func_name = expr.original_name
-        if not expr.returns_void:
-            receiver = self._generate_expression(expr.arguments.pop())
+        receiver = None
+        if not expr.returns_void and not expr.emit_as_expression:
+            receiver_expr = expr.receiver
+            if receiver_expr is None:
+                raise Exception(
+                    "Invalid CallNode! Returns non-void but receiver not detected!"
+                )
+            receiver = self._generate_expression(receiver_expr)
 
-        args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
+        args_str = ", ".join(self._generate_expression(arg) for arg in args)
 
-        provider_str = f"{caller}.{func_name or expr.function_name}({args})"
-        receiver_str = f"{'' if expr.returns_void else f'{receiver} = '}"
-        return f"{receiver_str}{provider_str}"
+        provider_str = f"{caller}.{func_name or expr.function_name}({args_str})"
+        if expr.returns_void or expr.emit_as_expression or receiver is None:
+            return provider_str
+        return f"{receiver} = {provider_str}"
 
     def _generate_property_access(self, expr: PropertyAccessNode) -> str:
-        val = self._generate_expression(expr.receiver)
-        this = (
-            expr.type_name if expr.is_static else self._generate_expression(expr.this)
-        )
-        prop = f"{this}.{expr.field}"
-        match expr.type:
-            case PropertyAccessType.GET:
-                receiver, provider = val, prop
-            case PropertyAccessType.SET:
-                receiver, provider = prop, val
+        if expr.is_static:
+            this = expr.type_name
+        else:
+            if expr.this is None:
+                raise Exception(
+                    "Invalid PropertyAccessNode! Non-static but expr.this is None!"
+                )
+            this = self._generate_expression(expr.this)
 
-        return f"{receiver} = {provider}"
+        prop = f"{this}.{expr.field}"
+
+        match expr.access_type:
+            case PropertyAccessType.GET:
+                if expr.emit_as_expression:
+                    return prop
+                target = (
+                    self._generate_expression(expr.target)
+                    if expr.target is not None
+                    else "<unknown>"
+                )
+                return f"{target} = {prop}"
+            case PropertyAccessType.SET:
+                value = (
+                    self._generate_expression(expr.value)
+                    if expr.value is not None
+                    else "<unknown>"
+                )
+                return f"{prop} = {value}"
 
     def _generate_construction(self, expr: ConstructionNode) -> str:
         args = ", ".join(self._generate_expression(arg) for arg in expr.arguments)
+        if expr.emit_as_expression or expr.receiver is None:
+            return f"new {expr.type_name}({args})"
         receiver = self._generate_expression(expr.receiver)
-
         return f"{receiver} = new {expr.type_name}({args})"
 
     def _generate_operator(self, expr: OperatorNode) -> str:
-        receiver = self._generate_expression(expr.receiver)
         oprs = [self._generate_expression(opr) for opr in expr.operands]
-
+        if expr.emit_as_expression or expr.receiver is None:
+            return expr.operator.formatter.format(*oprs)
+        receiver = self._generate_expression(expr.receiver)
         return f"{receiver} = {expr.operator.formatter.format(*oprs)}"
 
 
@@ -403,6 +428,8 @@ class ProgramCodeGenerator:
         program = first_analyzer.program
 
         for var in global_vars_by_address.values():
+            if ProgramCodeGenerator._is_hidden_global_variable(var):
+                continue
             initial_heap_value = program.get_initial_heap_value(var.address)
             if initial_heap_value is None or initial_heap_value.value is None:
                 initial_value = "null"
@@ -422,3 +449,24 @@ class ProgramCodeGenerator:
             )
 
         return res
+
+    @staticmethod
+    def _is_hidden_global_variable(var: Variable) -> bool:
+        symbol_name = var.original_symbol.name if var.original_symbol else var.name
+
+        if symbol_name in {UdonProgramData.CLASS_NAME_SYMBOL_NAME, "__refl_typeid"}:
+            return True
+
+        if symbol_name.startswith(SymbolInfo.CONST_SYMBOL_PREFIX):
+            return True
+
+        if symbol_name.startswith(SymbolInfo.INTERNAL_SYMBOL_PREFIX):
+            return True
+
+        if symbol_name.startswith(SymbolInfo.GLOBAL_INTERNAL_SYMBOL_PREFIX):
+            return True
+
+        if symbol_name.startswith(SymbolInfo.THIS_SYMBOL_PREFIX):
+            return True
+
+        return False
