@@ -19,19 +19,8 @@ The Udon Decompiler.
   - [ ] `UdonModuleInfoExtractor` for different VRChat World SDK version
   - [ ] `UdonProgramDumper` supporting different `serializedProgramCompressedBytes` formats
 - [ ] Unit tests and E2E tests
-- [ ] Better `VariableIdentifier`
-  - [ ] Identify variable scope and type by their names(`__lcl`, `__intnl`, `__const`)
-- [ ] Better `ExpressionBuilder`
-  - [x] Complete `ExpressionType` `BINARY_OP`, `UNARY_OP`, `PROPERTY_ACCESS`, `ARRAY_ACCESS`, `CAST`, by identifying special `CALL` names, i.e.:
-    - `BINARY_OP` like `__op_Addition__SystemInt32_SystemInt32__SystemInt32`
-    - `UNARY_OP` like `SystemBoolean.__op_UnaryNegation__SystemBoolean__SystemBoolean`
-    - `PROPERTY_ACCESS` like `UnityEngineComponent.__get_gameObject__UnityEngineGameObject`
-    - `ARRAY_ACCESS` like `SystemObjectArray.__Get__SystemInt32__SystemObject`
-    - `CAST` like `SystemConvert.__ToSingle__SystemObject__SystemSingle`
-  - [x] Support method calling analysis for `CALL`
 - [ ] Better `CSharpCodeGenerator`
   - [ ] Type alias like `bool` for `System.Boolean`
-  - [x] Friendly function name like `VRCUdonCommonInterfacesIUdonEventReceiver.SendCustomEvent` for `VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomEvent__SystemString__SystemVoid` (this is just a stopgap measure for missing method calling analysis in `ExpressionType`)
   - [ ] Comments
 
 ## Contributing
