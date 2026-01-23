@@ -16,7 +16,6 @@ from udon_decompiler.utils.logger import logger
 class VariableScope(Enum):
     GLOBAL = "global"
     LOCAL = "local"
-    PARAMETER = "parameter"  # function param
     TEMPORARY = "temporary"
     # RETURN = "return"
 
@@ -247,7 +246,7 @@ class VariableIdentifier:
             return VariableScope.TEMPORARY, symbol_name
 
         if symbol_name.startswith(SymbolInfo.GLOBAL_INTERNAL_SYMBOL_PREFIX):
-            return VariableScope.TEMPORARY, symbol_name
+            return VariableScope.GLOBAL, symbol_name
 
         if symbol_name.startswith(SymbolInfo.LOCAL_SYMBOL_PREFIX):
             return VariableScope.LOCAL, symbol_name
