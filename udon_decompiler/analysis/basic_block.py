@@ -20,8 +20,8 @@ class BasicBlock:
     start_address: int
     end_address: int
     instructions: List[Instruction] = field(default_factory=list)
-    predecessors: Set["BasicBlock"] = field(default_factory=set)
-    successors: Set["BasicBlock"] = field(default_factory=set)
+    predecessors: List["BasicBlock"] = field(default_factory=list)
+    successors: List["BasicBlock"] = field(default_factory=list)
     block_type: BasicBlockType = BasicBlockType.NORMAL
     is_entry: bool = False
 
@@ -56,10 +56,10 @@ class BasicBlock:
         return self.instructions[0]
 
     def add_predecessor(self, block: "BasicBlock") -> None:
-        self.predecessors.add(block)
+        self.predecessors.append(block)
 
     def add_successor(self, block: "BasicBlock") -> None:
-        self.successors.add(block)
+        self.successors.append(block)
 
     def is_empty(self) -> bool:
         return len(self.instructions) == 0
