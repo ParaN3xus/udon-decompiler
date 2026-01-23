@@ -157,7 +157,7 @@ class ExpressionBuilder:
         return None
 
     def _build_copy_expression(self, instruction: Instruction) -> Optional[Expression]:
-        prev_state = self._get_previous_state(instruction)
+        prev_state = self.stack_simulator.get_instruction_state(instruction.address)
         if prev_state is None or len(prev_state.stack) < 2:
             return None
 
@@ -205,7 +205,7 @@ class ExpressionBuilder:
                 source_instruction=instruction,
             )
 
-        prev_state = self._get_previous_state(instruction)
+        prev_state = self.stack_simulator.get_instruction_state(instruction.address)
         arguments = []
 
         if prev_state:
@@ -317,18 +317,3 @@ class ExpressionBuilder:
             )
 
         raise Exception("Unknown stack value!")
-
-    def _get_previous_state(self, instruction: Instruction):
-        # todo: use cfg to find previous instruction and block
-        for block in self.stack_simulator._block_entry_states.keys():
-            for i, inst in enumerate(block.instructions):
-                if inst.address == instruction.address:
-                    if i > 0:
-                        prev_inst = block.instructions[i - 1]
-                        return self.stack_simulator.get_instruction_state(
-                            prev_inst.address
-                        )
-                    else:
-                        return self.stack_simulator.get_block_entry_state(block)
-
-        return None
