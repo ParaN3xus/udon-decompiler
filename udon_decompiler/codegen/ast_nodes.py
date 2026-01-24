@@ -16,6 +16,8 @@ class ASTNodeType(Enum):
     IF_ELSE = "if_else"
     WHILE = "while"
     DO_WHILE = "do_while"
+    SWITCH = "switch"
+    SWITCH_CASE = "switch_case"
     ASSIGNMENT = "assignment"
     CALL = "call"
     RETURN = "return"
@@ -140,6 +142,29 @@ class DoWhileNode(StatementNode):
     def __post_init__(self):
         super().__post_init__()
         self.node_type = ASTNodeType.DO_WHILE
+
+
+@dataclass
+class SwitchCaseNode(ASTNode):
+    values: List["ExpressionNode"] = field(default_factory=list)
+    body: Optional[BlockNode] = None
+    is_default: bool = False
+    node_type: ASTNodeType = field(default=ASTNodeType.SWITCH_CASE, init=False)
+
+    def __post_init__(self):
+        self.node_type = ASTNodeType.SWITCH_CASE
+
+
+@dataclass
+class SwitchNode(StatementNode):
+    expression: Optional["ExpressionNode"] = None
+    cases: List[SwitchCaseNode] = field(default_factory=list)
+    default_case: Optional[SwitchCaseNode] = None
+    node_type: ASTNodeType = field(default=ASTNodeType.SWITCH, init=False)
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.node_type = ASTNodeType.SWITCH
 
 
 @dataclass

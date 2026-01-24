@@ -81,6 +81,28 @@ class ControlFlowGraph:
 
         return post_doms
 
+    def get_immediate_post_dominator(
+        self, block: BasicBlock
+    ) -> Optional[BasicBlock]:
+        reversed_graph = self.graph.reverse()
+        exit_nodes = [
+            node for node in self.graph.nodes() if self.graph.out_degree(node) == 0
+        ]
+
+        if not exit_nodes:
+            return None
+
+        virtual_exit = BasicBlock(start_address=-1, end_address=-1)
+        reversed_graph.add_node(virtual_exit)
+        for exit_node in exit_nodes:
+            reversed_graph.add_edge(virtual_exit, exit_node)
+
+        idom = nx.immediate_dominators(reversed_graph, virtual_exit)
+        candidate = idom.get(block)
+        if candidate == virtual_exit:
+            return None
+        return candidate
+
     def get_back_edges(self) -> List[tuple[BasicBlock, BasicBlock]]:
         try:
             back_edges = []
@@ -218,11 +240,12 @@ class CFGBuilder:
 
             elif last_inst.opcode == OpCode.JUMP_INDIRECT:
                 if last_inst.operand is not None:
-                    if last_inst.address in self.identifier.switch_cases_indir_jumps:
-                        targets = self.identifier.switch_cases_indir_jumps[
-                            last_inst.address
-                        ]
-                        for target in targets:
+                    switch_info = self.identifier.switch_cases_indir_jumps.get(
+                        last_inst.address
+                    )
+                    if switch_info:
+                        block.switch_info = switch_info
+                        for target in switch_info.targets:
                             next_block = self._get_block_starting_at(target)
                             block.add_successor(next_block)
                             next_block.add_predecessor(block)

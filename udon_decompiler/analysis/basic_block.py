@@ -16,6 +16,14 @@ class BasicBlockType(Enum):
 
 
 @dataclass
+class SwitchTableInfo:
+    jump_address: int
+    targets: List[int]
+    index_operand: int
+    table_operand: int
+
+
+@dataclass
 class BasicBlock:
     start_address: int
     end_address: int
@@ -24,6 +32,7 @@ class BasicBlock:
     successors: List["BasicBlock"] = field(default_factory=list)
     block_type: BasicBlockType = BasicBlockType.NORMAL
     is_entry: bool = False
+    switch_info: Optional[SwitchTableInfo] = None
 
     # if it's a function entry
     function_name: Optional[str] = None
@@ -80,7 +89,7 @@ class BasicBlockIdentifier:
         self.entry_points = set(entry_points)
         self.heap_initial_values = program.heap_initial_values
         self.program = program
-        self.switch_cases_indir_jumps: dict[int, List[int]] = {}
+        self.switch_cases_indir_jumps: dict[int, SwitchTableInfo] = {}
         self.return_jumps: List[int] = []
 
         self._address_to_instruction = {inst.address: inst for inst in instructions}
@@ -139,13 +148,15 @@ class BasicBlockIdentifier:
                     self.return_jumps.append(inst.address)
                     continue
 
-                switch_targets = self._get_switch_targets(idx, operand_sym)
-                if switch_targets:
-                    block_starts.update(switch_targets)
+                switch_info = self._get_switch_targets(idx, operand_sym)
+                if switch_info:
+                    block_starts.update(switch_info.targets)
 
         return block_starts
 
-    def _get_switch_targets(self, jump_idx: int, operand_sym: SymbolInfo) -> List[int]:
+    def _get_switch_targets(
+        self, jump_idx: int, operand_sym: SymbolInfo
+    ) -> Optional[SwitchTableInfo]:
         try:
             extern_inst = self.instructions[jump_idx - 1]
             assert extern_inst.opcode == OpCode.EXTERN and extern_inst.operand
@@ -186,18 +197,22 @@ class BasicBlockIdentifier:
             addr_table = addr_table_heap_entry.value.value
             assert isinstance(addr_table, list)
 
-            self.switch_cases_indir_jumps[self.instructions[jump_idx].address] = (
-                addr_table
+            info = SwitchTableInfo(
+                jump_address=self.instructions[jump_idx].address,
+                targets=addr_table,
+                index_operand=push_switch_exp_inst.operand,
+                table_operand=push_addr_table_inst.operand,
             )
+            self.switch_cases_indir_jumps[self.instructions[jump_idx].address] = info
 
-            return addr_table
+            return info
 
         except Exception:
             logger.warning(
                 "Unrecognized JUMP_INDIRECT encountered at %s! Ignoring...",
                 self.instructions[jump_idx].address,
             )
-            return []
+            return None
 
     def _split_into_blocks(self, block_starts: Set[int]) -> List[BasicBlock]:
         sorted_starts = sorted(block_starts)
