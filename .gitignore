@@ -17,3 +17,5 @@ wheels/
 
 # Editor
 .vscode/launch.json
+
+/UdonModuleInfo.json

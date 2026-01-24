@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      UDON_MODULE_INFO: local/UdonModuleInfo.json
+      UDON_MODULE_INFO: UdonModuleInfo.json
 
     steps:
       - name: Checkout repository
@@ -42,7 +42,7 @@ jobs:
             exit 0
           fi
 
-          if gh release download "${RELEASE_TAG}" --pattern "UdonModuleInfo.json" --dir local; then
+          if gh release download "${RELEASE_TAG}" --pattern "UdonModuleInfo.json"; then
             echo "Downloaded UdonModuleInfo.json from release ${RELEASE_TAG}."
           else
             echo "Failed to download UdonModuleInfo.json from release ${RELEASE_TAG}; continuing."
