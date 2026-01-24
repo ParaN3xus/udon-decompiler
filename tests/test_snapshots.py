@@ -57,6 +57,8 @@ CASE_PATHS = load_cases(CASES_ROOT)
 def _extract_dumped_json(case_path: Path) -> str:
     text = case_path.read_text(encoding="utf-8")
     blocks = parse_markdown_cases(text, case_path)
+    if len(blocks) < 2:
+        raise ValueError(f"{case_path}: dumped.json block is missing")
     dumped = blocks[1]["content"].strip()
     if not dumped:
         raise ValueError(f"{case_path}: dumped.json block is empty")

@@ -6,6 +6,12 @@ from pathlib import Path
 from tests.ci.md_cases import load_cases, parse_markdown_cases
 
 
+def _format_dumped(dumped: str | None) -> str:
+    if dumped is None:
+        return "null\n"
+    return dumped.rstrip("\n") + "\n"
+
+
 def build_input(cases_root: Path, output_path: Path) -> None:
     cases = load_cases(cases_root)
     if not cases:
@@ -53,12 +59,16 @@ def update_cases(input_path: Path, output_path: Path) -> None:
         text = case_path.read_text(encoding="utf-8")
         blocks = parse_markdown_cases(text, case_path)
 
-        lang = blocks[1]["lang"] or "json"
-        dumped_text = dumped.rstrip("\n") + "\n"
-        new_block = f"```{lang}\n{dumped_text}```"
-
-        start, end = blocks[1]["span"]
-        updated = text[:start] + new_block + text[end:]
+        dumped_text = _format_dumped(dumped)
+        if len(blocks) == 1:
+            lang = "json"
+            new_block = f"```{lang}\n{dumped_text}```"
+            updated = text.rstrip() + "\n\n" + new_block + "\n"
+        else:
+            lang = blocks[1]["lang"] or "json"
+            new_block = f"```{lang}\n{dumped_text}```"
+            start, end = blocks[1]["span"]
+            updated = text[:start] + new_block + text[end:]
         case_path.write_text(updated, encoding="utf-8")
 
 
