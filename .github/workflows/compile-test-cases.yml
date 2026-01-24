@@ -14,6 +14,7 @@ jobs:
       INPUT_JSON: input.json
       OUTPUT_JSON: output.json
       BUILD_LOG: build.log
+      CASES_DIR: tests/cases
 
     steps:
       - name: Checkout repository
@@ -58,17 +59,13 @@ jobs:
           mkdir -p "$PROJECT_NAME/Assets/Editor"
           cp -r Editor/* "$PROJECT_NAME/Assets/Editor/"
 
-      - name: Generate input.json from Tests
+      - name: Generate input.json from Cases
+        shell: bash
         run: |
-          ls tests/*.cs | while read -r file; do
-              filename=$(basename -- "$file")
-              classname="${filename%.*}"
-              
-              jq -n \
-                 --arg name "$classname" \
-                 --rawfile code "$file" \
-                 '{className: $name, sourceCode: $code}'
-          done | jq -s '{requests: .}' > "$PROJECT_NAME/$INPUT_JSON"
+          set -euo pipefail
+          python3 -m tests.ci.case_md build-input \
+            --cases "${{ env.CASES_DIR }}" \
+            --output "$PROJECT_NAME/$INPUT_JSON"
 
           echo "Generated input.json at $PROJECT_NAME/$INPUT_JSON"
 
@@ -127,32 +124,26 @@ jobs:
             echo "No build log found to sanitize."
           fi
 
-      - name: Extract Dumped Programs
-        working-directory: ${{ env.PROJECT_NAME }}
+      - name: Update cases markdown with dumped.json
+        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          ERR_MSG=$(jq -r '.error' "$OUTPUT_JSON")
+          ERR_MSG=$(jq -r '.error' "$PROJECT_NAME/$OUTPUT_JSON")
           if [ "$ERR_MSG" != "null" ] && [ -n "$ERR_MSG" ]; then
               echo "Error found in output.json: $ERR_MSG"
               exit 1
           fi
 
-          count=$(jq '.results | length' "$OUTPUT_JSON")
-          echo "Found $count results."
+          python3 -m tests.ci.case_md update-md \
+            --input "$PROJECT_NAME/$INPUT_JSON" \
+            --output "$PROJECT_NAME/$OUTPUT_JSON"
 
-          mkdir -p output_dumps
-          for (( i=0; i<$count; i++ )); do
-              classname=$(jq -r ".requests[$i].className" "$INPUT_JSON")
-              jq -r ".results[$i]" "$OUTPUT_JSON" > "output_dumps/${classname}.dumped.json"
-              echo "Extracted: ${classname}.dumped.json"
-          done
-
-      - name: Upload Dumped JSON (Success)
+      - name: Upload Updated Cases (Success)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: dumped-programs
-          path: ${{ env.PROJECT_NAME }}/output_dumps/*.dumped.json
+          name: updated-cases
+          path: tests/cases/**/*.md
 
       - name: Upload Build Log (Failure)
         if: failure()

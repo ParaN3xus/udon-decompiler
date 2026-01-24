@@ -7,6 +7,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["networkx>=3.5", "pydot>=4.0.1"]
 
+[dependency-groups]
+dev = ["pytest>=9.0.2", "syrupy>=5.0.0"]
+
 [project.scripts]
 udon-decompiler = "udon_decompiler.__main__:main"
 
@@ -15,3 +18,9 @@ include = ["udon_decompiler*"]
 
 [tool.ruff.lint]
 select = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.uv]
+package = true
