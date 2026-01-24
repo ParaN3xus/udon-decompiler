@@ -69,8 +69,6 @@ class BasicBlock:
 
 
 class BasicBlockIdentifier:
-    switch_cases_indir_jumps: dict[int, List[int]] = {}
-    return_jumps: List[int] = []
 
     def __init__(
         self,
@@ -82,6 +80,8 @@ class BasicBlockIdentifier:
         self.entry_points = set(entry_points)
         self.heap_initial_values = program.heap_initial_values
         self.program = program
+        self.switch_cases_indir_jumps: dict[int, List[int]] = {}
+        self.return_jumps: List[int] = []
 
         self._address_to_instruction = {inst.address: inst for inst in instructions}
         self._basic_blocks: List[BasicBlock] = []

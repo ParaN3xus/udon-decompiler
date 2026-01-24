@@ -371,6 +371,7 @@ class CSharpCodeGenerator:
 
 
 class ProgramCodeGenerator:
+    # todo: this may disturbe test
     _class_counter: int = 0
     _generator: CSharpCodeGenerator = CSharpCodeGenerator()
 
