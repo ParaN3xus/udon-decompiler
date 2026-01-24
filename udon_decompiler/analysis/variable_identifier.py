@@ -104,10 +104,9 @@ class VariableIdentifier:
                     self._record_variable_read(address, instruction.address)
 
             elif instruction.opcode.name == "COPY":
-                prev_state = self._get_previous_instruction_state(instruction)
-                if prev_state and len(prev_state.stack) >= 2:
-                    source_val = prev_state.peek(0)
-                    target_val = prev_state.peek(1)
+                if state and len(state.stack) >= 2:
+                    target_val = state.peek(0)
+                    source_val = state.peek(1)
 
                     if source_val and target_val:
                         self._record_variable_write(
@@ -132,7 +131,7 @@ class VariableIdentifier:
         if not isinstance(signature, str):
             return
 
-        frame = state or self._get_previous_instruction_state(instruction)
+        frame = state or self.stack_simulator.get_instruction_state(instruction.address)
         if frame is None:
             return
 
@@ -265,30 +264,6 @@ class VariableIdentifier:
         if "UnityEngineGameObject" in symbol_name:
             return "this.gameObject"
         return "this"
-
-    def _get_previous_instruction_state(
-        self, instruction: Instruction
-    ) -> Optional[StackFrame]:
-        block = self._find_block_containing(instruction.address)
-        if block is None:
-            return None
-
-        inst_index = None
-        for i, inst in enumerate(block.instructions):
-            if inst.address == instruction.address:
-                inst_index = i
-                break
-
-        if inst_index is None:
-            return None
-
-        if inst_index > 0:
-            # common inst
-            prev_inst = block.instructions[inst_index - 1]
-            return self.stack_simulator.get_instruction_state(prev_inst.address)
-        else:
-            # block entry
-            return self.stack_simulator.get_block_entry_state(block)
 
     def _find_block_containing(self, address: int) -> Optional[BasicBlock]:
         for block in self.cfg.graph.nodes():
