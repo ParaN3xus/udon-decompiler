@@ -2,6 +2,9 @@ name: Compile Test Cases
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "tests/cases/**/*.md"
 
 permissions:
   contents: write
