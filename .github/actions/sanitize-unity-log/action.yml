@@ -1,0 +1,29 @@
+name: "Sanitize Unity Build Log"
+description: "Mask Unity credentials in a build log file."
+inputs:
+  build_log_path:
+    description: "Path to the Unity build log"
+    required: false
+    default: "build.log"
+runs:
+  using: "composite"
+  steps:
+    - name: Sanitize Build Log
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.build_log_path }}" ]; then
+          MASK="********************************"
+
+          sed -i "s|$UNITY_EMAIL|$MASK|g" "${{ inputs.build_log_path }}"
+          sed -i "s|$UNITY_PASSWORD|$MASK|g" "${{ inputs.build_log_path }}"
+          sed -i "s|$UNITY_SERIAL|$MASK|g" "${{ inputs.build_log_path }}"
+
+          LEN=${#UNITY_SERIAL}
+          PREFIX=${UNITY_SERIAL:0:LEN-4}
+          UNITY_AUTO_MASKED="${PREFIX}XXXX"
+          sed -i "s|$UNITY_AUTO_MASKED|$MASK|g" "${{ inputs.build_log_path }}"
+
+          echo "Log sanitized."
+        else
+          echo "No build log found to sanitize."
+        fi

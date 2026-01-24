@@ -26,44 +26,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+      - name: Setup VRChat Project
+        uses: ./.github/actions/setup-vrchat-project
         with:
-          dotnet-version: "8.0.x"
-
-      - name: Install VRChat Package Manager (VPM)
-        run: |
-          dotnet tool install --global vrchat.vpm.cli
-          echo "/github/home/.dotnet/tools" >> $GITHUB_PATH
-
-      - name: Create VRChat Project
-        run: |
-          vpm install templates
-          vpm new "$PROJECT_NAME" World -p .
-
-      - name: Update VRChat World SDK Packages
-        working-directory: ${{ env.PROJECT_NAME }}
-        shell: bash
-        run: |
-          vpm_update_latest() {
-            local pkg_name=$1
-            local latest_ver=$(vpm check package "$pkg_name" | grep "version:" | awk '{print $NF}')
-            if [ -n "$latest_ver" ]; then
-                echo "Installing $pkg_name@$latest_ver"
-                vpm add package "${pkg_name}@${latest_ver}"
-            else
-                echo "ERR: Failed to check latest version of $pkg_name"
-                exit 1
-            fi
-          }
-
-          vpm_update_latest "com.vrchat.base"
-          vpm_update_latest "com.vrchat.worlds"
-
-      - name: Copy Editor Scripts
-        run: |
-          mkdir -p "$PROJECT_NAME/Assets/Editor"
-          cp -r Editor/* "$PROJECT_NAME/Assets/Editor/"
+          project_name: ${{ env.PROJECT_NAME }}
 
       - name: Generate input.json from Cases
         shell: bash
@@ -107,28 +73,13 @@ jobs:
       - name: Sanitize Build Log
         if: always()
         working-directory: ${{ env.PROJECT_NAME }}
-        shell: bash
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
-        run: |
-          if [ -f "$BUILD_LOG" ]; then
-            MASK="********************************"
-            
-            sed -i "s|$UNITY_EMAIL|$MASK|g" "$BUILD_LOG"
-            sed -i "s|$UNITY_PASSWORD|$MASK|g" "$BUILD_LOG"
-            sed -i "s|$UNITY_SERIAL|$MASK|g" "$BUILD_LOG"
-
-            LEN=${#UNITY_SERIAL}
-            PREFIX=${UNITY_SERIAL:0:LEN-4}
-            UNITY_AUTO_MASKED="${PREFIX}XXXX"
-            sed -i "s|$UNITY_AUTO_MASKED|$MASK|g" "$BUILD_LOG"
-            
-            echo "Log sanitized."
-          else
-            echo "No build log found to sanitize."
-          fi
+        uses: ./.github/actions/sanitize-unity-log
+        with:
+          build_log_path: ${{ env.BUILD_LOG }}
 
       - name: Update cases markdown with dumped.json
         working-directory: ${{ github.workspace }}

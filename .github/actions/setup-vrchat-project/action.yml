@@ -1,0 +1,63 @@
+name: "Setup VRChat Unity Project"
+description: "Create a VRChat Unity project with the World SDK and editor scripts."
+inputs:
+  project_name:
+    description: "Project directory name"
+    required: false
+    default: "temp_proj"
+  editor_source:
+    description: "Path to Editor scripts to copy into Assets/Editor"
+    required: false
+    default: "Editor"
+  dotnet_version:
+    description: ".NET SDK version to install"
+    required: false
+    default: "8.0.x"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet_version }}
+
+    - name: Install VRChat Package Manager (VPM)
+      shell: bash
+      run: |
+        dotnet tool install --global vrchat.vpm.cli
+        echo "/github/home/.dotnet/tools" >> "$GITHUB_PATH"
+
+    - name: Create VRChat Project
+      shell: bash
+      run: |
+        set -euo pipefail
+        vpm install templates
+        vpm new "${{ inputs.project_name }}" World -p .
+
+    - name: Update VRChat World SDK Packages
+      working-directory: ${{ inputs.project_name }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        vpm_update_latest() {
+          local pkg_name=$1
+          local latest_ver
+          latest_ver=$(vpm check package "$pkg_name" | grep "version:" | awk '{print $NF}')
+          if [ -n "$latest_ver" ]; then
+              echo "Installing $pkg_name@$latest_ver"
+              vpm add package "${pkg_name}@${latest_ver}"
+          else
+              echo "ERR: Failed to check latest version of $pkg_name"
+              exit 1
+          fi
+        }
+
+        vpm_update_latest "com.vrchat.base"
+        vpm_update_latest "com.vrchat.worlds"
+
+    - name: Copy Editor Scripts
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "${{ inputs.project_name }}/Assets/Editor"
+        cp -r "${{ inputs.editor_source }}"/* "${{ inputs.project_name }}/Assets/Editor/"
