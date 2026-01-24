@@ -87,14 +87,13 @@ jobs:
 
       - name: Sanitize Build Log
         if: always()
-        working-directory: ${{ env.PROJECT_NAME }}
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         uses: ./.github/actions/sanitize-unity-log
         with:
-          build_log_path: ${{ env.BUILD_LOG }}
+          build_log_path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}
 
       - name: Upload Build Log
         if: always()
