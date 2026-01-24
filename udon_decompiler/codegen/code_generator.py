@@ -35,6 +35,83 @@ from udon_decompiler.utils.logger import logger
 
 
 class CSharpCodeGenerator:
+    _UNARY_OPERATORS = {
+        Operator.UnaryMinus,
+        Operator.UnaryNegation,
+        Operator.ImplicitConversion,
+    }
+    _ASSOCIATIVE_OPERATORS = {
+        Operator.Addition,
+        Operator.Multiplication,
+        Operator.LogicalAnd,
+        Operator.LogicalOr,
+        Operator.LogicalXor,
+    }
+
+    def _operator_precedence(self, op: Operator) -> int:
+        # Higher number = higher precedence.
+        if op in self._UNARY_OPERATORS:
+            return 7
+        if op in (Operator.Multiplication, Operator.Division, Operator.Remainder):
+            return 6
+        if op in (Operator.Addition, Operator.Subtraction):
+            return 5
+        if op in (Operator.LeftShift, Operator.RightShift):
+            return 4
+        if op in (
+            Operator.GreaterThan,
+            Operator.GreaterThanOrEqual,
+            Operator.LessThan,
+            Operator.LessThanOrEqual,
+        ):
+            return 3
+        if op in (Operator.Equality, Operator.Inequality):
+            return 2
+        if op == Operator.LogicalAnd:
+            return 1
+        if op == Operator.LogicalXor:
+            return 0
+        if op == Operator.LogicalOr:
+            return -1
+        return -2
+
+    def _operator_needs_parentheses(
+        self,
+        parent_op: Operator,
+        child_expr: ExpressionNode,
+        operand_index: int,
+    ) -> bool:
+        if not isinstance(child_expr, OperatorNode):
+            return False
+
+        parent_prec = self._operator_precedence(parent_op)
+        child_prec = self._operator_precedence(child_expr.operator)
+
+        if child_prec < parent_prec:
+            return True
+        if child_prec > parent_prec:
+            return False
+
+        # Same precedence: be conservative on the right-hand side.
+        if parent_op in self._UNARY_OPERATORS:
+            # Avoid "--a" and "!-a" ambiguities.
+            return True
+
+        if operand_index == 1:
+            if child_expr.operator != parent_op:
+                return True
+            return parent_op not in self._ASSOCIATIVE_OPERATORS
+
+        return False
+
+    def _generate_operator_operand(
+        self, parent_op: Operator, operand: ExpressionNode, operand_index: int
+    ) -> str:
+        operand_str = self._generate_expression(operand)
+        if self._operator_needs_parentheses(parent_op, operand, operand_index):
+            return f"({operand_str})"
+        return operand_str
+
     def __init__(self, use_formatting: bool = True):
         self.formatter = CodeFormatter() if use_formatting else None
 
@@ -414,7 +491,19 @@ class CSharpCodeGenerator:
         return f"{receiver} = new {expr.type_name}({args})"
 
     def _generate_operator(self, expr: OperatorNode) -> str:
-        oprs = [self._generate_expression(opr) for opr in expr.operands]
+        if expr.operator == Operator.ImplicitConversion:
+            if len(expr.operands) != 2:
+                raise Exception("Invalid implicit conversion operands!")
+            type_str = self._generate_expression(expr.operands[0])
+            value_str = self._generate_operator_operand(
+                expr.operator, expr.operands[1], 1
+            )
+            oprs = [type_str, value_str]
+        else:
+            oprs = [
+                self._generate_operator_operand(expr.operator, opr, i)
+                for i, opr in enumerate(expr.operands)
+            ]
         if expr.emit_as_expression or expr.receiver is None:
             return expr.operator.formatter.format(*oprs)
         receiver = self._generate_expression(expr.receiver)
