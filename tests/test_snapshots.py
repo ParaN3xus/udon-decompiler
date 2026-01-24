@@ -1,5 +1,4 @@
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -8,12 +7,9 @@ from syrupy.extensions.single_file import SingleFileSnapshotExtension, WriteMode
 
 from tests.ci.md_cases import load_cases, parse_markdown_cases
 from udon_decompiler import (
-    BytecodeParser,
-    DataFlowAnalyzer,
+    decompile_program_to_source,
     ModuleInfoLoader,
-    ProgramCodeGenerator,
     ProgramLoader,
-    UdonModuleInfo,
 )
 
 
@@ -66,22 +62,9 @@ def _extract_dumped_json(case_path: Path) -> str:
 
 
 def _decompile_json_to_source(json_text: str) -> str:
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
-        tmp.write(json_text)
-        tmp_path = Path(tmp.name)
-
-    try:
-        program = ProgramLoader.load_from_file(str(tmp_path))
-        bc_parser = BytecodeParser(program)
-        instructions = bc_parser.parse()
-        analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
-        function_analyzers = analyzer.analyze()
-        _, source_code = ProgramCodeGenerator.generate_program(
-            program, function_analyzers
-        )
-        return source_code
-    finally:
-        tmp_path.unlink(missing_ok=True)
+    program = ProgramLoader.load_from_json_string(json_text)
+    _, source_code = decompile_program_to_source(program)
+    return source_code
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -5,31 +5,12 @@ from pathlib import Path
 from typing import Optional
 
 from udon_decompiler import (
-    BytecodeParser,
-    DataFlowAnalyzer,
     ModuleInfoLoader,
-    ProgramCodeGenerator,
     ProgramLoader,
-    UdonModuleInfo,
-    UdonProgramData,
+    decompile_program_to_source,
     logger,
 )
 from udon_decompiler.utils.logger import set_logger_level
-
-
-def decompile_program_to_source(program: UdonProgramData) -> tuple[Optional[str], str]:
-    bc_parser = BytecodeParser(program)
-    instructions = bc_parser.parse()
-
-    logger.debug(f"ASM: {instructions}")
-
-    analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
-    function_analyzers = analyzer.analyze()
-
-    class_name, code = ProgramCodeGenerator.generate_program(
-        program, function_analyzers
-    )
-    return class_name, code
 
 
 def process_file(
