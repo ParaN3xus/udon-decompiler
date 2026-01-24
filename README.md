@@ -14,13 +14,14 @@ The Udon Decompiler.
 ## TODO
 
 - [ ] Remove `todo:` marks from code
-- [ ] Editor Tools
-  - [ ] `UdonModuleInfoExtractor` for different VRChat World SDK version
-  - [ ] `UdonProgramDumper` supporting different `serializedProgramCompressedBytes` formats
-- [ ] Unit tests and E2E tests
+- [ ] `UdonProgramDumper` supporting different `serializedProgramCompressedBytes` formats
+- [ ] Unit tests
+- [ ] Review all LLM-generated code
 - [ ] Better `CSharpCodeGenerator`
   - [ ] Type alias like `bool` for `System.Boolean`
   - [ ] Comments
+  - [ ] Flatten nested `if-else` statements.
+  - [ ] Namespaces
 
 ## Contributing
 
