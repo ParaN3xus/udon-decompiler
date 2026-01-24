@@ -3,6 +3,9 @@ name: Compile Test Cases
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -138,12 +141,29 @@ jobs:
             --input "$PROJECT_NAME/$INPUT_JSON" \
             --output "$PROJECT_NAME/$OUTPUT_JSON"
 
-      - name: Upload Updated Cases (Success)
+      - name: Commit and push updated cases (Success)
         if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: updated-cases
-          path: tests/cases/**/*.md
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${GITHUB_WORKSPACE:-}" ]; then
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add tests/cases
+
+          if git diff --cached --quiet; then
+            echo "No case updates to commit."
+            exit 0
+          fi
+
+          git commit -m "test: update dumped cases"
+          git push
 
       - name: Upload Build Log (Failure)
         if: failure()
