@@ -1,6 +1,7 @@
 from typing import Optional
 
 from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
+from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.variable_identifier import Variable
 from udon_decompiler.codegen.ast_nodes import (
     AssignmentNode,
@@ -30,7 +31,7 @@ from udon_decompiler.codegen.ast_nodes import (
     WhileNode,
 )
 from udon_decompiler.codegen.formatter import CodeFormatter
-from udon_decompiler.models.program import SymbolInfo, UdonProgramData
+from udon_decompiler.models.program import HeapEntry, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
 
@@ -574,15 +575,13 @@ class ProgramCodeGenerator:
         program = first_analyzer.program
 
         for var in global_vars_by_address.values():
-            if ProgramCodeGenerator._is_hidden_global_variable(var):
-                continue
             initial_heap_value = program.get_initial_heap_value(var.address)
-            if initial_heap_value is None or initial_heap_value.value is None:
-                initial_value = "null"
-            elif not initial_heap_value.value.is_serializable:
-                initial_value = "<non-serializable>"
-            else:
-                initial_value = initial_heap_value.value.value
+            if ProgramCodeGenerator._is_hidden_global_variable(var, initial_heap_value):
+                continue
+
+            initial_value = ProgramCodeGenerator._format_initial_value(
+                var, initial_heap_value
+            )
 
             res.append(
                 VariableDeclNode(
@@ -597,14 +596,18 @@ class ProgramCodeGenerator:
         return res
 
     @staticmethod
-    def _is_hidden_global_variable(var: Variable) -> bool:
+    def _is_hidden_global_variable(
+        var: Variable, initial_heap_value: Optional[HeapEntry]
+    ) -> bool:
         symbol_name = var.original_symbol.name if var.original_symbol else var.name
 
         if symbol_name in {UdonProgramData.CLASS_NAME_SYMBOL_NAME, "__refl_typeid"}:
             return True
 
         if symbol_name.startswith(SymbolInfo.CONST_SYMBOL_PREFIX):
-            return True
+            if initial_heap_value is None or initial_heap_value.value is None:
+                return False
+            return initial_heap_value.value.is_serializable
 
         if symbol_name.startswith(SymbolInfo.INTERNAL_SYMBOL_PREFIX):
             return True
@@ -616,3 +619,18 @@ class ProgramCodeGenerator:
             return True
 
         return False
+
+    @staticmethod
+    def _format_initial_value(var: Variable, initial_heap_value: Optional[HeapEntry]):
+        if initial_heap_value is None or initial_heap_value.value is None:
+            return "null"
+        if initial_heap_value.value.is_serializable:
+            return initial_heap_value.value.value
+
+        value = initial_heap_value.value.value
+        default_type = var.type_hint or "object"
+        if isinstance(value, dict):
+            to_string = value.get("toString")
+            if isinstance(to_string, str):
+                return f"new {default_type}() /* {to_string} */"
+        return f"new {default_type} /* <non-serializable> */"
