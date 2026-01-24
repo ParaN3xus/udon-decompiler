@@ -162,7 +162,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "test: update dumped cases"
+          git commit -m "test: compile test cases"
           git push
 
       - name: Upload Build Log (Failure)
