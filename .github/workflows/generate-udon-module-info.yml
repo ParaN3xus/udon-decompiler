@@ -1,0 +1,105 @@
+name: Generate UdonModuleInfo.json
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to upload UdonModuleInfo.json (must exist)"
+        required: true
+        type: string
+      asset_name:
+        description: "Asset filename in the release"
+        required: false
+        default: "UdonModuleInfo.json"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-2022.3.22f1-base-3.2.1
+
+    env:
+      PROJECT_NAME: temp_proj
+      BUILD_LOG: build.log
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup VRChat Project
+        uses: ./.github/actions/setup-vrchat-project
+        with:
+          project_name: ${{ env.PROJECT_NAME }}
+
+      - name: Run Unity Extraction
+        working-directory: ${{ env.PROJECT_NAME }}
+        shell: bash
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          set +e
+          /opt/unity/Editor/Unity \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD" \
+            -serial "$UNITY_SERIAL" \
+            -batchmode \
+            -nographics \
+            -projectPath . \
+            -executeMethod UdonModuleInfoExtractor.ExtractModuleInfo \
+            -logFile "$(pwd)/build.log"
+
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Unity exited with code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+      - name: Collect UdonModuleInfo.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC_PATH="${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json"
+          if [ ! -f "$SRC_PATH" ]; then
+            echo "UdonModuleInfo.json not found at $SRC_PATH"
+            exit 1
+          fi
+          cp "$SRC_PATH" "${{ github.workspace }}/${{ inputs.asset_name }}"
+
+      - name: Upload UdonModuleInfo.json to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "${{ github.workspace }}/${{ inputs.asset_name }}" ]; then
+            echo "Asset not found: ${{ github.workspace }}/${{ inputs.asset_name }}"
+            exit 1
+          fi
+          gh release upload "${{ inputs.release_tag }}" "${{ github.workspace }}/${{ inputs.asset_name }}" --clobber
+
+      - name: Sanitize Build Log
+        if: always()
+        working-directory: ${{ env.PROJECT_NAME }}
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        uses: ./.github/actions/sanitize-unity-log
+        with:
+          build_log_path: ${{ env.BUILD_LOG }}
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}
+          if-no-files-found: ignore
