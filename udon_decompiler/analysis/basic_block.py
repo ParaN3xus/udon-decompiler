@@ -78,7 +78,6 @@ class BasicBlock:
 
 
 class BasicBlockIdentifier:
-
     def __init__(
         self,
         instructions: List[Instruction],

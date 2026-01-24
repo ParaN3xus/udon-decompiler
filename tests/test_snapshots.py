@@ -3,8 +3,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from syrupy.data import Snapshot, SnapshotCollection
 from syrupy.extensions.single_file import SingleFileSnapshotExtension, WriteMode
-from syrupy.data import SnapshotCollection, Snapshot
 
 from tests.ci.md_cases import load_cases, parse_markdown_cases
 from udon_decompiler import (

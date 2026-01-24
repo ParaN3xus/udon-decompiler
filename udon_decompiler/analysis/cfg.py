@@ -81,9 +81,7 @@ class ControlFlowGraph:
 
         return post_doms
 
-    def get_immediate_post_dominator(
-        self, block: BasicBlock
-    ) -> Optional[BasicBlock]:
+    def get_immediate_post_dominator(self, block: BasicBlock) -> Optional[BasicBlock]:
         reversed_graph = self.graph.reverse()
         exit_nodes = [
             node for node in self.graph.nodes() if self.graph.out_degree(node) == 0
