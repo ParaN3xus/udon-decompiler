@@ -53,6 +53,9 @@ jobs:
             exit $EXIT_CODE
           fi
 
+      - name: Install GitHub CLI
+        uses: ./.github/actions/install-gh
+
       - name: Upload UdonModuleInfo.json to release
         shell: bash
         env:
