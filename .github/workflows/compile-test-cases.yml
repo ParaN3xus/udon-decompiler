@@ -94,7 +94,7 @@ jobs:
             --input "$PROJECT_NAME/$INPUT_JSON" \
             --output "$PROJECT_NAME/$OUTPUT_JSON"
 
-      - name: Commit and push updated cases (Success)
+      - name: Commit and push updated cases
         if: success()
         working-directory: ${{ github.workspace }}
         shell: bash
