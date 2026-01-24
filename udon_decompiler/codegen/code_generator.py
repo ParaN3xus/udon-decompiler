@@ -55,11 +55,16 @@ class CSharpCodeGenerator:
             decl_lines = self._generate_variable_decl(global_var, 1)
             lines.extend(decl_lines)
 
-        lines.append("\n")
+        if program_node.global_variables:
+            lines.append("")
 
         for func_node in program_node.functions:
             func_lines = self._generate_function(func_node, indent=1)
             lines.extend(func_lines)
+            lines.append("")
+
+        if program_node.functions:
+            lines.pop()
 
         lines.append("}")
 
