@@ -1,4 +1,5 @@
-from typing import List, Dict
+from typing import Dict, List
+
 from udon_decompiler.models import Instruction, OpCode, UdonProgramData
 from udon_decompiler.utils import logger
 

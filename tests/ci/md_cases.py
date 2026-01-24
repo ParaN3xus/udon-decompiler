@@ -13,9 +13,7 @@ def load_cases(root: Path) -> list[Path]:
 def parse_markdown_cases(text: str, path: Path) -> list[dict]:
     blocks = list(CODE_FENCE_RE.finditer(text))
     if len(blocks) not in (1, 2):
-        raise ValueError(
-            f"{path}: expected 1 or 2 code fences, found {len(blocks)}"
-        )
+        raise ValueError(f"{path}: expected 1 or 2 code fences, found {len(blocks)}")
     return [
         {
             "lang": (m.group(1) or "").strip(),
