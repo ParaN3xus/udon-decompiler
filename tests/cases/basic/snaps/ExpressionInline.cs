@@ -21,7 +21,7 @@ public class ExpressionInline : UdonSharpBehaviour
         __lcl_b_SystemInt32_0 = 20;
         __lcl_f_SystemSingle_0 = 2.5f;
         __lcl_res1_SystemInt32_0 = (__lcl_a_SystemInt32_0 + __lcl_b_SystemInt32_0) * (__lcl_b_SystemInt32_0 - __lcl_a_SystemInt32_0);
-        __lcl_res2_SystemSingle_0 = System.Object.ToSingle(__lcl_a_SystemInt32_0) * 0.5f + __lcl_f_SystemSingle_0 / 2.0f;
+        __lcl_res2_SystemSingle_0 = System.Convert.ToSingle(__lcl_a_SystemInt32_0) * 0.5f + __lcl_f_SystemSingle_0 / 2.0f;
         __lcl_v_UnityEngineVector3_0 = __const_UnityEngineVector3_0 * __lcl_f_SystemSingle_0 + __const_UnityEngineVector3_1;
         __intnl_SystemBoolean_1 = __lcl_a_SystemInt32_0 > 5;
         if (__intnl_SystemBoolean_1)

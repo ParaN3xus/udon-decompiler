@@ -9,7 +9,7 @@ public class ExternalCall : UdonSharpBehaviour
         UnityEngine.Transform __lcl_child_UnityEngineTransform_0;
         UnityEngine.Random.InitState(12345);
         __lcl_absValue_SystemInt32_0 = UnityEngine.Mathf.Abs(-99);
-        UnityEngine.GameObject.__SetActive__SystemBoolean__SystemVoid(this.gameObject, true);
+        this.gameObject.SetActive(true);
         __lcl_child_UnityEngineTransform_0 = this.transform.GetChild(0);
         return;
     }
