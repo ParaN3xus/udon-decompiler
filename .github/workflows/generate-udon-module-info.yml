@@ -40,6 +40,7 @@ jobs:
             -serial "$UNITY_SERIAL" \
             -batchmode \
             -nographics \
+            -quit \
             -projectPath . \
             -executeMethod UdonModuleInfoExtractor.ExtractModuleInfo \
             -logFile "$(pwd)/build.log"
