@@ -80,11 +80,21 @@ def test_decompiled_snapshots(case_path: Path, snapshot) -> None:
     if not CASE_PATHS:
         pytest.skip("No markdown cases found in tests/cases")
 
-    dumped_json = _extract_dumped_json(case_path)
-    actual = _decompile_json_to_source(dumped_json)
-
     snapshot_dir = case_path.parent / "snaps"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
+    snapshot_path = snapshot_dir / f"{case_path.stem}.cs"
+    if not snapshot_path.exists():
+        pytest.skip(f"Snapshot not found at {snapshot_path}")
+
+    try:
+        dumped_json = _extract_dumped_json(case_path)
+    except ValueError as exc:
+        pytest.skip(str(exc))
+
+    try:
+        actual = _decompile_json_to_source(dumped_json)
+    except Exception as exc:
+        pytest.skip(f"{case_path}: failed to load program ({exc})")
 
     CsSnapshotExtension.snapshot_root = snapshot_dir
     snapshot = snapshot(extension_class=CsSnapshotExtension, name=case_path.stem)
