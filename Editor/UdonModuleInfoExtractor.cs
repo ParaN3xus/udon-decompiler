@@ -72,12 +72,14 @@ public class UdonModuleInfoExtractor : EditorWindow
             foreach (var kvp in paramCounts)
             {
                 string funcName = kvp.Key;
+                var parameterCount = kvp.Value;
                 string fullNodeName = $"{moduleName}.{funcName}";
                 var udonNodeDef = registryLookup[fullNodeName];
 
                 string defType = funcName.StartsWith("__op_") ? "op" :
                             funcName.StartsWith("__ctor__") ? "ctor" :
-                            (funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) ? "prop" : "method";
+                            // todo: dictionary get/set has 3 params 
+                            ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) && parameterCount >= 1 && parameterCount <= 2) ? "prop" : "method";
 
 
                 string originalName = null;
@@ -105,7 +107,7 @@ public class UdonModuleInfoExtractor : EditorWindow
                 {
                     name = funcName,
                     originalName = originalName,
-                    parameterCount = kvp.Value,
+                    parameterCount = parameterCount,
                     isStatic = isStatic,
                     returnsVoid = returnsVoid,
                     defType = defType
