@@ -2,16 +2,6 @@ name: Generate UdonModuleInfo.json
 
 on:
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: "Release tag to upload UdonModuleInfo.json (must exist)"
-        required: true
-        type: string
-      asset_name:
-        description: "Asset filename in the release"
-        required: false
-        default: "UdonModuleInfo.json"
-        type: string
 
 permissions:
   contents: write
@@ -71,19 +61,24 @@ jobs:
             echo "UdonModuleInfo.json not found at $SRC_PATH"
             exit 1
           fi
-          cp "$SRC_PATH" "${{ github.workspace }}/${{ inputs.asset_name }}"
+          cp "$SRC_PATH" "${{ github.workspace }}/UdonModuleInfo.json"
 
       - name: Upload UdonModuleInfo.json to release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ vars.UDON_MODULE_INFO_RELEASE_TAG }}
         run: |
           set -euo pipefail
-          if [ ! -f "${{ github.workspace }}/${{ inputs.asset_name }}" ]; then
-            echo "Asset not found: ${{ github.workspace }}/${{ inputs.asset_name }}"
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "UDON_MODULE_INFO_RELEASE_TAG is not set."
             exit 1
           fi
-          gh release upload "${{ inputs.release_tag }}" "${{ github.workspace }}/${{ inputs.asset_name }}" --clobber
+          if [ ! -f "${{ github.workspace }}/UdonModuleInfo.json" ]; then
+            echo "Asset not found: ${{ github.workspace }}/UdonModuleInfo.json"
+            exit 1
+          fi
+          gh release upload "${RELEASE_TAG}" "${{ github.workspace }}/UdonModuleInfo.json" --clobber
 
       - name: Sanitize Build Log
         if: always()
