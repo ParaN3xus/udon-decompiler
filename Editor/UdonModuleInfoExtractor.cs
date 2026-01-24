@@ -26,30 +26,17 @@ public class UdonModuleInfoExtractor : EditorWindow
         public List<FunctionDefinition> functions;
     }
 
-#nullable enable
     [Serializable]
     public class FunctionDefinition
     {
-        public string name = null!;
+        public string name;
         public int parameterCount;
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? originalName;
-        public string defType = null!;
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public bool? isStatic;
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public bool? returnsVoid;
+        public string originalName;
+        public string defType;
+        public bool isStatic;
+        public bool returnsVoid;
     }
-#nullable restore
 
-    private class NodeInfoCache
-    {
-        public NodeRegistryUtilities.DefinitionType DefType;
-        public MemberInfo Member;
-    }
 
     [MenuItem("Tools/Extract Udon Module Info")]
     public static void ExtractModuleInfo()
@@ -60,93 +47,75 @@ public class UdonModuleInfoExtractor : EditorWindow
         UnityEngineObjectSecurityBlacklist blacklist = new UnityEngineObjectSecurityBlacklist();
         UdonDefaultWrapperFactory udonWrapperFactory = new UdonDefaultWrapperFactory(blacklist);
         IUdonWrapper udonWrapper = udonWrapperFactory.GetWrapper();
-        List<Type> moduleTypes = GetWrapperModuleTypes(udonWrapperFactory);
+        List<Type> moduleWrapperTypes = GetWrapperModuleTypes(udonWrapperFactory);
 
         var result = new Dictionary<string, ModuleDefinition>();
 
-        foreach (Type moduleType in moduleTypes)
+        foreach (Type moduleWrapperType in moduleWrapperTypes)
         {
-            try
+            object instance = Activator.CreateInstance(moduleWrapperType, new object[] { udonWrapper, blacklist });
+
+            PropertyInfo nameProperty = moduleWrapperType.GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
+            string moduleName = nameProperty?.GetValue(instance) as string;
+
+            FieldInfo parameterCountsField = moduleWrapperType.GetField("_parameterCounts", BindingFlags.NonPublic | BindingFlags.Instance);
+            Lazy<Dictionary<string, int>> rawCounts = parameterCountsField?.GetValue(instance) as Lazy<Dictionary<string, int>>;
+            Dictionary<string, int> paramCounts = rawCounts.Value;
+
+            Type moduleType = registryLookup[$"{moduleName}.{paramCounts.Keys.First()}"].type;
+            ModuleDefinition moduleDef = new ModuleDefinition
             {
-                object instance = Activator.CreateInstance(moduleType, new object[] { udonWrapper, blacklist });
+                functions = new List<FunctionDefinition>(paramCounts.Count),
+                type = moduleType.FullName
+            };
 
-                PropertyInfo nameProperty = moduleType.GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
-                string moduleName = nameProperty?.GetValue(instance) as string;
+            foreach (var kvp in paramCounts)
+            {
+                string funcName = kvp.Key;
+                string fullNodeName = $"{moduleName}.{funcName}";
+                var udonNodeDef = registryLookup[fullNodeName];
 
-                if (string.IsNullOrEmpty(moduleName)) continue;
+                string defType = funcName.StartsWith("__op_") ? "op" :
+                            funcName.StartsWith("__ctor__") ? "ctor" :
+                            (funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) ? "prop" : "method";
 
-                FieldInfo parameterCountsField = moduleType.GetField("_parameterCounts", BindingFlags.NonPublic | BindingFlags.Instance);
-                object rawCounts = parameterCountsField?.GetValue(instance);
-                Dictionary<string, int> paramCounts = null;
 
-                if (rawCounts is Lazy<Dictionary<string, int>> lazyCounts) paramCounts = lazyCounts.Value;
-                else if (rawCounts is Dictionary<string, int> directCounts) paramCounts = directCounts;
+                string originalName = null;
+                var isStatic = false;
+                var returnsVoid = false;
 
-                if (paramCounts == null) continue;
-
-                ModuleDefinition moduleDef = new ModuleDefinition
+                if (defType == "prop" || defType == "method")
                 {
-                    functions = new List<FunctionDefinition>(),
-                    type = null
-                };
+                    int index = udonNodeDef.name.LastIndexOf(' ');
+                    originalName = udonNodeDef.name[(index + 1)..];
 
-                foreach (var kvp in paramCounts)
-                {
-                    string funcName = kvp.Key;
-                    int pCount = kvp.Value;
-                    string fullNodeName = $"{moduleName}.{funcName}";
-
-                    FunctionDefinition funcDef = new FunctionDefinition
+                    if (defType == "prop")
                     {
-                        name = funcName,
-                        parameterCount = pCount,
-                        originalName = funcName,
-                        defType = "UNKNOWN",
-                        isStatic = null
-                    };
-
-                    if (registryLookup.TryGetValue(fullNodeName, out NodeInfoCache cacheInfo))
-                    {
-                        if (moduleDef.type == null && cacheInfo.Member.DeclaringType != null)
-                        {
-                            moduleDef.type = cacheInfo.Member.DeclaringType.FullName;
-                        }
-
-                        if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.OPERATOR)
-                            funcDef.originalName = null;
-
-                        funcDef.defType = cacheInfo.DefType.ToString();
-                        if (cacheInfo.Member != null)
-                        {
-                            if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.CTOR_INFO)
-                                funcDef.originalName = null;
-                            else
-                                funcDef.originalName = cacheInfo.Member.Name;
-
-                            if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.METHOD_INFO && cacheInfo.Member is MethodInfo mi)
-                            {
-                                funcDef.returnsVoid = mi.ReturnType == typeof(void);
-                                funcDef.isStatic = mi.IsStatic;
-                            }
-                            else if (cacheInfo.DefType == NodeRegistryUtilities.DefinitionType.CTOR_INFO && cacheInfo.Member is ConstructorInfo ci)
-                                funcDef.isStatic = ci.IsStatic;
-                        }
+                        // __get_ or __set_
+                        originalName = originalName[4..];
                     }
-
-                    moduleDef.functions.Add(funcDef);
+                    if (udonNodeDef.parameters.Count > 0)
+                    {
+                        isStatic = !(udonNodeDef.parameters.First().name == "instance" && udonNodeDef.parameters[0].type == moduleType);
+                        returnsVoid = udonNodeDef.parameters.Last().parameterType != UdonNodeParameter.ParameterType.OUT;
+                    }
                 }
 
-                result[moduleName] = moduleDef;
+                var func = new FunctionDefinition
+                {
+                    name = funcName,
+                    originalName = originalName,
+                    parameterCount = kvp.Value,
+                    isStatic = isStatic,
+                    returnsVoid = returnsVoid,
+                    defType = defType
+                };
+                moduleDef.functions.Add(func);
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"Error processing module {moduleType.Name}: {ex.Message}");
-            }
+            result[moduleName] = moduleDef;
         }
 
-        FixResult(result);
-
-        var settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.Indented };
+        var settings = new JsonSerializerSettings { Formatting = Formatting.Indented };
         string json = JsonConvert.SerializeObject(result, settings);
         string path = Path.Combine(Application.dataPath, "UdonModuleInfo.json");
         File.WriteAllText(path, json, new UTF8Encoding(false));
@@ -156,115 +125,22 @@ public class UdonModuleInfoExtractor : EditorWindow
         Debug.Log($"Total modules extracted: {result.Count}");
     }
 
-    private static void FixResult(Dictionary<string, ModuleDefinition> result)
+    private static Dictionary<string, UdonNodeDefinition> BuildRegistryLookup()
     {
-        foreach (var module in result.Values)
-        {
-            if (module.functions == null) continue;
-
-            foreach (var func in module.functions)
-            {
-                if (func.name.StartsWith("__op_"))
-                {
-                    func.defType = "OPERATOR";
-                    func.originalName = null;
-                    func.isStatic = null;
-                    func.returnsVoid = null;
-                }
-                else if (func.name.StartsWith("__ctor__"))
-                {
-                    func.defType = "CTOR_INFO";
-                    func.originalName = null;
-                    func.isStatic = null;
-                    func.returnsVoid = null;
-                }
-                else if (func.name.StartsWith("__get_") || func.name.StartsWith("__set_"))
-                {
-                    func.defType = "FIELD_INFO";
-                    func.isStatic = null;
-                    func.returnsVoid = null;
-
-                    if (func.name.Length > 6)
-                    {
-                        string withoutPrefix = func.name.Substring(6);
-                        int splitIndex = withoutPrefix.IndexOf("__");
-                        if (splitIndex > 0)
-                        {
-                            func.originalName = withoutPrefix.Substring(0, splitIndex);
-                        }
-                        else
-                        {
-                            func.originalName = withoutPrefix;
-                        }
-                    }
-                }
-                else
-                {
-                    if (func.defType == "OPERATOR" ||
-                        func.defType == "CTOR_INFO" ||
-                        func.defType == "FIELD_INFO")
-                    {
-                        func.defType = "METHOD_INFO";
-                        func.isStatic = true;
-                        func.returnsVoid = true;
-                        func.originalName = func.name;
-                    }
-                }
-            }
-        }
-    }
-
-    private static Dictionary<string, NodeInfoCache> BuildRegistryLookup()
-    {
-        var lookup = new Dictionary<string, NodeInfoCache>();
+        var lookup = new Dictionary<string, UdonNodeDefinition>();
         RootNodeRegistry rootRegistry = new RootNodeRegistry();
-
         PropertyInfo nextRegistriesProp = typeof(RootNodeRegistry).GetProperty("NextRegistries", BindingFlags.NonPublic | BindingFlags.Instance);
-        if (nextRegistriesProp == null) return lookup;
-
         var nextRegistries = nextRegistriesProp.GetValue(rootRegistry) as Dictionary<string, INodeRegistry>;
-        if (nextRegistries == null) return lookup;
 
         foreach (var registry in nextRegistries.Values)
         {
             PropertyInfo nodeDefsProp = registry.GetType().GetProperty("NodeDefinitions", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
-            if (nodeDefsProp == null) continue;
-
             var definitions = nodeDefsProp.GetValue(registry) as Dictionary<string, UdonNodeDefinition>;
-            if (definitions == null) continue;
-
-            foreach (var def in definitions.Values)
+            foreach (var kvp in definitions)
             {
-                try
-                {
-                    var info = NodeRegistryUtilities.GetNodeDefinitionInfo(def);
-                    var cache = new NodeInfoCache { DefType = info.definitionType };
-
-                    switch (info.definitionType)
-                    {
-                        case NodeRegistryUtilities.DefinitionType.METHOD_INFO:
-                            cache.Member = info.info as MethodInfo;
-                            break;
-                        case NodeRegistryUtilities.DefinitionType.FIELD_INFO:
-                            cache.Member = info.info as FieldInfo;
-                            break;
-                        case NodeRegistryUtilities.DefinitionType.CTOR_INFO:
-                            cache.Member = info.info as ConstructorInfo;
-                            break;
-                    }
-
-                    if (!lookup.ContainsKey(def.fullName))
-                    {
-                        lookup[def.fullName] = cache;
-                    }
-                }
-                catch
-                {
-                    Debug.LogWarning($"Failed to get node definition info of {def.fullName}");
-                }
+                lookup[kvp.Key] = kvp.Value;
             }
         }
-        Debug.LogWarning($"At this stage, a small number of errors are acceptable");
         return lookup;
     }
 

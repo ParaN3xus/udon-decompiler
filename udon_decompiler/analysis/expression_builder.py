@@ -248,22 +248,6 @@ class ExpressionBuilder:
                     arguments=arguments,
                     source_instruction=instruction,
                 )
-            case FunctionDefinitionType.SPECIAL | FunctionDefinitionType.UNKNOWN:
-                # todo, this is a fallback
-                return Expression(
-                    expr_type=ExpressionType.EXTERNAL_CALL,
-                    function_info=func_info,
-                    arguments=arguments,
-                    source_instruction=instruction,
-                )
-            case (
-                FunctionDefinitionType.CONST
-                | FunctionDefinitionType.TYPE
-                | FunctionDefinitionType.VARIABLE
-                | FunctionDefinitionType.EVENT
-            ):
-                # these shouldn't happen
-                raise Exception("Unexpected FunctionDefinitionType encountered!")
 
     def _build_jump_expression(self, instruction: Instruction) -> Optional[Expression]:
         target = instruction.get_jump_target()

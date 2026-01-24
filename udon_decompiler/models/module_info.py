@@ -6,18 +6,10 @@ from udon_decompiler.utils.utils import Singleton
 
 
 class FunctionDefinitionType(Enum):
-    METHOD = "METHOD_INFO"
-    FIELD = "FIELD_INFO"
-    CTOR = "CTOR_INFO"
-    CONST = "CONST"
-    TYPE = "TYPE"
-    VARIABLE = "VARIABLE"
-    EVENT = "EVENT"
-    SPECIAL = "SPECIAL"
-    OPERATOR = "OPERATOR"
-    # there's no corresponding `NodeDefinitionInfo` in the `RootNodeRegistry`
-    # also change this in UdonModuleInfoExtractor.cs
-    UNKNOWN = "UNKNOWN"
+    METHOD = "method"
+    FIELD = "prop"
+    CTOR = "ctor"
+    OPERATOR = "op"
 
 
 @dataclass
