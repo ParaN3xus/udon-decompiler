@@ -44,5 +44,5 @@ public class VariableScope : UdonSharpBehaviour
 ```
 
 ```json
-
+ERROR: Compile Failed
 ```

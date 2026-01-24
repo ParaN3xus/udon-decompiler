@@ -25,5 +25,5 @@ public class SwitchCaseShort : UdonSharpBehaviour
 ```
 
 ```json
-
+ERROR: Compile Failed
 ```
