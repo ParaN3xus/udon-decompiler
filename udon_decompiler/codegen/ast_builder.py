@@ -63,6 +63,11 @@ class ASTBuilder:
         self._variables_by_name = {
             var.name: var for var in self.analyzer.variables.values()
         }
+        self._internal_call_addresses = {
+            addr
+            for addr, expr in self.analyzer.expressions.items()
+            if expr.expr_type == ExpressionType.INTERNAL_CALL
+        }
 
     def build(self) -> FunctionNode:
         if self.cfg.function_name is None:
@@ -1170,6 +1175,24 @@ class ASTBuilder:
                 return None
             if not expr.arguments:
                 return None
+            # Avoid inlining temp = src when src may change before temp is read.
+            arg = expr.arguments[0]
+            if arg.expr_type == ExpressionType.VARIABLE:
+                source_var = self._get_variable_by_name(str(arg.value))
+                if source_var:
+                    for read_addr in var.read_locations:
+                        if read_addr <= write_addr:
+                            continue
+                        if any(
+                            write_addr < w < read_addr
+                            for w in source_var.write_locations
+                        ):
+                            return None
+                        if any(
+                            write_addr < call_addr < read_addr
+                            for call_addr in self._internal_call_addresses
+                        ):
+                            return None
             return expr.arguments[0]
 
         if expr.expr_type in (
