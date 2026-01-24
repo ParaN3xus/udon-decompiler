@@ -53,17 +53,6 @@ jobs:
             exit $EXIT_CODE
           fi
 
-      - name: Collect UdonModuleInfo.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          SRC_PATH="${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json"
-          if [ ! -f "$SRC_PATH" ]; then
-            echo "UdonModuleInfo.json not found at $SRC_PATH"
-            exit 1
-          fi
-          cp "$SRC_PATH" "${{ github.workspace }}/UdonModuleInfo.json"
-
       - name: Upload UdonModuleInfo.json to release
         shell: bash
         env:
@@ -71,15 +60,16 @@ jobs:
           RELEASE_TAG: ${{ vars.UDON_MODULE_INFO_RELEASE_TAG }}
         run: |
           set -euo pipefail
+          SRC_PATH="${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json"
           if [ -z "${RELEASE_TAG}" ]; then
             echo "UDON_MODULE_INFO_RELEASE_TAG is not set."
             exit 1
           fi
-          if [ ! -f "${{ github.workspace }}/UdonModuleInfo.json" ]; then
-            echo "Asset not found: ${{ github.workspace }}/UdonModuleInfo.json"
+          if [ ! -f "$SRC_PATH" ]; then
+            echo "UdonModuleInfo.json not found at $SRC_PATH"
             exit 1
           fi
-          gh release upload "${RELEASE_TAG}" "${{ github.workspace }}/UdonModuleInfo.json" --clobber
+          gh release upload "${RELEASE_TAG}" "$SRC_PATH" --clobber
 
       - name: Sanitize Build Log
         if: always()
