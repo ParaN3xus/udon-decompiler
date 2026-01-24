@@ -10,6 +10,7 @@ class CodeFormatter:
         formatted_lines = []
 
         current_indent = 0
+        in_case_body = False
 
         for line in lines:
             stripped = line.strip()
@@ -17,6 +18,10 @@ class CodeFormatter:
             if not stripped:
                 formatted_lines.append("")
                 continue
+
+            is_case = stripped.startswith("case ") or stripped == "default:"
+            if in_case_body and (is_case or stripped.startswith("}")):
+                current_indent = max(0, current_indent - 1)
 
             indent_change_before = self._get_indent_change_before(stripped)
             indent_change_after = self._get_indent_change_after(stripped)
@@ -29,6 +34,11 @@ class CodeFormatter:
 
             current_indent += indent_change_after
             current_indent = max(0, current_indent)
+
+            if stripped.startswith("}"):
+                in_case_body = False
+            elif is_case:
+                in_case_body = True
 
         return "\n".join(formatted_lines)
 

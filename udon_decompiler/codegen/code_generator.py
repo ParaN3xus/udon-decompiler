@@ -22,6 +22,8 @@ from udon_decompiler.codegen.ast_nodes import (
     PropertyAccessType,
     ReturnNode,
     StatementNode,
+    SwitchCaseNode,
+    SwitchNode,
     TypeNode,
     VariableDeclNode,
     VariableNode,
@@ -135,6 +137,8 @@ class CSharpCodeGenerator:
                 return self._generate_while(stmt, indent)
             case DoWhileNode():
                 return self._generate_do_while(stmt, indent)
+            case SwitchNode():
+                return self._generate_switch(stmt, indent)
             case LabelNode():
                 return [f"{indent_str}{stmt.label_name}:"]
             case GotoNode():
@@ -250,6 +254,53 @@ class CSharpCodeGenerator:
         lines.append(f"{indent_str}while ({condition});")
 
         return lines
+
+    def _generate_switch(self, stmt: SwitchNode, indent: int) -> list[str]:
+        indent_str = "    " * indent
+        lines = []
+
+        expr_str = (
+            self._generate_expression(stmt.expression)
+            if stmt.expression
+            else "<switch>"
+        )
+        lines.append(f"{indent_str}switch ({expr_str})")
+        lines.append(f"{indent_str}{{")
+
+        for case in stmt.cases:
+            lines.extend(self._generate_switch_case(case, indent + 1))
+
+        if stmt.default_case:
+            lines.extend(self._generate_switch_case(stmt.default_case, indent + 1))
+
+        lines.append(f"{indent_str}}}")
+
+        return lines
+
+    def _generate_switch_case(self, stmt: SwitchCaseNode, indent: int) -> list[str]:
+        indent_str = "    " * indent
+        lines = []
+
+        if stmt.is_default:
+            lines.append(f"{indent_str}default:")
+        else:
+            for value in stmt.values:
+                value_str = self._generate_expression(value)
+                lines.append(f"{indent_str}case {value_str}:")
+
+        if stmt.body:
+            lines.extend(self._generate_block(stmt.body, indent + 1))
+
+        if not self._switch_case_terminates(stmt):
+            lines.append(f"{indent_str}break;")
+
+        return lines
+
+    def _switch_case_terminates(self, stmt: SwitchCaseNode) -> bool:
+        if not stmt.body or not stmt.body.statements:
+            return False
+        last_stmt = stmt.body.statements[-1]
+        return isinstance(last_stmt, (ReturnNode, GotoNode))
 
     def _generate_expression(self, expr: ExpressionNode) -> str:
         match expr:
