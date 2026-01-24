@@ -2,6 +2,9 @@ name: Generate UdonModuleInfo.json
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "Editor/UdonModuleInfoExtractor.cs"
 
 permissions:
   contents: write
