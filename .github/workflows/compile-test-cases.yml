@@ -168,9 +168,10 @@ jobs:
           git commit -m "test: compile test cases"
           git push
 
-      - name: Upload Build Log (Failure)
-        if: failure()
+      - name: Upload Build Log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}
+          if-no-files-found: ignore
