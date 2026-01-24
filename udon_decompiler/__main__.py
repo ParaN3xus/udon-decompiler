@@ -49,7 +49,7 @@ def main():
     parser.add_argument(
         "--info",
         type=Path,
-        default="./local/UdonModuleInfo.json",
+        default="./UdonModuleInfo.json",
         help="Path to UdonModuleInfo.json",
     )
     parser.add_argument(

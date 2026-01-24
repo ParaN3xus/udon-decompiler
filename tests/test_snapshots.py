@@ -7,9 +7,9 @@ from syrupy.extensions.single_file import SingleFileSnapshotExtension, WriteMode
 
 from tests.ci.md_cases import load_cases, parse_markdown_cases
 from udon_decompiler import (
-    decompile_program_to_source,
     ModuleInfoLoader,
     ProgramLoader,
+    decompile_program_to_source,
 )
 
 
@@ -69,7 +69,7 @@ def _decompile_json_to_source(json_text: str) -> str:
 
 @pytest.fixture(scope="session", autouse=True)
 def _load_module_info() -> None:
-    info_path = Path(os.environ.get("UDON_MODULE_INFO", "local/UdonModuleInfo.json"))
+    info_path = Path(os.environ.get("UDON_MODULE_INFO", "UdonModuleInfo.json"))
     if not info_path.exists():
         pytest.skip(f"Module info file not found at {info_path}")
     ModuleInfoLoader.load_from_file(info_path)
