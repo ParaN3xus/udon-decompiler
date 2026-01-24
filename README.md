@@ -6,11 +6,10 @@ The Udon Decompiler.
 
 1. Extract `MonoBehaviour`s from VRChat worlds with [AssetRipper](https://github.com/AssetRipper/AssetRipper)
 2. Create a new VRChat World Project, and import all extracted `MonoBehaviour`s
-3. Use the two editor scripts in the `Editor` folder in the newly created world project:
-   - `UdonProgramDumper` to dump potential `UdonProgram`s in `MonoBehaviour`s into JSON
-   - `UdonModuleInfoExtractor` to extract all `UdonModuleWrapper` info
-4. `python -m udon_decompiler <input> --info <UdonModuleInfo.json>`
-5. Enjoy!
+3. Use the [UdonProgramDumper](https://github.com/ParaN3xus/udon-decompiler/blob/main/Editor/UdonProgramDumperGUI.cs) to dump potential `UdonProgram`s in `MonoBehaviour`s into JSON
+4. Download `UdonModuleInfo.json` from [Github Release](https://github.com/ParaN3xus/udon-decompiler/releases/download/udon-module-info/UdonModuleInfo.json)
+5. `python -m udon_decompiler <input> [--info <UdonModuleInfo.json>]`
+6. Enjoy!
 
 ## TODO
 
