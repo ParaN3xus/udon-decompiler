@@ -23,5 +23,5 @@ public class InternalCall : UdonSharpBehaviour
 ```
 
 ```json
-
+ERROR: Compile Failed
 ```

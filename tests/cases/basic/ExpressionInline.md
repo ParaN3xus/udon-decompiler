@@ -25,5 +25,5 @@ public class ExpressionInlineTest : UdonSharpBehaviour
 ```
 
 ```json
-
+ERROR: Compile Failed
 ```
