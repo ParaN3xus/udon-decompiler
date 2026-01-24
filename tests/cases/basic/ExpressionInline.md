@@ -4,7 +4,7 @@ using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
 
-public class ExpressionInlineTest : UdonSharpBehaviour
+public class ExpressionInline : UdonSharpBehaviour
 {
     public void Start()
     {
