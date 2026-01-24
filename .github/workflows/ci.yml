@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      UDON_MODULE_INFO: local/UdonModuleInfo.json
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --group dev --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Install GitHub CLI
+        uses: ./.github/actions/install-gh
+
+      - name: Download UdonModuleInfo.json
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ vars.UDON_MODULE_INFO_RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          mkdir -p local
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "UDON_MODULE_INFO_RELEASE_TAG is not set; skipping download."
+            exit 0
+          fi
+
+          if gh release download "${RELEASE_TAG}" --pattern "UdonModuleInfo.json" --dir local; then
+            echo "Downloaded UdonModuleInfo.json from release ${RELEASE_TAG}."
+          else
+            echo "Failed to download UdonModuleInfo.json from release ${RELEASE_TAG}; continuing."
+          fi
+
+      - name: Pytest
+        run: uv run pytest -q
