@@ -2,9 +2,6 @@ name: Generate UdonModuleInfo.json
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "Editor/UdonModuleInfoExtractor.cs"
 
 permissions:
   contents: write
@@ -56,31 +53,12 @@ jobs:
             exit $EXIT_CODE
           fi
 
-      - name: Install GitHub CLI
-        uses: ./.github/actions/install-gh
-
-      - name: Upload UdonModuleInfo.json to release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ vars.UDON_MODULE_INFO_RELEASE_TAG }}
-        run: |
-          set -euo pipefail
-
-          if [ -n "${GITHUB_WORKSPACE:-}" ]; then
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          fi
-
-          SRC_PATH="${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json"
-          if [ -z "${RELEASE_TAG}" ]; then
-            echo "UDON_MODULE_INFO_RELEASE_TAG is not set."
-            exit 1
-          fi
-          if [ ! -f "$SRC_PATH" ]; then
-            echo "UdonModuleInfo.json not found at $SRC_PATH"
-            exit 1
-          fi
-          gh release upload "${RELEASE_TAG}" "$SRC_PATH" --clobber
+      - name: Upload UdonModuleInfo.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UdonModuleInfo.json
+          path: ${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json
+          if-no-files-found: error
 
       - name: Sanitize Build Log
         if: always()
