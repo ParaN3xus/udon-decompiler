@@ -1,6 +1,6 @@
 # Udon Decompiler
 
-The Udon Decompiler.
+The UdonSharp Decompiler.
 
 ## Usage
 
@@ -15,7 +15,9 @@ The Udon Decompiler.
 
 - [ ] Remove `todo:` marks from code
 - [ ] `UdonProgramDumper` supporting different `serializedProgramCompressedBytes` formats
-- [ ] Unit tests
+- [ ] Tests
+  - [ ] Unit tests
+  - [ ] E2E tests based on real-world cases: Decompiling well-known open-source UdonSharp projects, such as QvPen.
 - [ ] Review all LLM-generated code
 - [ ] Better `CSharpCodeGenerator`
   - [ ] Type alias like `bool` for `System.Boolean`
