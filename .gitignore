@@ -1,10 +1,14 @@
 # Python-generated files
-__pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
 *.egg-info
+
+# Caches
+__pycache__/
+.pytest_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv
@@ -12,10 +16,11 @@ wheels/
 # Doc src
 /analysis.typ
 
-# Local
+# Local files
 /local
 
-# Editor
+# IDE Settings
 .vscode/launch.json
 
+# Resources
 /UdonModuleInfo.json
