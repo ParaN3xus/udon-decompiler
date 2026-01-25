@@ -23,8 +23,11 @@ jobs:
           set -euo pipefail
           uv sync --group dev --frozen
 
-      - name: Ruff lint
+      - name: Ruff lint check
         run: uv run ruff check .
+
+      - name: Pyright check
+        run: uv run pyright
 
       - name: Install GitHub CLI
         uses: ./.github/actions/install-gh
