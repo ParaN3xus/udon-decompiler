@@ -29,6 +29,15 @@ class OpCode(IntEnum):
         }
 
     @property
+    def has_operand_name(self) -> bool:
+        return self in {
+            OpCode.PUSH,
+            OpCode.EXTERN,
+            OpCode.ANNOTATION,
+            OpCode.JUMP_INDIRECT,
+        }
+
+    @property
     def size(self) -> int:
         return 8 if self.has_operand else 4
 
@@ -36,12 +45,15 @@ class OpCode(IntEnum):
 @dataclass
 class Instruction:
     address: int
-    opcode: OpCode
+    opcode: "OpCode"
     operand: Optional[int] = None
+    operand_name: Optional[str] = None
 
     HALT_JUMP_ADDR: Final[int] = 0xFFFFFFFF
 
     def __str__(self) -> str:
+        if self.operand_name is not None:
+            return f"{self.address:08x}: {self.opcode.name} {self.operand_name}"
         if self.operand is not None:
             return f"{self.address:08x}: {self.opcode.name} 0x{self.operand:08x}"
         return f"{self.address:08x}: {self.opcode.name}"

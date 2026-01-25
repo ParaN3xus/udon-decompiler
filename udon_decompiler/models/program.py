@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, Final, List, Optional
 
-from udon_decompiler.models.instruction import OpCode
 from udon_decompiler.utils import logger
 
 
@@ -80,6 +79,8 @@ class EntryPointInfo:
 
     @property
     def call_jump_target(self) -> int:
+        from udon_decompiler.models.instruction import OpCode
+
         return self.address + OpCode.PUSH.size
 
     def __repr__(self) -> str:

@@ -43,6 +43,7 @@ class BytecodeParser:
             raise ValueError(f"Unknown opcode {opcode_value} at address {address:08x}")
 
         operand = None
+        operand_name = None
         if opcode.has_operand:
             if address + 8 > len(bytecode):
                 raise ValueError(
@@ -53,7 +54,25 @@ class BytecodeParser:
                 bytecode[address + 4 : address + 8], byteorder="big", signed=False
             )
 
-        return Instruction(address=address, opcode=opcode, operand=operand)
+            if opcode.has_operand_name:
+                if opcode == OpCode.EXTERN:
+                    operand_heap_entry = self.program.get_initial_heap_value(operand)
+                    if operand_heap_entry is None:
+                        raise Exception(
+                            "Invalid EXTERN instruction! "
+                            "A heap entry corresponding to the operand expected!"
+                        )
+                    operand_name = operand_heap_entry.value.value
+                else:
+                    operand_symbol = self.program.get_symbol_by_address(operand)
+                    operand_name = operand_symbol.name
+
+        return Instruction(
+            address=address,
+            opcode=opcode,
+            operand=operand,
+            operand_name=operand_name,
+        )
 
     def get_instruction_at(self, address: int) -> Instruction | None:
         return self._address_to_instruction.get(address)
