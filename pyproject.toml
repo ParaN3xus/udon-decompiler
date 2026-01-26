@@ -5,7 +5,11 @@ description = "The Udon Decompiler"
 authors = [{ name = "ParaN3xus", email = "paran3xus007@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["networkx>=3.5", "pydot>=4.0.1"]
+dependencies = [
+    "clang-format>=21.1.8",
+    "networkx>=3.5",
+    "pydot>=4.0.1",
+]
 
 [dependency-groups]
 dev = ["pytest>=9.0.2", "syrupy>=5.0.0", "ruff>=0.9.0", "pyright>=1.1.408"]
