@@ -9,6 +9,7 @@ from udon_decompiler.models import (
     SymbolInfo,
     UdonProgramData,
 )
+from udon_decompiler.models.instruction import OpCode
 from udon_decompiler.utils import logger
 
 
@@ -47,7 +48,11 @@ class ProgramLoader:
             if "entryPoints" in data:
                 for ep_data in data["entryPoints"]:
                     entry_points.append(
-                        EntryPointInfo(name=ep_data["name"], address=ep_data["address"])
+                        EntryPointInfo(
+                            name=ep_data["name"],
+                            address=ep_data["address"],
+                            call_jump_target=ep_data["address"] + OpCode.JUMP.size,
+                        )
                     )
 
             heap_initial_values = {}

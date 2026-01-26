@@ -65,7 +65,7 @@ def decompile_program_to_source(program: UdonProgramData) -> tuple[Optional[str]
 
     logger.debug(f"ASM: {instructions}")
 
-    analyzer = DataFlowAnalyzer(program, UdonModuleInfo(), instructions)
+    analyzer = DataFlowAnalyzer(program, instructions)
     function_analyzers = analyzer.analyze()
 
     class_name, code = ProgramCodeGenerator.generate_program(
