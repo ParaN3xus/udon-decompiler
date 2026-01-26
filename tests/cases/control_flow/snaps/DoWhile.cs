@@ -11,8 +11,7 @@ public class DoWhile : UdonSharpBehaviour
         {
             UnityEngine.Debug.Log(__lcl_i_SystemInt32_0);
             __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 2;
-        }
-        while (__lcl_i_SystemInt32_0 < 10);
+        } while (__lcl_i_SystemInt32_0 < 10);
         UnityEngine.Debug.Log("Loop finished");
         return;
     }

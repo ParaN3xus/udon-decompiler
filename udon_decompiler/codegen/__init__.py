@@ -21,7 +21,6 @@ from udon_decompiler.codegen.code_generator import (
     CSharpCodeGenerator,
     ProgramCodeGenerator,
 )
-from udon_decompiler.codegen.formatter import CodeFormatter
 
 __all__ = [
     # AST Nodes
@@ -45,6 +44,4 @@ __all__ = [
     "ASTBuilder",
     "CSharpCodeGenerator",
     "ProgramCodeGenerator",
-    # Utilities
-    "CodeFormatter",
 ]

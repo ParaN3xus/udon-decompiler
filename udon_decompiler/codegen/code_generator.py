@@ -1,3 +1,5 @@
+import shutil
+import subprocess
 from typing import Optional
 
 from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
@@ -30,7 +32,6 @@ from udon_decompiler.codegen.ast_nodes import (
     VariableNode,
     WhileNode,
 )
-from udon_decompiler.codegen.formatter import CodeFormatter
 from udon_decompiler.models.program import HeapEntry, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
@@ -113,9 +114,6 @@ class CSharpCodeGenerator:
             return f"({operand_str})"
         return operand_str
 
-    def __init__(self, use_formatting: bool = True):
-        self.formatter = CodeFormatter() if use_formatting else None
-
     def generate(self, program_node: ProgramNode, class_name: str) -> str:
         logger.info(f"Generating C# code for {class_name}...")
 
@@ -132,14 +130,14 @@ class CSharpCodeGenerator:
         )
 
         for global_var in program_node.global_variables:
-            decl_lines = self._generate_variable_decl(global_var, 1)
+            decl_lines = self._generate_variable_decl(global_var)
             lines.extend(decl_lines)
 
         if program_node.global_variables:
             lines.append("")
 
         for func_node in program_node.functions:
-            func_lines = self._generate_function(func_node, indent=1)
+            func_lines = self._generate_function(func_node)
             lines.extend(func_lines)
             lines.append("")
 
@@ -150,27 +148,46 @@ class CSharpCodeGenerator:
 
         code = "\n".join(lines)
 
-        if self.formatter:
-            code = self.formatter.format(code)
+        return self._format(code)
 
-        return code
+    def _format(self, code: str) -> str:
+        clang_format = shutil.which("clang-format")
+        if clang_format is None:
+            raise RuntimeError(
+                "clang-format not found on PATH. Install it or adjust PATH."
+            )
 
-    def _generate_function(self, func_node: FunctionNode, indent: int = 0) -> list[str]:
+        style = (
+            "{BasedOnStyle: Google, Language: CSharp, "
+            "IndentWidth: 4, ColumnLimit: 160, "
+            "BreakBeforeBraces: Allman}"
+        )
+        result = subprocess.run(
+            [clang_format, "--assume-filename=_.cs", f"-style={style}"],
+            input=code,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.strip() or "unknown error"
+            raise RuntimeError(f"clang-format failed: {stderr}")
+        return result.stdout
+
+    def _generate_function(self, func_node: FunctionNode) -> list[str]:
         logger.info(f"Generating C# code for {func_node.name}...")
-
-        indent_str = "    " * indent
 
         lines = []
 
-        signature = indent_str + self._generate_function_signature(func_node)
+        signature = self._generate_function_signature(func_node)
         lines.append(signature)
-        lines.append(f"{indent_str}{{")
+        lines.append("{")
 
         if func_node.body:
-            body_lines = self._generate_block(func_node.body, indent=indent + 1)
+            body_lines = self._generate_block(func_node.body)
             lines.extend(body_lines)
 
-        lines.append(f"{indent_str}}}")
+        lines.append("}")
 
         logger.info(f"Code generation complete for {func_node.name}")
 
@@ -188,153 +205,141 @@ class CSharpCodeGenerator:
             f"{'public ' if func_node.is_public else ''}{return_type} {name}({params})"
         )
 
-    def _generate_block(self, block: BlockNode, indent: int = 0) -> list[str]:
+    def _generate_block(self, block: BlockNode) -> list[str]:
         lines = []
 
         for stmt in block.statements:
-            stmt_lines = self._generate_statement(stmt, indent)
+            stmt_lines = self._generate_statement(stmt)
             lines.extend(stmt_lines)
 
         return lines
 
-    def _generate_statement(self, stmt: StatementNode, indent: int = 0) -> list[str]:
-        indent_str = "    " * indent
-
+    def _generate_statement(self, stmt: StatementNode) -> list[str]:
         match stmt:
             case VariableDeclNode():
-                return self._generate_variable_decl(stmt, indent)
+                return self._generate_variable_decl(stmt)
             case AssignmentNode():
-                return self._generate_assignment(stmt, indent)
+                return self._generate_assignment(stmt)
             case ExpressionStatementNode():
-                return self._generate_expression_statement(stmt, indent)
+                return self._generate_expression_statement(stmt)
             case IfNode():
-                return self._generate_if(stmt, indent)
+                return self._generate_if(stmt)
             case IfElseNode():
-                return self._generate_if_else(stmt, indent)
+                return self._generate_if_else(stmt)
             case WhileNode():
-                return self._generate_while(stmt, indent)
+                return self._generate_while(stmt)
             case DoWhileNode():
-                return self._generate_do_while(stmt, indent)
+                return self._generate_do_while(stmt)
             case SwitchNode():
-                return self._generate_switch(stmt, indent)
+                return self._generate_switch(stmt)
             case LabelNode():
-                return [f"{indent_str}{stmt.label_name}:"]
+                return [f"{stmt.label_name}:"]
             case GotoNode():
-                return [f"{indent_str}goto {stmt.target_label};"]
+                return [f"goto {stmt.target_label};"]
             case ReturnNode():
                 return ["return;"]
             case StatementNode():
                 raise Exception("Unexpected raw StatementNode!")
 
-    def _generate_variable_decl(self, stmt: VariableDeclNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_variable_decl(self, stmt: VariableDeclNode) -> list[str]:
         var_type = stmt.var_type or "object"
 
         if stmt.initial_value:
             value = self._generate_expression(stmt.initial_value)
-            return [f"{indent_str}{var_type} {stmt.var_name} = {value};"]
+            return [f"{var_type} {stmt.var_name} = {value};"]
         else:
-            return [f"{indent_str}{var_type} {stmt.var_name};"]
+            return [f"{var_type} {stmt.var_name};"]
 
-    def _generate_assignment(self, stmt: AssignmentNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
-
+    def _generate_assignment(self, stmt: AssignmentNode) -> list[str]:
         if stmt.value:
             value = self._generate_expression(stmt.value)
-            return [f"{indent_str}{stmt.target} = {value};"]
+            return [f"{stmt.target} = {value};"]
         else:
-            return [f"{indent_str}{stmt.target} = <unknown>;"]
+            return [f"{stmt.target} = <unknown>;"]
 
     def _generate_expression_statement(
-        self, stmt: ExpressionStatementNode, indent: int
+        self, stmt: ExpressionStatementNode
     ) -> list[str]:
-        indent_str = "    " * indent
-
         if stmt.expression:
             expr_str = self._generate_expression(stmt.expression)
-            return [f"{indent_str}{expr_str};"]
+            return [f"{expr_str};"]
         else:
-            return [f"{indent_str}/* empty expression */;"]
+            return ["/* empty expression */;"]
 
-    def _generate_if(self, stmt: IfNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_if(self, stmt: IfNode) -> list[str]:
         lines = []
 
         condition = (
             self._generate_expression(stmt.condition) if stmt.condition else "false"
         )
-        lines.append(f"{indent_str}if ({condition})")
-        lines.append(f"{indent_str}{{")
+        lines.append(f"if ({condition})")
+        lines.append("{")
 
         if stmt.then_block:
-            lines.extend(self._generate_block(stmt.then_block, indent + 1))
+            lines.extend(self._generate_block(stmt.then_block))
 
-        lines.append(f"{indent_str}}}")
+        lines.append("}")
 
         return lines
 
-    def _generate_if_else(self, stmt: IfElseNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_if_else(self, stmt: IfElseNode) -> list[str]:
         lines = []
 
         condition = (
             self._generate_expression(stmt.condition) if stmt.condition else "false"
         )
-        lines.append(f"{indent_str}if ({condition})")
-        lines.append(f"{indent_str}{{")
+        lines.append(f"if ({condition})")
+        lines.append("{")
 
         if stmt.then_block:
-            lines.extend(self._generate_block(stmt.then_block, indent + 1))
+            lines.extend(self._generate_block(stmt.then_block))
 
-        lines.append(f"{indent_str}}}")
-        lines.append(f"{indent_str}else")
-        lines.append(f"{indent_str}{{")
+        lines.append("}")
+        lines.append("else")
+        lines.append("{")
 
         if stmt.else_block:
-            lines.extend(self._generate_block(stmt.else_block, indent + 1))
+            lines.extend(self._generate_block(stmt.else_block))
 
-        lines.append(f"{indent_str}}}")
+        lines.append("}")
 
         return lines
 
-    def _generate_while(self, stmt: WhileNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_while(self, stmt: WhileNode) -> list[str]:
         lines = []
 
         condition = (
             self._generate_expression(stmt.condition) if stmt.condition else "true"
         )
-        lines.append(f"{indent_str}while ({condition})")
-        lines.append(f"{indent_str}{{")
+        lines.append(f"while ({condition})")
+        lines.append("{")
 
         if stmt.body:
-            lines.extend(self._generate_block(stmt.body, indent + 1))
+            lines.extend(self._generate_block(stmt.body))
 
-        lines.append(f"{indent_str}}}")
+        lines.append("}")
 
         return lines
 
-    def _generate_do_while(self, stmt: DoWhileNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_do_while(self, stmt: DoWhileNode) -> list[str]:
         lines = []
 
-        lines.append(f"{indent_str}do")
-        lines.append(f"{indent_str}{{")
+        lines.append("do")
+        lines.append("{")
 
         if stmt.body:
-            lines.extend(self._generate_block(stmt.body, indent + 1))
+            lines.extend(self._generate_block(stmt.body))
 
-        lines.append(f"{indent_str}}}")
+        lines.append("}")
 
         condition = (
             self._generate_expression(stmt.condition) if stmt.condition else "true"
         )
-        lines.append(f"{indent_str}while ({condition});")
+        lines.append(f"while ({condition});")
 
         return lines
 
-    def _generate_switch(self, stmt: SwitchNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_switch(self, stmt: SwitchNode) -> list[str]:
         lines = []
 
         expr_str = (
@@ -342,35 +347,34 @@ class CSharpCodeGenerator:
             if stmt.expression
             else "<switch>"
         )
-        lines.append(f"{indent_str}switch ({expr_str})")
-        lines.append(f"{indent_str}{{")
+        lines.append(f"switch ({expr_str})")
+        lines.append("{")
 
         for case in stmt.cases:
-            lines.extend(self._generate_switch_case(case, indent + 1))
+            lines.extend(self._generate_switch_case(case))
 
         if stmt.default_case:
-            lines.extend(self._generate_switch_case(stmt.default_case, indent + 1))
+            lines.extend(self._generate_switch_case(stmt.default_case))
 
-        lines.append(f"{indent_str}}}")
+        lines.append("}")
 
         return lines
 
-    def _generate_switch_case(self, stmt: SwitchCaseNode, indent: int) -> list[str]:
-        indent_str = "    " * indent
+    def _generate_switch_case(self, stmt: SwitchCaseNode) -> list[str]:
         lines = []
 
         if stmt.is_default:
-            lines.append(f"{indent_str}default:")
+            lines.append("default:")
         else:
             for value in stmt.values:
                 value_str = self._generate_expression(value)
-                lines.append(f"{indent_str}case {value_str}:")
+                lines.append(f"case {value_str}:")
 
         if stmt.body:
-            lines.extend(self._generate_block(stmt.body, indent + 1))
+            lines.extend(self._generate_block(stmt.body))
 
         if not self._switch_case_terminates(stmt):
-            lines.append(f"{indent_str}break;")
+            lines.append("break;")
 
         return lines
 
