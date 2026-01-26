@@ -29,26 +29,21 @@ jobs:
       - name: Pyright check
         run: uv run pyright
 
-      - name: Install GitHub CLI
-        uses: ./.github/actions/install-gh
-
       - name: Download UdonModuleInfo.json
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ vars.UDON_MODULE_INFO_RELEASE_TAG }}
+          UDON_MODULE_INFO_URL: ${{ vars.UDON_MODULE_INFO_URL }}
         run: |
           set -euo pipefail
-          mkdir -p local
-          if [ -z "${RELEASE_TAG}" ]; then
-            echo "UDON_MODULE_INFO_RELEASE_TAG is not set; skipping download."
+          if [ -z "${UDON_MODULE_INFO_URL}" ]; then
+            echo "UDON_MODULE_INFO_URL is not set; skipping download."
             exit 0
           fi
 
-          if gh release download "${RELEASE_TAG}" --pattern "UdonModuleInfo.json"; then
-            echo "Downloaded UdonModuleInfo.json from release ${RELEASE_TAG}."
+          if curl -fsSL "${UDON_MODULE_INFO_URL}" -o "${UDON_MODULE_INFO}"; then
+            echo "Downloaded ${UDON_MODULE_INFO} from ${UDON_MODULE_INFO_URL}."
           else
-            echo "Failed to download UdonModuleInfo.json from release ${RELEASE_TAG}; continuing."
+            echo "Failed to download ${UDON_MODULE_INFO} from ${UDON_MODULE_INFO_URL}; continuing."
           fi
 
       - name: Pytest
