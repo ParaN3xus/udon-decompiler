@@ -2,7 +2,11 @@ from typing import Dict, List, Optional
 
 from udon_decompiler.analysis.cfg import CFGBuilder, ControlFlowGraph
 from udon_decompiler.analysis.expression_builder import Expression, ExpressionBuilder
-from udon_decompiler.analysis.stack_simulator import StackSimulator
+from udon_decompiler.analysis.stack_simulator import (
+    StackFrame,
+    StackSimulator,
+    StackValue,
+)
 from udon_decompiler.analysis.variable_identifier import Variable, VariableIdentifier
 from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.module_info import UdonModuleInfo
@@ -90,7 +94,7 @@ class FunctionDataFlowAnalyzer:
         # topological trav
         visited = set()
 
-        def visit_block(block, entry_state):
+        def visit_block(block, entry_state: Optional[StackFrame]):
             if block in visited:
                 return
             visited.add(block)
@@ -103,7 +107,29 @@ class FunctionDataFlowAnalyzer:
                 if successor not in visited:
                     visit_block(successor, exit_state.copy())
 
-        visit_block(self.cfg.entry_block, None)
+        entry_point = next(
+            (
+                ep
+                for ep in self.program.entry_points
+                if ep.address == self.cfg.entry_block.start_address
+            ),
+            None,
+        )
+        if entry_point is None:
+            raise Exception("Couldn't find the function's entrypoint!")
+        init_state = None
+        if entry_point.address == entry_point.call_jump_target:
+            init_state = StackFrame(
+                [
+                    StackValue(
+                        value=-1,
+                        type_hint=None,
+                        source_instruction=None,
+                        literal_value=Instruction.HALT_JUMP_ADDR,
+                    )
+                ]
+            )
+        visit_block(self.cfg.entry_block, init_state)
 
         logger.debug(f"Stack simulation complete for {self.cfg.function_name}")
 

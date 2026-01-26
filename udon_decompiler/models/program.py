@@ -72,27 +72,26 @@ class EntryPointInfo:
     Attributes:
         name: The name of the function, can be None if undertermined
         address: The address of the `PUSH, __const_SystemUInt32_0` instruction
+            if the PUSH instruction exists. Otherwise it would be the same with
+            `call_target_address`
+        call_target_address: The target of the `JUMP` instruction when
+            calling this function
     """
 
     name: Optional[str]
     address: int
-
-    @property
-    def call_jump_target(self) -> int:
-        from udon_decompiler.models.instruction import OpCode
-
-        return self.address + OpCode.PUSH.size
+    call_jump_target: int
 
     def __repr__(self) -> str:
-        return f"EntryPoint({self.name} @ 0x{self.address:08x})"
+        return f"EntryPoint({self.name} @ 0x{self.call_jump_target:08x})"
 
     def __hash__(self) -> int:
-        return self.address
+        return self.call_jump_target
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, EntryPointInfo):
             return False
-        return self.address == other.address
+        return self.call_jump_target == other.call_jump_target
 
 
 @dataclass
@@ -112,12 +111,6 @@ class UdonProgramData:
             if symbol.address == address:
                 return symbol
         raise Exception(f"Failed to find any symbols at 0x{address:08X}")
-
-    def get_entry_point_by_address(self, address: int) -> EntryPointInfo:
-        for entry_point in self.entry_points:
-            if entry_point.address == address:
-                return entry_point
-        raise Exception(f"Failed to find any entry points at 0x{address:08X}")
 
     def get_initial_heap_value(self, address: int) -> Optional[HeapEntry]:
         return self.heap_initial_values.get(address)
