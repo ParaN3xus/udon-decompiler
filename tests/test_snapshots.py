@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from udon_decompiler import (
     ProgramLoader,
     decompile_program_to_source,
 )
+from udon_decompiler.utils.logger import set_logger_level
 
 
 class CsSnapshotExtension(SingleFileSnapshotExtension):
@@ -75,6 +77,11 @@ def _load_module_info() -> None:
     ModuleInfoLoader.load_from_file(info_path)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _enable_debug_log() -> None:
+    set_logger_level(logging.DEBUG)
+
+
 @pytest.mark.parametrize("case_path", CASE_PATHS, ids=lambda p: str(p))
 def test_decompiled_snapshots(case_path: Path, snapshot) -> None:
     if not CASE_PATHS:
@@ -94,7 +101,7 @@ def test_decompiled_snapshots(case_path: Path, snapshot) -> None:
     try:
         actual = _decompile_json_to_source(dumped_json)
     except Exception as exc:
-        pytest.skip(f"{case_path}: failed to load program ({exc})")
+        pytest.fail(f"{case_path}: failed to decompile ({exc})")
 
     CsSnapshotExtension.snapshot_root = snapshot_dir
     snapshot = snapshot(extension_class=CsSnapshotExtension, name=case_path.stem)
