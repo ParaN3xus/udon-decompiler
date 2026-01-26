@@ -51,6 +51,29 @@ class CSharpCodeGenerator:
         Operator.LogicalXor,
     }
 
+    def _block_has_statements(self, block: Optional[BlockNode]) -> bool:
+        return bool(block and block.statements)
+
+    def _is_single_if_statement_block(self, block: BlockNode) -> bool:
+        if len(block.statements) != 1:
+            return False
+        return isinstance(block.statements[0], (IfNode, IfElseNode))
+
+    def _invert_condition(self, condition: Optional[ExpressionNode]) -> ExpressionNode:
+        if condition is None:
+            return LiteralNode(literal_type="System.Boolean", value=True)
+        if (
+            isinstance(condition, OperatorNode)
+            and condition.operator == Operator.UnaryNegation
+            and condition.operands
+        ):
+            return condition.operands[0]
+        return OperatorNode(
+            operator=Operator.UnaryNegation,
+            receiver=None,
+            operands=[condition],
+        )
+
     def _operator_precedence(self, op: Operator) -> int:
         # Higher number = higher precedence.
         if op in self._UNARY_OPERATORS:
@@ -286,23 +309,48 @@ class CSharpCodeGenerator:
     def _generate_if_else(self, stmt: IfElseNode) -> list[str]:
         lines = []
 
+        condition_expr = stmt.condition
+        then_block = stmt.then_block
+        else_block = stmt.else_block
+
+        if not self._block_has_statements(then_block) and self._block_has_statements(
+            else_block
+        ):
+            condition_expr = self._invert_condition(condition_expr)
+            then_block, else_block = else_block, then_block
+
         condition = (
-            self._generate_expression(stmt.condition) if stmt.condition else "false"
+            self._generate_expression(condition_expr) if condition_expr else "false"
         )
         lines.append(f"if ({condition})")
         lines.append("{")
 
-        if stmt.then_block:
-            lines.extend(self._generate_block(stmt.then_block))
+        if then_block:
+            lines.extend(self._generate_block(then_block))
 
         lines.append("}")
-        lines.append("else")
-        lines.append("{")
 
-        if stmt.else_block:
-            lines.extend(self._generate_block(stmt.else_block))
+        if else_block is not None:
+            if self._block_has_statements(else_block):
+                if self._is_single_if_statement_block(else_block):
+                    nested_stmt = else_block.statements[0]
+                    nested_lines = self._generate_statement(nested_stmt)
+                    if nested_lines:
+                        first_line = nested_lines[0]
+                        if first_line.startswith("if "):
+                            lines.append(f"else {first_line}")
+                            lines.extend(nested_lines[1:])
+                            return lines
+                    lines.append("else")
+                    lines.append("{")
+                    lines.extend(nested_lines)
+                    lines.append("}")
+                    return lines
 
-        lines.append("}")
+                lines.append("else")
+                lines.append("{")
+                lines.extend(self._generate_block(else_block))
+                lines.append("}")
 
         return lines
 

@@ -26,7 +26,6 @@ The UdonSharp Decompiler.
   - [ ] Array access
   - [ ] `out` keyword
   - [ ] Comments
-  - [ ] Flatten nested `if-else` statements.
   - [ ] Namespaces
 
 ## Contributing

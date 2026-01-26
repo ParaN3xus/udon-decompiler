@@ -3,8 +3,8 @@
 
 public class ExpressionInline : UdonSharpBehaviour
 {
-    UnityEngine.Vector3 __const_UnityEngineVector3_0 = new UnityEngine.Vector3() /* (0.00, 1.00, 0.00) */;
-    UnityEngine.Vector3 __const_UnityEngineVector3_1 = new UnityEngine.Vector3() /* (1.00, 0.00, 0.00) */;
+    UnityEngine.Vector3 __const_UnityEngineVector3_0 = null /* "(0.00, 1.00, 0.00)" */;
+    UnityEngine.Vector3 __const_UnityEngineVector3_1 = null /* "(1.00, 0.00, 0.00)" */;
 
     public void _start()
     {
@@ -29,10 +29,7 @@ public class ExpressionInline : UdonSharpBehaviour
             __intnl_SystemBoolean_1 = __lcl_b_SystemInt32_0 < 30;
         }
         __intnl_SystemBoolean_0 = __intnl_SystemBoolean_1;
-        if (__intnl_SystemBoolean_0)
-        {
-        }
-        else
+        if (!__intnl_SystemBoolean_0)
         {
             __intnl_SystemBoolean_0 = __lcl_res1_SystemInt32_0 == 0;
         }
