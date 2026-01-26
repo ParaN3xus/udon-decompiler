@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 from typing import Optional
@@ -404,37 +405,30 @@ class CSharpCodeGenerator:
                 return f"<{expr.expr_type}>"
 
     def _generate_literal(self, expr: LiteralNode) -> str:
-        if expr.literal_type == "System.String":
-            value = str(expr.value).replace('"', '\\"')
-            return f'"{value}"'
-
-        elif expr.literal_type == "System.Boolean":
-            return "true" if expr.value else "false"
-
-        elif expr.literal_type == "System.Int32" or expr.literal_type == "System.Int64":
-            return str(expr.value)
-
-        elif (
-            expr.literal_type == "System.Single" or expr.literal_type == "System.Double"
-        ):
-            return (
-                f"{expr.value}f"
-                if expr.literal_type == "System.Single"
-                else str(expr.value)
-            )
-
-        elif expr.value is None:
-            return "null"
-
-        else:
-            return str(expr.value)
+        match expr.literal_type:
+            case "System.String":
+                if expr.value is None:
+                    return "null"
+                return json.dumps(str(expr.value))
+            case "System.Boolean":
+                return "true" if expr.value else "false"
+            case "System.Int32" | "System.Int64":
+                return str(expr.value)
+            case "System.Single" | "System.Double":
+                return (
+                    f"{expr.value}f"
+                    if expr.literal_type == "System.Single"
+                    else str(expr.value)
+                )
+            case _:
+                if expr.value is None:
+                    return "null"
+                else:
+                    return f"null /* {json.dumps(expr.value)} */"
 
     def _generate_call(self, expr: CallNode) -> str:
         if not expr.is_external:
             return f"{expr.function_name}()"
-
-        if expr.is_static is None:
-            logger.warning("Can't determine if function is static! Assuming static.")
 
         args = list(expr.arguments)
         if expr.is_static:
@@ -630,11 +624,10 @@ class ProgramCodeGenerator:
             return "null"
         if initial_heap_value.value.is_serializable:
             return initial_heap_value.value.value
-
-        value = initial_heap_value.value.value
-        default_type = var.type_hint or "object"
-        if isinstance(value, dict):
-            to_string = value.get("toString")
-            if isinstance(to_string, str):
-                return f"new {default_type}() /* {to_string} */"
-        return f"new {default_type} /* <non-serializable> */"
+        else:
+            value = initial_heap_value.value.value
+            if isinstance(value, dict):
+                to_string = value.get("toString")
+                if isinstance(to_string, str):
+                    return to_string
+            return "<non-serializable>"

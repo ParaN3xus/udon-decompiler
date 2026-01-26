@@ -226,7 +226,7 @@ class ExpressionNode(ASTNode):
 
 @dataclass
 class LiteralNode(ExpressionNode):
-    literal_type: Optional[str] = None  # "int", "string", "bool", etc.
+    literal_type: Optional[str] = None
 
     def __post_init__(self):
         super().__post_init__()
