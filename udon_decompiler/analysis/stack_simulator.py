@@ -362,7 +362,10 @@ class StackSimulator(_StackSemantics):
                         f"heap[0x{target.value:08x}] = heap[0x{source.value:08x}]"
                     )
                 else:
-                    raise Exception("Invalid")
+                    raise Exception(
+                        "Failed to simulate instruction! "
+                        "More entries in the stack expected!"
+                    )
         return False, state
 
     def _simulate_extern_call(
