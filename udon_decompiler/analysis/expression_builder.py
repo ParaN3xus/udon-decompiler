@@ -51,7 +51,7 @@ class Operator(Enum):
     GreaterThanOrEqual = ("GreaterThanOrEqual", "{} >= {}")
     LessThan = ("LessThan", "{} < {}")
     LessThanOrEqual = ("LessThanOrEqual", "{} <= {}")
-    ImplicitConversion = ("Implicit", "({}){}")
+    Conversion = (("Implicit", "Explicit"), "({}){}")
 
     def __new__(cls, names, formatter):
         obj = object.__new__(cls)

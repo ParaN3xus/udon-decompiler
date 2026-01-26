@@ -856,7 +856,7 @@ class ASTBuilder:
             for arg in raw_args
         ]
 
-        if expr.operator == Operator.ImplicitConversion:
+        if expr.operator == Operator.Conversion:
             oprs.insert(0, TypeNode(type_name=expr.function_info.type_name))
 
         return OperatorNode(
