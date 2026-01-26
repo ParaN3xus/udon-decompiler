@@ -5,6 +5,11 @@ import networkx as nx
 from pydot import Dot
 
 from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifier
+from udon_decompiler.analysis.stack_simulator import (
+    BlockStackSimulator,
+    HeapSimulator,
+    StackFrame,
+)
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
@@ -144,32 +149,29 @@ class ControlFlowGraph:
 
 
 class CFGBuilder:
-    def __init__(self, program: UdonProgramData, instructions: List[Instruction]):
+    def __init__(
+        self,
+        program: UdonProgramData,
+        instructions: List[Instruction],
+    ):
         self.program = program
         self.instructions = instructions
         self._cfgs: Dict[str, ControlFlowGraph] = {}
         self._all_blocks: List[BasicBlock] = []
         self._address_to_block: Dict[int, BasicBlock] = {}
+        self._address_to_instruction = {inst.address: inst for inst in instructions}
 
     def build(self) -> Dict[str, ControlFlowGraph]:
         logger.info("Building control flow graphs...")
 
         self._identify_entry_points()
-        entry_addresses = [e.address for e in self.program.entry_points]
-        self.identifier = BasicBlockIdentifier(
-            self.instructions, entry_addresses, self.program
-        )
-        self._all_blocks = self.identifier.identify()
-        logger.debug(f"Basic Blocks: {self._all_blocks}")
-
-        for block in self._all_blocks:
-            self._address_to_block[block.start_address] = block
-
+        self._identify_hidden_entry_points()
         self._build_edges()
 
         self._cfgs = self._build_function_cfgs()
 
         logger.info(f"Built {len(self._cfgs)} control flow graphs")
+        logger.info(f"Program entry points identified: {self.program.entry_points}")
 
         return self._cfgs
 
@@ -190,10 +192,87 @@ class CFGBuilder:
             if val.value.value != Instruction.HALT_JUMP_ADDR:
                 continue
 
-            # this is a halt jump! the next inst is a function entry!
-            res.add(EntryPointInfo(name=None, address=inst.address))
+            # this is a halt jump target! the next inst is a function entry!
+            res.add(
+                EntryPointInfo(
+                    name=None,
+                    address=inst.address,
+                    call_jump_target=inst.next_address,
+                )
+            )
 
         self.program.entry_points = list(res)
+
+    def _identify_hidden_entry_points(self) -> None:
+        updated = True
+        while updated:
+            updated = False
+            entry_addresses = []
+            for e in self.program.entry_points:
+                if e.address is None:
+                    entry_addresses.append(e.call_jump_target)
+                else:
+                    entry_addresses.append(e.address)
+
+            self.identifier = BasicBlockIdentifier(
+                self.instructions, entry_addresses, self.program
+            )
+            self._all_blocks = self.identifier.identify()
+            logger.debug(f"Basic Blocks: {self._all_blocks}")
+
+            self._address_to_block = {}
+            for block in self._all_blocks:
+                self._address_to_block[block.start_address] = block
+
+            new_entry_points = self._find_call_targets(self._all_blocks)
+            updated = self._merge_entry_points(new_entry_points)
+
+    def _find_call_targets(self, blocks: List[BasicBlock]) -> List[EntryPointInfo]:
+        """
+        Find call jumps from basic blocks whose target is not listed in known
+        entry points, and thus find hidden entry points.
+        """
+        simulator = BlockStackSimulator(self.program)
+        new_entries: Dict[int, EntryPointInfo] = {}
+
+        for block in blocks:
+            state = StackFrame()
+            heap = HeapSimulator(self.program)
+
+            if block.last_instruction.opcode != OpCode.JUMP:
+                continue
+
+            for inst in block.instructions:
+                if inst.opcode != OpCode.JUMP:
+                    simulator.step(inst, state, heap)
+                    continue
+
+                # when calling a function, there should be an address in the stack
+                # that points to the next instruction to the call jump
+                top = state.peek(0)
+                if top is None or top.literal_value != inst.next_address:
+                    # this is not a call jump
+                    continue
+
+                target = inst.get_jump_target()
+                new_entries[target] = EntryPointInfo(
+                    name=None,
+                    address=target,
+                    call_jump_target=target,
+                )
+
+        return list(new_entries.values())
+
+    def _merge_entry_points(self, new_entries: List[EntryPointInfo]) -> bool:
+        jump_targets = [ep.call_jump_target for ep in self.program.entry_points]
+        changed = False
+        for entry in new_entries:
+            if entry.call_jump_target in jump_targets:
+                continue
+            self.program.entry_points.append(entry)
+            jump_targets.append(entry.call_jump_target)
+            changed = True
+        return changed
 
     def _build_edges(self) -> None:
         logger.info("Building CFG edges...")
