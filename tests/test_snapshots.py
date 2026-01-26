@@ -89,9 +89,6 @@ def test_decompiled_snapshots(case_path: Path, snapshot) -> None:
 
     snapshot_dir = case_path.parent / "snaps"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
-    snapshot_path = snapshot_dir / f"{case_path.stem}.cs"
-    if not snapshot_path.exists():
-        pytest.skip(f"Snapshot not found at {snapshot_path}")
 
     try:
         dumped_json = _extract_dumped_json(case_path)
