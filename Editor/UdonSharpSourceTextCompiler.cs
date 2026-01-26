@@ -114,7 +114,7 @@ public static class UdonSharpSourceTextCompiler
 
         AssetDatabase.SaveAssets();
 
-        UdonSharpCompilerV1.CompileSync();
+        UdonSharpCompilerV1.CompileSync(new UdonSharpCompileOptions { IsEditorBuild = false });
 
         List<string> jsonResults = new List<string>();
 
