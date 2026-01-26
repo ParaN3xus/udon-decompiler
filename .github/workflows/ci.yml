@@ -48,4 +48,4 @@ jobs:
           fi
 
       - name: Pytest
-        run: uv run pytest -q
+        run: uv run pytest -q -vv
