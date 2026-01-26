@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "tests/cases/**/*.md"
+      - "Editor/UdonSharpSourceTextCompiler*.cs"
 
 permissions:
   contents: write
