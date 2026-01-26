@@ -23,6 +23,8 @@ The UdonSharp Decompiler.
 - [ ] Review all LLM-generated code
 - [ ] Better `CSharpCodeGenerator`
   - [ ] Type alias like `bool` for `System.Boolean`
+  - [ ] Array access
+  - [ ] `out` keyword
   - [ ] Comments
   - [ ] Flatten nested `if-else` statements.
   - [ ] Namespaces
