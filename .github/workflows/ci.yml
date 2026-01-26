@@ -32,18 +32,19 @@ jobs:
       - name: Download UdonModuleInfo.json
         shell: bash
         env:
-          UDON_MODULE_INFO_URL: ${{ vars.UDON_MODULE_INFO_URL }}
+          UDON_MODULE_INFO_URL: ${{ secrets.UDON_MODULE_INFO_URL }}
         run: |
           set -euo pipefail
+
           if [ -z "${UDON_MODULE_INFO_URL}" ]; then
             echo "UDON_MODULE_INFO_URL is not set; skipping download."
             exit 0
           fi
 
           if curl -fsSL "${UDON_MODULE_INFO_URL}" -o "${UDON_MODULE_INFO}"; then
-            echo "Downloaded ${UDON_MODULE_INFO} from ${UDON_MODULE_INFO_URL}."
+            echo "Downloaded ${UDON_MODULE_INFO} successfully."
           else
-            echo "Failed to download ${UDON_MODULE_INFO} from ${UDON_MODULE_INFO_URL}; continuing."
+            echo "Failed to download ${UDON_MODULE_INFO}; continuing."
           fi
 
       - name: Pytest
