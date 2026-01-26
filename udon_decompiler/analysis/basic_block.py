@@ -145,6 +145,7 @@ class BasicBlockIdentifier:
                     of the call jump.
                     """
                     self.return_jumps.append(inst.address)
+                    block_starts.add(inst.next_address)
                     continue
 
                 switch_info = self._get_switch_targets(idx, operand_sym)
