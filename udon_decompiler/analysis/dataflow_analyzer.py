@@ -16,11 +16,10 @@ class DataFlowAnalyzer:
     def __init__(
         self,
         program: UdonProgramData,
-        module_info: UdonModuleInfo,
         instructions: List[Instruction],
     ):
         self.program = program
-        self.module_info = module_info
+        self.module_info = UdonModuleInfo()
         self.instructions = instructions
 
         cfg_builder = CFGBuilder(program, instructions)
@@ -36,7 +35,6 @@ class DataFlowAnalyzer:
 
             analyzer = FunctionDataFlowAnalyzer(
                 program=self.program,
-                module_info=self.module_info,
                 cfg=cfg,
             )
 
@@ -57,11 +55,10 @@ class FunctionDataFlowAnalyzer:
     def __init__(
         self,
         program: UdonProgramData,
-        module_info: UdonModuleInfo,
         cfg: ControlFlowGraph,
     ):
         self.program = program
-        self.module_info = module_info
+        self.module_info = UdonModuleInfo()
         self.cfg = cfg
 
         self.stack_simulator: StackSimulator
@@ -88,7 +85,7 @@ class FunctionDataFlowAnalyzer:
     def _simulate_stack(self) -> None:
         logger.debug(f"Simulating stack for {self.cfg.function_name}...")
 
-        self.stack_simulator = StackSimulator(self.program, self.module_info)
+        self.stack_simulator = StackSimulator(self.program)
 
         # topological trav
         visited = set()
@@ -129,7 +126,6 @@ class FunctionDataFlowAnalyzer:
 
         self.expression_builder = ExpressionBuilder(
             program=self.program,
-            module_info=self.module_info,
             stack_simulator=self.stack_simulator,
             variable_identifier=self.variable_identifier,
         )

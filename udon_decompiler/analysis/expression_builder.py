@@ -120,12 +120,11 @@ class ExpressionBuilder:
     def __init__(
         self,
         program: UdonProgramData,
-        module_info: UdonModuleInfo,
         stack_simulator: StackSimulator,
         variable_identifier: VariableIdentifier,
     ):
         self.program = program
-        self.module_info = module_info
+        self.module_info = UdonModuleInfo()
         self.stack_simulator = stack_simulator
         self.variable_identifier = variable_identifier
 
