@@ -39,7 +39,7 @@ class CSharpCodeGenerator:
     _UNARY_OPERATORS = {
         Operator.UnaryMinus,
         Operator.UnaryNegation,
-        Operator.ImplicitConversion,
+        Operator.Conversion,
     }
     _ASSOCIATIVE_OPERATORS = {
         Operator.Addition,
@@ -492,7 +492,7 @@ class CSharpCodeGenerator:
         return f"{receiver} = new {expr.type_name}({args})"
 
     def _generate_operator(self, expr: OperatorNode) -> str:
-        if expr.operator == Operator.ImplicitConversion:
+        if expr.operator == Operator.Conversion:
             if len(expr.operands) != 2:
                 raise Exception("Invalid implicit conversion operands!")
             type_str = self._generate_expression(expr.operands[0])
