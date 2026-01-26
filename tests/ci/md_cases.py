@@ -2,6 +2,9 @@ import re
 from pathlib import Path
 
 CODE_FENCE_RE = re.compile(r"```([^\n]*)\n(.*?)\n```", re.DOTALL)
+DIRECTIVE_RE = re.compile(r"<!--\s*ci\s*:\s*([^>]*)-->", re.IGNORECASE)
+
+SKIP_COMPILE_DIRECTIVE = "skip-compile"
 
 
 def load_cases(root: Path) -> list[Path]:
@@ -22,3 +25,13 @@ def parse_markdown_cases(text: str, path: Path) -> list[dict]:
         }
         for m in blocks
     ]
+
+
+def parse_case_directives(text: str) -> set[str]:
+    directives: set[str] = set()
+    for match in DIRECTIVE_RE.finditer(text):
+        raw = match.group(1)
+        for token in re.split(r"[,\s]+", raw.strip()):
+            if token:
+                directives.add(token.lower())
+    return directives

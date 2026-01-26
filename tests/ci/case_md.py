@@ -3,7 +3,12 @@ import argparse
 import json
 from pathlib import Path
 
-from tests.ci.md_cases import load_cases, parse_markdown_cases
+from tests.ci.md_cases import (
+    SKIP_COMPILE_DIRECTIVE,
+    load_cases,
+    parse_case_directives,
+    parse_markdown_cases,
+)
 
 
 def _format_dumped(dumped: str | None) -> str:
@@ -20,6 +25,9 @@ def build_input(cases_root: Path, output_path: Path) -> None:
     requests = []
     for case_path in cases:
         text = case_path.read_text(encoding="utf-8")
+        directives = parse_case_directives(text)
+        if directives & {SKIP_COMPILE_DIRECTIVE}:
+            continue
         blocks = parse_markdown_cases(text, case_path)
         source_code = blocks[0]["content"]
         requests.append(
@@ -57,6 +65,9 @@ def update_cases(input_path: Path, output_path: Path) -> None:
     for request, dumped in zip(requests, results):
         case_path = Path(request["sourcePath"])
         text = case_path.read_text(encoding="utf-8")
+        directives = parse_case_directives(text)
+        if directives & {SKIP_COMPILE_DIRECTIVE}:
+            continue
         blocks = parse_markdown_cases(text, case_path)
 
         dumped_text = _format_dumped(dumped)
