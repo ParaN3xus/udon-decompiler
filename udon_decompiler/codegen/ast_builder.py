@@ -612,7 +612,9 @@ class ASTBuilder:
                 visited,
                 allowed_blocks=case_blocks,
             )
-            case_values: List[ExpressionNode] = [LiteralNode(value=v) for v in values]
+            case_values: List[ExpressionNode] = [
+                LiteralNode(value=v, literal_type="System.Int32") for v in values
+            ]
             cases.append(SwitchCaseNode(values=case_values, body=case_body))
 
         default_case = None
