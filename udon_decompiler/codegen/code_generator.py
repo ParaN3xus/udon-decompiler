@@ -33,6 +33,7 @@ from udon_decompiler.codegen.ast_nodes import (
     VariableNode,
     WhileNode,
 )
+from udon_decompiler.models.module_info import ParameterType
 from udon_decompiler.models.program import HeapEntry, SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
@@ -482,7 +483,8 @@ class CSharpCodeGenerator:
         if expr.is_static:
             caller = expr.type_name
         else:
-            caller = self._generate_expression(args.pop(0))
+            _, param_expr = args.pop(0)
+            caller = self._generate_expression(param_expr)
         func_name = expr.original_name
         receiver = None
         if not expr.returns_void and not expr.emit_as_expression:
@@ -493,7 +495,11 @@ class CSharpCodeGenerator:
                 )
             receiver = self._generate_expression(receiver_expr)
 
-        args_str = ", ".join(self._generate_expression(arg) for arg in args)
+        args_str = ", ".join(
+            f"{'out ' if arg_type != ParameterType.IN else ''}"
+            f"{self._generate_expression(arg)}"
+            for arg_type, arg in args
+        )
 
         provider_str = f"{caller}.{func_name or expr.function_name}({args_str})"
         if expr.returns_void or expr.emit_as_expression or receiver is None:
