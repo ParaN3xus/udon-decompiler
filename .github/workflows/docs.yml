@@ -1,0 +1,55 @@
+name: Build and Deploy Documents
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/**/*.md"
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  contents: read
+
+jobs:
+  build-gh-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download font assets
+        run: |
+          mkdir -p assets/fonts
+          curl -L -o noto.zip https://github.com/notofonts/noto-cjk/releases/download/Serif2.003/04_NotoSerifCJKOTC.zip && unzip -o noto.zip -d assets/fonts/ && rm noto.zip
+          curl -L -o maplemono.zip https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN-unhinted.zip && unzip -o maplemono.zip -d assets/fonts/ && rm maplemono.zip
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Set Node.js 22.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22.x
+
+      - name: Get shiroa latest commit hash
+        id: get-rev
+        run: echo "rev=$(git ls-remote https://github.com/Myriad-Dreamin/shiroa HEAD | awk '{ print $1 }')" >> $GITHUB_OUTPUT
+      - name: Cache shiroa
+        id: cache-shiroa
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/bin/shiroa
+          key: ${{ runner.os }}-shiroa-${{ steps.get-rev.outputs.rev }}
+      - name: Install shiroa
+        if: steps.cache-shiroa.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/Myriad-Dreamin/shiroa --locked shiroa
+
+      - name: Build Book
+        run: |
+          shiroa build --font-path assets/fonts --path-to-root / --workspace . docs --mode static-html
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=udon-decompiler-docs
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
