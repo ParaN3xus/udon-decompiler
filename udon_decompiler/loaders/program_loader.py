@@ -17,7 +17,7 @@ class ProgramLoader:
     @staticmethod
     def load_from_file(file_path: str | Path) -> UdonProgramData:
         file_path = Path(file_path)
-        logger.info(f"Loading Udon program from: {file_path}")
+        logger.debug(f"Loading Udon program from: {file_path}")
 
         if not file_path.exists():
             raise FileNotFoundError(f"Program file not found: {file_path}")

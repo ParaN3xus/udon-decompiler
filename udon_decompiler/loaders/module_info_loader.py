@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from udon_decompiler.models import UdonModuleInfo
 from udon_decompiler.utils import logger
@@ -10,7 +10,7 @@ class ModuleInfoLoader:
     @staticmethod
     def load_from_file(file_path: str | Path) -> UdonModuleInfo:
         file_path = Path(file_path)
-        logger.info(f"Loading module info from: {file_path}")
+        logger.debug(f"Loading module info from: {file_path}")
 
         if not file_path.exists():
             raise FileNotFoundError(f"Module info file not found: {file_path}")
@@ -32,5 +32,5 @@ class ModuleInfoLoader:
         for module_name, functions in data.items():
             module_info.add_module(module_name, functions)
 
-        logger.info(f"Successfully loaded module info: {module_info}")
+        logger.info(f"Successfully loaded module info")
         return module_info

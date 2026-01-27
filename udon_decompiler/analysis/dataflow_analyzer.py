@@ -32,10 +32,10 @@ class DataFlowAnalyzer:
         self.function_analyzers: Dict[str, FunctionDataFlowAnalyzer] = {}
 
     def analyze(self) -> Dict[str, "FunctionDataFlowAnalyzer"]:
-        logger.info("Starting dataflow analysis for all functions...")
+        logger.debug("Starting dataflow analysis for all functions...")
 
         for func_name, cfg in self.cfgs.items():
-            logger.info(f"Analyzing function: {func_name}")
+            logger.debug(f"Analyzing function: {func_name}")
 
             analyzer = FunctionDataFlowAnalyzer(
                 program=self.program,
@@ -75,13 +75,13 @@ class FunctionDataFlowAnalyzer:
         self.expressions: Dict[int, Expression] = {}
 
     def analyze(self) -> None:
-        logger.info(f"Analyzing dataflow for {self.cfg.function_name}...")
+        logger.debug(f"Analyzing dataflow for {self.cfg.function_name}...")
 
         self._simulate_stack()
         self._identify_variables()
         self._build_expressions()
 
-        logger.info(
+        logger.debug(
             f"Dataflow analysis complete for {self.cfg.function_name}: "
             f"{len(self.variables)} variables, {len(self.expressions)} expressions"
         )

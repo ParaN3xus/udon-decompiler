@@ -11,7 +11,7 @@ class BytecodeParser:
         self._address_to_instruction: Dict[int, Instruction] = {}
 
     def parse(self) -> List[Instruction]:
-        logger.info("Parsing bytecode...")
+        logger.debug("Parsing bytecode...")
 
         bytecode = self.program.byte_code_bytes
         instructions = []
