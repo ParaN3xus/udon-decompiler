@@ -13,9 +13,6 @@ __pycache__/
 # Virtual environments
 .venv
 
-# Doc src
-/analysis.typ
-
 # Local files
 /local
 
