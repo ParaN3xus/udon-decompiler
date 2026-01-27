@@ -186,7 +186,9 @@ public class OutParameter : UdonSharpBehaviour
       "type": "System.Object[]",
       "value": {
         "isSerializable": true,
-        "value": [null]
+        "value": [
+          null
+        ]
       }
     },
     "8": {
