@@ -65,7 +65,7 @@ public class UdonProgramDumperGUI : EditorWindow
             }
             catch (Exception e)
             {
-                Debug.LogError($"✗ {Path.GetFileName(filePath)} - Error: {e.Message}");
+                Debug.LogError($"Failed to process {Path.GetFileName(filePath)}: {e.Message}");
             }
         }
 
@@ -82,7 +82,7 @@ public class UdonProgramDumperGUI : EditorWindow
 
         string outputFilePath = Path.Combine(outputDir, $"{Path.GetFileName(originalFilePath)}.json");
         File.WriteAllText(outputFilePath, json, new UTF8Encoding(false));
-        Debug.Log($"✓ Generated: {outputFilePath}");
+        Debug.Log($"Generated: {outputFilePath}");
     }
 
     static byte[] ExtractAndDecompressFromAsset(string assetPath)
