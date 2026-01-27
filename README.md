@@ -24,7 +24,6 @@ The UdonSharp Decompiler.
 - [ ] Better `CSharpCodeGenerator`
   - [ ] Type alias like `bool` for `System.Boolean`
   - [ ] Array access
-  - [ ] `out` keyword
   - [ ] Comments
   - [ ] Namespaces
 
