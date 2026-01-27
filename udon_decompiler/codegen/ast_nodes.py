@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, List, Optional
 
 from udon_decompiler.analysis.expression_builder import Operator
-from udon_decompiler.models.module_info import ExternFunctionInfo
+from udon_decompiler.models.module_info import ExternFunctionInfo, ParameterType
 
 
 class ASTNodeType(Enum):
@@ -253,7 +253,7 @@ class CallNode(ExpressionNode):
     returns_void: bool = True
     receiver: Optional["ExpressionNode"] = None
     emit_as_expression: bool = False
-    arguments: List[ExpressionNode] = field(default_factory=list)
+    arguments: List[tuple[ParameterType, ExpressionNode]] = field(default_factory=list)
 
     def __post_init__(self):
         super().__post_init__()

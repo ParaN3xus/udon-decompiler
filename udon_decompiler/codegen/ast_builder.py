@@ -41,6 +41,7 @@ from udon_decompiler.codegen.ast_nodes import (
     WhileNode,
 )
 from udon_decompiler.models.instruction import Instruction, OpCode
+from udon_decompiler.models.module_info import ParameterType
 from udon_decompiler.models.program import SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
@@ -792,7 +793,7 @@ class ASTBuilder:
         if visited is None:
             visited = set()
 
-        args = []
+        args: List[tuple[ParameterType, ExpressionNode]] = []
         receiver = None
         raw_args = list(expr.arguments)
 
@@ -804,8 +805,13 @@ class ASTBuilder:
                     raise Exception("receiver_var expected!")
                 receiver = self._variable_to_receiver_ast(receiver_var)
 
-        for arg in raw_args:
-            args.append(self._convert_expression_to_ast(arg, visited, as_value=True))
+        for i, arg in enumerate(raw_args):
+            args.append(
+                (
+                    expr.function_info.parameters[i],
+                    self._convert_expression_to_ast(arg, visited, as_value=True),
+                )
+            )
 
         return CallNode(
             is_external=True,
