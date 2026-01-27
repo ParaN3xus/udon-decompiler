@@ -200,7 +200,7 @@ class CSharpCodeGenerator:
         return result.stdout
 
     def _generate_function(self, func_node: FunctionNode) -> list[str]:
-        logger.info(f"Generating C# code for {func_node.name}...")
+        logger.debug(f"Generating C# code for {func_node.name}...")
 
         lines = []
 
@@ -214,7 +214,7 @@ class CSharpCodeGenerator:
 
         lines.append("}")
 
-        logger.info(f"Code generation complete for {func_node.name}")
+        logger.debug(f"Code generation complete for {func_node.name}")
 
         return lines
 
@@ -577,7 +577,7 @@ class ProgramCodeGenerator:
         function_nodes = []
 
         for func_name, analyzer in function_analyzers.items():
-            logger.info(f"Generating function: {func_name}")
+            logger.debug(f"Generating function: {func_name}")
 
             from .ast_builder import ASTBuilder
 
@@ -605,7 +605,7 @@ class ProgramCodeGenerator:
 
         code = cls._generator.generate(program_node, class_name)
 
-        logger.info("Program code generation complete")
+        logger.debug("Program code generation complete")
 
         return class_name if not name_fallback else None, code
 
@@ -616,7 +616,7 @@ class ProgramCodeGenerator:
     ) -> list[VariableDeclNode]:
         from udon_decompiler.analysis.variable_identifier import VariableScope
 
-        logger.info("Collecting global variables from all functions...")
+        logger.debug("Collecting global variables from all functions...")
 
         global_vars_by_address: dict[int, Variable] = {}
 

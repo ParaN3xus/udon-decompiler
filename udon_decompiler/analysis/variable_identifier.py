@@ -63,14 +63,14 @@ class VariableIdentifier:
         self._temp_counter = 0
 
     def identify(self) -> Dict[int, Variable]:
-        logger.info(f"Identifying variables in {self.cfg.function_name}...")
+        logger.debug(f"Identifying variables in {self.cfg.function_name}...")
 
         self._initialize_variables_from_symbols()
 
         for block in self.cfg.graph.nodes():
             self._analyze_block_variables(block)
 
-        logger.info(
+        logger.debug(
             f"Identified {len(self._variables)} variables in {self.cfg.function_name}"
         )
 

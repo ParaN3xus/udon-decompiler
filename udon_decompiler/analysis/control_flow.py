@@ -59,15 +59,15 @@ class ControlFlowStructureIdentifier:
         self._structures: List[ControlStructure] = []
 
     def identify(self) -> List[ControlStructure]:
-        logger.info(f"Identifying control structures for {self.cfg.function_name}...")
+        logger.debug(f"Identifying control structures for {self.cfg.function_name}...")
 
         loops = self._identify_loops()
         self._structures.extend(loops)
-        logger.info(f"Found {len(loops)} loops")
+        logger.debug(f"Found {len(loops)} loops")
 
         conditionals = self._identify_conditionals()
         self._structures.extend(conditionals)
-        logger.info(f"Found {len(conditionals)} conditional structures")
+        logger.debug(f"Found {len(conditionals)} conditional structures")
 
         return self._structures
 

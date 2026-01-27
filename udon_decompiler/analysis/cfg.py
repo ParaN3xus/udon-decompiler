@@ -162,7 +162,7 @@ class CFGBuilder:
         self._address_to_instruction = {inst.address: inst for inst in instructions}
 
     def build(self) -> Dict[str, ControlFlowGraph]:
-        logger.info("Building control flow graphs...")
+        logger.debug("Building control flow graphs...")
 
         self._identify_entry_points()
         self._identify_hidden_entry_points()
@@ -275,8 +275,6 @@ class CFGBuilder:
         return changed
 
     def _build_edges(self) -> None:
-        logger.info("Building CFG edges...")
-
         for block in self._all_blocks:
             last_inst = block.last_instruction
 
@@ -333,7 +331,7 @@ class CFGBuilder:
                 block.add_successor(next_block)
                 next_block.add_predecessor(block)
 
-        logger.info("CFG edges built successfully")
+        logger.debug("CFG edges built successfully")
 
     def _get_block_starting_at(self, address: int) -> BasicBlock:
         return self._address_to_block[address]
@@ -377,7 +375,7 @@ class CFGBuilder:
                         cfg.graph.add_edge(block, successor)
 
             cfgs[entry_point.name] = cfg
-            logger.info(
+            logger.debug(
                 f"Built CFG for function {entry_point.name}: "
                 f"{len(function_blocks)} blocks"
             )

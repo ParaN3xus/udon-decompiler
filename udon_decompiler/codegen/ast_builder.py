@@ -76,7 +76,7 @@ class ASTBuilder:
                 "Invalid function! function_name shouldn't be None at this stage!"
             )
 
-        logger.info(f"Building AST for function {self.cfg.function_name}...")
+        logger.debug(f"Building AST for function {self.cfg.function_name}...")
 
         func_node: FunctionNode = FunctionNode(
             is_public=self.cfg.is_function_public,
@@ -96,7 +96,7 @@ class ASTBuilder:
 
         func_node.body = body
 
-        logger.info(
+        logger.debug(
             f"AST built for {self.cfg.function_name}: {len(body.statements)} statements"
         )
 

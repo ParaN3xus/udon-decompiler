@@ -96,10 +96,10 @@ class BasicBlockIdentifier:
         self._address_to_block: dict[int, BasicBlock] = {}
 
     def identify(self) -> List[BasicBlock]:
-        logger.info("Identifying basic blocks...")
+        logger.debug("Identifying basic blocks...")
 
         block_starts = self._find_block_starts()
-        logger.info(f"Found {len(block_starts)} block start addresses")
+        logger.debug(f"Found {len(block_starts)} block start addresses")
 
         self._basic_blocks = self._split_into_blocks(block_starts)
         logger.info(f"Created {len(self._basic_blocks)} basic blocks")
