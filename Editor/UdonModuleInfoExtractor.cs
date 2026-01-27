@@ -30,7 +30,7 @@ public class UdonModuleInfoExtractor : EditorWindow
     public class FunctionDefinition
     {
         public string name;
-        public int parameterCount;
+        public List<string> parameters;
         public string originalName;
         public string defType;
         public bool isStatic;
@@ -69,17 +69,18 @@ public class UdonModuleInfoExtractor : EditorWindow
                 type = moduleType.FullName
             };
 
-            foreach (var kvp in paramCounts)
+            foreach (var funcName in paramCounts.Keys)
             {
-                string funcName = kvp.Key;
-                var parameterCount = kvp.Value;
                 string fullNodeName = $"{moduleName}.{funcName}";
                 var udonNodeDef = registryLookup[fullNodeName];
+                var parameters = udonNodeDef.parameters
+                    .Select(param => param.parameterType.ToString())
+                    .ToList();
 
                 string defType = funcName.StartsWith("__op_") ? "op" :
                             funcName.StartsWith("__ctor__") ? "ctor" :
                             // todo: dictionary get/set has 3 params 
-                            ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) && parameterCount >= 1 && parameterCount <= 2) ? "prop" : "method";
+                            ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) && parameters.Count >= 1 && parameters.Count <= 2) ? "prop" : "method";
 
 
                 string originalName = null;
@@ -107,7 +108,7 @@ public class UdonModuleInfoExtractor : EditorWindow
                 {
                     name = funcName,
                     originalName = originalName,
-                    parameterCount = parameterCount,
+                    parameters = parameters,
                     isStatic = isStatic,
                     returnsVoid = returnsVoid,
                     defType = defType

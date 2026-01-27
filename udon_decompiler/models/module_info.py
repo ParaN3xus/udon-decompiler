@@ -12,16 +12,26 @@ class FunctionDefinitionType(Enum):
     OPERATOR = "op"
 
 
+class ParameterType(Enum):
+    IN = "IN"
+    OUT = "OUT"
+    IN_OUT = "IN_OUT"
+
+
 @dataclass
 class ExternFunctionInfo:
     signature: str
-    parameter_count: int
     type_name: str
     function_name: str
-    original_name: str
+    is_static: bool
+    returns_void: bool
     def_type: FunctionDefinitionType
-    is_static: Optional[bool] = None
-    returns_void: Optional[bool] = None
+    parameters: list[ParameterType] = field(default_factory=list)
+    original_name: Optional[str] = None
+
+    @property
+    def parameter_count(self) -> int:
+        return len(self.parameters)
 
     def __repr__(self) -> str:
         extras = []
@@ -42,11 +52,15 @@ class ExternFunctionInfo:
 
 @dataclass
 class FunctionMetadata:
-    parameter_count: int
-    original_name: str
     def_type: FunctionDefinitionType
-    is_static: Optional[bool] = None
-    returns_void: Optional[bool] = None
+    is_static: bool
+    returns_void: bool
+    parameters: list[ParameterType] = field(default_factory=list)
+    original_name: Optional[str] = None
+
+    @property
+    def parameter_count(self) -> int:
+        return len(self.parameters)
 
 
 @dataclass
@@ -66,6 +80,17 @@ class UdonModuleInfo(metaclass=Singleton):
     # modules[module_name] = ModuleMetadata
     modules: Dict[str, ModuleMetadata] = field(default_factory=dict)
 
+    @staticmethod
+    def _parse_parameter_type(value: Any) -> ParameterType:
+        if isinstance(value, ParameterType):
+            return value
+        if isinstance(value, str):
+            try:
+                return ParameterType[value]
+            except KeyError:
+                return ParameterType(value)
+        raise ValueError(f"Unknown parameter type: {value}")
+
     def get_function_info(self, signature: str) -> Optional[ExternFunctionInfo]:
         try:
             (module_name, func_name) = self.parse_signature(signature)
@@ -80,7 +105,7 @@ class UdonModuleInfo(metaclass=Singleton):
 
             return ExternFunctionInfo(
                 signature=signature,
-                parameter_count=func_meta.parameter_count,
+                parameters=func_meta.parameters,
                 type_name=module_meta.type_name,
                 function_name=func_name,
                 def_type=func_meta.def_type,
@@ -109,9 +134,11 @@ class UdonModuleInfo(metaclass=Singleton):
         func_dict = {}
         for func_data in functions_list:
             name = func_data["name"]
+            raw_parameters = func_data.get("parameters", [])
+            parameters = [self._parse_parameter_type(value) for value in raw_parameters]
 
             meta = FunctionMetadata(
-                parameter_count=func_data["parameterCount"],
+                parameters=parameters,
                 def_type=FunctionDefinitionType(func_data["defType"]),
                 is_static=func_data.get("isStatic"),
                 returns_void=func_data.get("returnsVoid"),

@@ -786,6 +786,9 @@ class ASTBuilder:
         if expr.function_info is None:
             raise Exception("Invalid external call expression! function_info expected!")
 
+        if expr.function_info.original_name is None:
+            raise Exception("Invalid function_info! original_name expected!")
+
         if visited is None:
             visited = set()
 
@@ -793,19 +796,7 @@ class ASTBuilder:
         receiver = None
         raw_args = list(expr.arguments)
 
-        is_static = (
-            expr.function_info.is_static
-            if expr.function_info.is_static is not None
-            else True
-        )
-
-        returns_void = (
-            expr.function_info.returns_void
-            if expr.function_info.returns_void is not None
-            else True
-        )
-
-        if not returns_void and raw_args:
+        if not expr.function_info.returns_void and raw_args:
             receiver_expr = raw_args.pop()
             if not as_value and receiver_expr.expr_type == ExpressionType.VARIABLE:
                 receiver_var = self._get_variable_by_name(str(receiver_expr.value))
@@ -821,8 +812,8 @@ class ASTBuilder:
             type_name=expr.function_info.type_name,
             function_name=expr.function_info.function_name,
             original_name=expr.function_info.original_name,
-            is_static=is_static,
-            returns_void=returns_void,
+            is_static=expr.function_info.is_static,
+            returns_void=expr.function_info.returns_void,
             receiver=receiver,
             emit_as_expression=as_value,
             arguments=args,
@@ -876,6 +867,8 @@ class ASTBuilder:
     ) -> PropertyAccessNode:
         if expr.function_info is None:
             raise Exception("Invalid call expression! function_info expected!")
+        if expr.function_info.original_name is None:
+            raise Exception("Invalid function_info! original_name expected!")
 
         try:
             type = PropertyAccessType(
