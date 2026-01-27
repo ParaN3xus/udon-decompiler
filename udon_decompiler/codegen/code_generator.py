@@ -574,9 +574,7 @@ class ProgramCodeGenerator:
         program: UdonProgramData,
         function_analyzers: dict[str, FunctionDataFlowAnalyzer],
     ) -> tuple[Optional[str], str]:
-        global_vars = cls._collect_and_generate_global_variables(function_analyzers)
-
-        program_node = ProgramNode(global_variables=global_vars)
+        function_nodes = []
 
         for func_name, analyzer in function_analyzers.items():
             logger.info(f"Generating function: {func_name}")
@@ -585,8 +583,18 @@ class ProgramCodeGenerator:
 
             ast_builder = ASTBuilder(analyzer.program, analyzer)
             func_node = ast_builder.build()
+            function_nodes.append(func_node)
 
-            program_node.functions.append(func_node)
+        referenced_variable_names = cls._collect_referenced_variable_names(
+            function_nodes
+        )
+        global_vars = cls._collect_and_generate_global_variables(
+            function_analyzers, referenced_variable_names
+        )
+
+        program_node = ProgramNode(
+            global_variables=global_vars, functions=function_nodes
+        )
 
         class_name = program.get_class_name()
         name_fallback = False
@@ -604,6 +612,7 @@ class ProgramCodeGenerator:
     @staticmethod
     def _collect_and_generate_global_variables(
         function_analyzers: dict[str, FunctionDataFlowAnalyzer],
+        referenced_variable_names: Optional[set[str]] = None,
     ) -> list[VariableDeclNode]:
         from udon_decompiler.analysis.variable_identifier import VariableScope
 
@@ -628,7 +637,9 @@ class ProgramCodeGenerator:
 
         for var in global_vars_by_address.values():
             initial_heap_value = program.get_initial_heap_value(var.address)
-            if ProgramCodeGenerator._is_hidden_global_variable(var, initial_heap_value):
+            if ProgramCodeGenerator._is_hidden_global_variable(
+                var, initial_heap_value, referenced_variable_names
+            ):
                 continue
 
             initial_value = ProgramCodeGenerator._format_initial_value(
@@ -649,7 +660,9 @@ class ProgramCodeGenerator:
 
     @staticmethod
     def _is_hidden_global_variable(
-        var: Variable, initial_heap_value: Optional[HeapEntry]
+        var: Variable,
+        initial_heap_value: Optional[HeapEntry],
+        referenced_variable_names: Optional[set[str]] = None,
     ) -> bool:
         symbol_name = var.original_symbol.name if var.original_symbol else var.name
 
@@ -665,12 +678,123 @@ class ProgramCodeGenerator:
             return True
 
         if symbol_name.startswith(SymbolInfo.GLOBAL_INTERNAL_SYMBOL_PREFIX):
-            return True
+            if referenced_variable_names is None:
+                return True
+            return var.name not in referenced_variable_names
 
         if symbol_name.startswith(SymbolInfo.THIS_SYMBOL_PREFIX):
             return True
 
         return False
+
+    @staticmethod
+    def _collect_referenced_variable_names(
+        function_nodes: list[FunctionNode],
+    ) -> set[str]:
+        referenced: set[str] = set()
+        for func in function_nodes:
+            if func.body:
+                ProgramCodeGenerator._collect_from_block(func.body, referenced)
+        return referenced
+
+    @staticmethod
+    def _collect_from_block(block: BlockNode, referenced: set[str]) -> None:
+        for stmt in block.statements:
+            ProgramCodeGenerator._collect_from_statement(stmt, referenced)
+
+    @staticmethod
+    def _collect_from_statement(stmt: StatementNode, referenced: set[str]) -> None:
+        match stmt:
+            case AssignmentNode(target=target, value=value):
+                if target and not (target.startswith("<") and target.endswith(">")):
+                    referenced.add(target)
+                if value:
+                    ProgramCodeGenerator._collect_from_expression(value, referenced)
+            case ExpressionStatementNode(expression=expression):
+                if expression:
+                    ProgramCodeGenerator._collect_from_expression(
+                        expression, referenced
+                    )
+            case IfNode(condition=condition, then_block=then_block):
+                if condition:
+                    ProgramCodeGenerator._collect_from_expression(condition, referenced)
+                if then_block:
+                    ProgramCodeGenerator._collect_from_block(then_block, referenced)
+            case IfElseNode(
+                condition=condition, then_block=then_block, else_block=else_block
+            ):
+                if condition:
+                    ProgramCodeGenerator._collect_from_expression(condition, referenced)
+                if then_block:
+                    ProgramCodeGenerator._collect_from_block(then_block, referenced)
+                if else_block:
+                    ProgramCodeGenerator._collect_from_block(else_block, referenced)
+            case WhileNode(condition=condition, body=body):
+                if condition:
+                    ProgramCodeGenerator._collect_from_expression(condition, referenced)
+                if body:
+                    ProgramCodeGenerator._collect_from_block(body, referenced)
+            case DoWhileNode(condition=condition, body=body):
+                if condition:
+                    ProgramCodeGenerator._collect_from_expression(condition, referenced)
+                if body:
+                    ProgramCodeGenerator._collect_from_block(body, referenced)
+            case SwitchNode(
+                expression=expression, cases=cases, default_case=default_case
+            ):
+                if expression:
+                    ProgramCodeGenerator._collect_from_expression(
+                        expression, referenced
+                    )
+                for case in cases:
+                    ProgramCodeGenerator._collect_from_case(case, referenced)
+                if default_case:
+                    ProgramCodeGenerator._collect_from_case(default_case, referenced)
+            case _:
+                return
+
+    @staticmethod
+    def _collect_from_case(case: SwitchCaseNode, referenced: set[str]) -> None:
+        for value in case.values:
+            ProgramCodeGenerator._collect_from_expression(value, referenced)
+        if case.body:
+            ProgramCodeGenerator._collect_from_block(case.body, referenced)
+
+    @staticmethod
+    def _collect_from_expression(expr: ExpressionNode, referenced: set[str]) -> None:
+        match expr:
+            case VariableNode(var_name=var_name):
+                # finally an exit
+                if var_name:
+                    referenced.add(var_name)
+            case LiteralNode():
+                return
+            case CallNode(receiver=receiver, arguments=arguments):
+                if receiver:
+                    ProgramCodeGenerator._collect_from_expression(receiver, referenced)
+                for _, arg in arguments:
+                    ProgramCodeGenerator._collect_from_expression(arg, referenced)
+            case PropertyAccessNode(this=this, target=target, value=value):
+                if this:
+                    ProgramCodeGenerator._collect_from_expression(this, referenced)
+                if target:
+                    ProgramCodeGenerator._collect_from_expression(target, referenced)
+                if value:
+                    ProgramCodeGenerator._collect_from_expression(value, referenced)
+            case OperatorNode(receiver=receiver, operands=operands):
+                if receiver:
+                    ProgramCodeGenerator._collect_from_expression(receiver, referenced)
+                for operand in operands:
+                    ProgramCodeGenerator._collect_from_expression(operand, referenced)
+            case ConstructionNode(receiver=receiver, arguments=arguments):
+                if receiver:
+                    ProgramCodeGenerator._collect_from_expression(receiver, referenced)
+                for arg in arguments:
+                    ProgramCodeGenerator._collect_from_expression(arg, referenced)
+            case TypeNode():
+                return
+            case _:
+                raise Exception("Invalid raw expression!")
 
     @staticmethod
     def _format_initial_value(var: Variable, initial_heap_value: Optional[HeapEntry]):
