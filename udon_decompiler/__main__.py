@@ -18,6 +18,7 @@ def process_file(
     output_target: Path,
     is_target_file: bool,
 ):
+    logger.info(f"Decompiling {json_file}")
     try:
         program = ProgramLoader.load_from_file(str(json_file))
 
