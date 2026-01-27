@@ -3,6 +3,7 @@ name: Compile Test Cases
 on:
   workflow_dispatch:
   push:
+    branches: ["main"]
     paths:
       - "tests/cases/**/*.md"
       - "Editor/UdonSharpSourceTextCompiler*.cs"
