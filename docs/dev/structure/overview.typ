@@ -45,10 +45,10 @@ $ tree -L 2 --gitignore
 ```
 
 = 工作流程
-== 解析 `serializedProgramCompressedBytes`
-由于本反编译器使用 Python 编写, 而 Python 并没有 `OdinSerializer` 的反序列化器可用, 所以这一步骤使用编辑器脚本 `UdonProgramDumper.cs` 完成.
+== 反编译前
 
-基本上, 这个脚本的功能就是把序列化的 Udon Program 反序列化, 然后重新序列化为一个对 Python 更友好的 `.json` 文件.
+- 提取 `UdonModuleInfo.json`: 获取所有可能的 `externSignature` 对应的函数信息, 输出为 `.json` 供反编译器使用
+- 解析 `serializedProgramCompressedBytes`: 由于本反编译器使用 Python 编写, 而 Python 并没有 `OdinSerializer` 的反序列化器可用, 所以需要在 Unity 中使用编辑器脚本 `UdonProgramDumper.cs` 把序列化的 Udon Program 反序列化, 然后重新序列化为一个对 Python 更友好的 `.json` 文件, 供反编译器使用
 
 == 反编译
 
