@@ -14,6 +14,10 @@ Check [docs/user/usage](https://udon-decompiler.paran3x.us/user/usage).
 
 Check [docs/dev/status](https://udon-decompiler.paran3x.us/dev/status) and [docs/dev/contributing](https://udon-decompiler.paran3x.us/dev/contributing).
 
+## LLM context
+
+See `docs/for-llm/CONTEXT.md` and `docs/for-llm/AGENTS.md`.
+
 ## License
 
 AGPL-3.0-only.
