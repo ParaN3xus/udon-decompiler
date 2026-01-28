@@ -23,8 +23,6 @@ jobs:
           curl -L -o noto.zip https://github.com/notofonts/noto-cjk/releases/download/Serif2.003/04_NotoSerifCJKOTC.zip && unzip -o noto.zip -d assets/fonts/ && rm noto.zip
           curl -L -o maplemono.zip https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN-unhinted.zip && unzip -o maplemono.zip -d assets/fonts/ && rm maplemono.zip
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
       - name: Set Node.js 22.x
         uses: actions/setup-node@v3
         with:
@@ -39,6 +37,9 @@ jobs:
         with:
           path: ~/.cargo/bin/shiroa
           key: ${{ runner.os }}-shiroa-${{ steps.get-rev.outputs.rev }}
+      - name: Install Rust
+        if: steps.cache-shiroa.outputs.cache-hit != 'true'
+        uses: dtolnay/rust-toolchain@stable
       - name: Install shiroa
         if: steps.cache-shiroa.outputs.cache-hit != 'true'
         run: cargo install --git https://github.com/Myriad-Dreamin/shiroa --locked shiroa
