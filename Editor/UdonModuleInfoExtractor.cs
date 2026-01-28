@@ -87,21 +87,20 @@ public class UdonModuleInfoExtractor : EditorWindow
                 var isStatic = false;
                 var returnsVoid = false;
 
-                if (defType == "prop" || defType == "method")
+                if (defType == "prop")
+                {
+                    // __get_ or __set_
+                    originalName = originalName[4..];
+                }
+                if (defType == "method")
                 {
                     int index = udonNodeDef.name.LastIndexOf(' ');
                     originalName = udonNodeDef.name[(index + 1)..];
-
-                    if (defType == "prop")
-                    {
-                        // __get_ or __set_
-                        originalName = originalName[4..];
-                    }
-                    if (udonNodeDef.parameters.Count > 0)
-                    {
-                        isStatic = !(udonNodeDef.parameters.First().name == "instance" && udonNodeDef.parameters[0].type == moduleType);
-                        returnsVoid = udonNodeDef.parameters.Last().parameterType != UdonNodeParameter.ParameterType.OUT;
-                    }
+                }
+                if ((defType == "prop" || defType == "method") && udonNodeDef.parameters.Count > 0)
+                {
+                    isStatic = !(udonNodeDef.parameters.First().name == "instance" && udonNodeDef.parameters[0].type == moduleType);
+                    returnsVoid = udonNodeDef.parameters.Last().parameterType != UdonNodeParameter.ParameterType.OUT;
                 }
 
                 var func = new FunctionDefinition
