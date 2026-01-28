@@ -75,6 +75,10 @@
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
+.toc a {
+  padding-inline: 0px;
+}
 ```
 
 #let template-rules(
