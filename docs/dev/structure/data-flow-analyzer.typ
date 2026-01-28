@@ -57,7 +57,7 @@ class EntryPointInfo:
 - `JUMP_INDIRECT` 指令执行时, 其 `OPERAND` 作为堆地址指向的值
 
 可以看出, 真正棘手的部分是 `JUMP_INDIRECT`. 实际上, 经过我的调研, 我发现 UdonSharp 编译器并不会轻易产生 `JUMP_INDIRECT`. 目前已知的 `JUMP_INDIRECT` 有两种:
-- 内部函数的返回: 在基本块划分中, 它们可以被忽略, 因为这条 `JUMP_INDIRECT`
+- 内部函数的返回: #cross-link-heading("/dev/udon/udon-vm.typ", [= 内部函数])[Udon VM - 内部函数]一节中指出了函数返回语句的特征, 使得我们可以很容易地识别它们. 在基本块划分中, 它们可以被忽略, 因为这条 `JUMP_INDIRECT`
   - 要么让 UdonVM 停机: 此时并没有指示任何块的开头
   - 要么跳转到调用该函数的 `JUMP` 指令的下一条指令: 此时该开头已经在处理该 `JUMP` 指令时识别过
 - 长的 `switch-case` 语句: 一些 switch expression 类型为 `int` 等的 `switch-case` 语句会被编译成从一个地址表中获取值, 然后 `JUMP_INDIRECT`. 这种类型的编译结果有明显可识别的模式(见 `BasicBlockIdentifier._get_switch_targets()`), 只需要匹配之然后把地址表中的所有值都识别为块的开头
@@ -82,10 +82,62 @@ class EntryPointInfo:
 
 从入口点所在的块开始 DFS 函数的所有块, 然后按 `BasicBlock.successors` 构建 `ControlFlowGraph` 对象内部的 `nx.DiGraph`.
 
+== 识别函数名
+
+公开函数的函数名可以在 `UdonProgram` 的入口点表中找到.
+
+非公开函数的函数名可以函数的返回值变量符号名判断.  UdonSharp 中生成函数返回值变量的逻辑在 `UdonSharp.Compiler.CompilationContext.BuildMethodLayout` 中. 相关代码决定了返回值变量的符号名是
+
+```
+__{id1}___{id2}_{methodName}__ret
+```
+
+因此只需要在函数的指令中寻找对这种这种特殊名字的变量的写入即可. 目前, 反编译器只考虑了简单的 `COPY` 指令. 实际程序中还有一些 `EXTERN` 指令可以用于推测, 或许可以把这部分内容推迟到栈模拟之后, 相关工作在代码中有 `todo:` 记号.
+
+作为回退策略, 反编译器会为函数生成一个临时函数名.
+
 = 函数数据流分析
 
-本节尚未完成, 若要理解项目结构, 请自行查阅源代码.
-
 == 栈模拟
+
+按拓扑遍历顺序遍历函数的所有基本块, 对于每个基本块, 按顺序模拟其每条指令的执行对栈产生的影响, 从而获得每一条指令运行前后的栈状态. 按 `OpCode` 不同, 具体的模拟逻辑如下
+- `NOP`, `ANNOTATION`: 跳过
+- `PUSH`: 压栈
+- `POP`, `JUMP_IF_FALSE`: 弹栈
+- `JUMP`: 若为函数调用, 弹栈. 相当于模拟函数返回内部跳回原地址时的操作.
+- `JUMP_INDIRECT`: 若为返回, 结束该基本块的模拟, 否则跳过. 这两种处理是不同的, 因为有些函数的末尾有两次连续的返回, 而作为返回语句的 `JUMP_INDIRECT` 指令在基本块划分时被忽略了, 这就导致一些基本块的末尾可能有两次连续的返回语句. 如果不立即结束该基本块的模拟, 模拟第二个返回语句时, 模拟器会因为尝试从空栈中弹出值而导致程序崩溃.
+- `EXTERN`: 从堆中获取函数的 `externSignature`, 从栈中弹出对应数量的值
+- `COPY`: 弹栈两次
+
 == 识别变量
+
+这一步的工作包括从符号表中识别变量和变量作用域, 然后记录函数的基本块中的变量读写, 最终达到识别变量的目的.
+
+据观察, Udon 程序的变量在堆中位置是不变的, 而且一个萝卜一个坑, 不会出现一个地址被多个变量使用的情况, 这给我们带来了很大的方便.
+
+=== 从符号表中识别变量
+
+`UdonSharp.Compiler.Emit.ValueTable.GetUniqueValueName` 中有符号名的生成逻辑, 其中有一个对 `flags` 的 `switch-case` 决定了 `namePrefix`. 这让我们可以通过匹配符号名的开头得知其类型.
+
+`flags` 的类型是 `Value.ValueFlags`, UdonSharp 源码中对这些 `ValueFlags` 给出了注释, 让我们能了解它们的用途以及可以被什么产生, 具体内容请查阅 UdonSharp 源码对 `enum ValueFlags` 的定义.
+
+总之通过匹配符号名的开头, 我们能够得到变量的 `VariableScope`:
+- `__const_`: 会在之后被消除, 此处作 `GLOBAL` 处理
+- `__intnl_`: 会在之后被消除, 识别为 `TEMPORARY`
+- `__gintnl_`: 大概率在之后被消除, 此处作 `GLOBAL` 处理
+- `__lcl_`: 识别为 `LOCAL`
+- `__this_`: 是对 `this` 的成员的引用, 并不会需要变量声明, 此处作 `GLOBAL` 处理.
+- fallback: 识别为 `GLOBAL`
+
+除此之外, 由于对 `this`(是 `MonoBehaviour`) 的引用一共就那几种, 我们可以枚举并按符号名直接给出特殊的变量名
+- `__this_VRCUdonUdonBehaviour_{id}`: `this`
+- `__this_UnityEngineTransform_{id}`: `this.transform`
+- `__this_UnityEngineGameObject_{id}`: `this.gameObject`
+
+=== 记录变量读写
+
+遍历函数的基本块和块内的指令, 记录 `PUSH`, `COPY`, `EXTERN` 对堆地址(也即变量)的读写. 此处我们忽略了 `JUMP_INDIRECT`, 因为函数返回和 `switch-case` 的跳转步骤都不构成对实际变量的读写.
+
 == 构建表达式
+
+本节尚未完成, 若要理解项目结构, 请自行查阅源代码.
