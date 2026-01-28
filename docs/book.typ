@@ -25,6 +25,7 @@
       - #chapter("dev/udon/udon-variable-table.typ")[Udon Variable Table]
     - #chapter("dev/structure/main.typ")[项目结构]
       - #chapter("dev/structure/overview.typ")[概览]
+      - #chapter("dev/structure/extract-udon-module-info.typ")[提取 `UdonModuleInfo.json`]
       - #chapter("dev/structure/bytecode-parser.typ")[反汇编]
       - #chapter("dev/structure/data-flow-analyzer.typ")[数据流分析]
       - #chapter("dev/structure/code-generator.typ")[代码生成]
