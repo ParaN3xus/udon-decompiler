@@ -1,5 +1,6 @@
 #import "/docs/book.typ": book-page, cross-link, heading-reference
 #import "@preview/shiroa:0.3.1": shiroa-sys-target
+#import "/docs/_utils/common.typ": cross-link-heading
 
 #show: book-page.with(title: "Udon Variable Table")
 
@@ -8,7 +9,7 @@
 = 资产
 使用 AssetRipper 解包地图后, 在场景或预制件中能找到一些 `MonoBehaviour`, 这些 `MonoBehaviour` 带有 `serializedPublicVariablesBytesString` 字段. 这代表这是一个对象绑定的脚本的公共字段的初始值.
 
-`serializedPublicVariablesBytesString` 是一个 base64 编码字符串, 是 `UdonVariableTable` 的序列化结果. 该序列化过程同样使用了#cross-link("/dev/udon/udon-program.typ", reference: heading-reference[= Udon Program 的反序列化])[Udon Program 的反序列化]一节中提到的 `OdinSerializer`, 反序列化的方式也一样, 此处不再赘述.
+`serializedPublicVariablesBytesString` 是一个 base64 编码字符串, 是 `UdonVariableTable` 的序列化结果. 该序列化过程同样使用了#cross-link-heading("/dev/udon/udon-program.typ", [= Udon Program 的反序列化])[Udon Program 的反序列化]一节中提到的 `OdinSerializer`, 反序列化的方式也一样, 此处不再赘述.
 
 = `UdonVariableTable` 类
 

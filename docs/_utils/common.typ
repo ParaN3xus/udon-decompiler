@@ -1,4 +1,4 @@
-#import "@preview/cheq:0.3.0": checklist
+#import "/docs/book.typ": cross-link, heading-reference
 
 
 #let udon-decompiler = link("https://github.com/ParaN3xus/udon-decompiler")[Udon Decompiler]
@@ -9,8 +9,4 @@
 #let asset-ripper = link("https://github.com/AssetRipper/AssetRipper")[Asset Ripper]
 
 
-#let custom-rules(body) = {
-  show: checklist
-  // set heading(numbering: "1.")
-  body
-}
+#let cross-link-heading(path, heading, body) = cross-link(path, reference: heading-reference(heading), body)

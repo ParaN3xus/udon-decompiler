@@ -13,9 +13,9 @@
 
 + 使用 #asset-ripper 解包世界文件(导出项目). 无需使用 #asset-ripper 的 Premium Edition, 它对反编译 Udon 程序没有额外的增益.
 + 找到导出项目的 `ExportedProject/Assets/MonoBehaviour` 文件夹, 这里面有所有可能是 UdonProgram 的资产文件
-+ #cross-link(
++ #cross-link-heading(
     "/user/installation.typ",
-    reference: heading-reference[= 获取必要的资源],
+    [= 获取必要的资源],
   )[获取必要的资源]一节创建了一个安装了本项目提供的编辑器脚本的项目. 打开该项目, 在 Unity 的顶部菜单栏点击 `Tools/Udon Program Dumper`. 在弹出的窗口中, 有一个标有 "Folder Path" 的输入框. 在该输入框中输入 `ExportedProject/Assets/MonoBehaviour` 文件夹的路径, 点击 "Dump All .asset Files" 按钮
 + 控制台中应该出现日志
   ```

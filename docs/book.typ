@@ -23,7 +23,11 @@
       - #chapter("dev/udon/udon-program.typ")[Udon Program]
       - #chapter("dev/udon/udon-vm.typ")[Udon VM]
       - #chapter("dev/udon/udon-variable-table.typ")[Udon Variable Table]
-    - #chapter("dev/structure.typ")[项目结构]
+    - #chapter("dev/structure/main.typ")[项目结构]
+      - #chapter("dev/structure/overview.typ")[概览]
+      - #chapter("dev/structure/bytecode-parser.typ")[反汇编]
+      - #chapter("dev/structure/data-flow-analyzer.typ")[数据流分析]
+      - #chapter("dev/structure/code-generator.typ")[代码生成]
     - #chapter("dev/contributing.typ")[贡献]
     = 关于
     - #chapter("about/motivation.typ")[动机]

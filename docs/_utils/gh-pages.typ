@@ -3,8 +3,8 @@
 #import "@preview/shiroa:0.3.1": (
   get-page-width, is-html-target, is-pdf-target, is-web-target, plain-text, shiroa-sys-target, templates,
 )
-#import "/docs/_utils/common.typ": custom-rules
 #import templates: *
+#import "@preview/cheq:0.3.0": checklist
 
 /// The site theme to use. If we renders to static HTML, it is suggested to use `starlight`.
 /// otherwise, since `starlight` with dynamic SVG HTML is not supported, `mdbook` is used.
@@ -116,6 +116,12 @@
 
   import "@preview/shiroa-starlight:0.3.1": starlight
   starlight(..template-args)
+}
+
+#let custom-rules(body) = {
+  show: checklist
+  // set heading(numbering: "1.")
+  body
 }
 
 /// The project show rule that is used by all pages.
