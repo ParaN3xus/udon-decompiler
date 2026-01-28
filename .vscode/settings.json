@@ -9,5 +9,10 @@
     },
     "python.languageServer": "Pylance",
     "python.analysis.diagnosticMode": "workspace",
-    "tinymist.exportTarget": "html"
+    "tinymist.exportTarget": "html",
+    "tinymist.lint.enabled": true,
+    "tinymist.typstExtraArgs": [
+        "--input",
+        "x-target=html"
+    ],
 }
