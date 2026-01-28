@@ -4,7 +4,7 @@
 
 #show: book-page.with(title: "数据流分析")
 
-本节主要介绍 `DataFlowAnalyzer` 和 `FunctionDataFlowAnalyzer` 的工作.
+本节主要介绍 `DataFlowAnalyzer` 和 `FunctionDataFlowAnalyzer` 类及其它一些相关的类的工作.
 
 = 构建 CFG
 == 识别入口点
