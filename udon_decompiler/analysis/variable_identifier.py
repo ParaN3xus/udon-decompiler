@@ -65,6 +65,7 @@ class VariableIdentifier:
     def identify(self) -> Dict[int, Variable]:
         logger.debug(f"Identifying variables in {self.cfg.function_name}...")
 
+        # todo: reuse this result, it's the same for all functions in the same program
         self._initialize_variables_from_symbols()
 
         for block in self.cfg.graph.nodes():
