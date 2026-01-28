@@ -8,7 +8,7 @@ from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
     StackSimulator,
 )
-from udon_decompiler.models.instruction import Instruction
+from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.program import SymbolInfo, UdonProgramData
 from udon_decompiler.utils.logger import logger
 
@@ -98,27 +98,31 @@ class VariableIdentifier:
             if state is None:
                 continue
 
-            if instruction.opcode.name == "PUSH" and instruction.operand is not None:
-                address = instruction.operand
-
-                if self.program.get_initial_heap_value(address) is not None:
-                    self._record_variable_read(address, instruction.address)
-
-            elif instruction.opcode.name == "COPY":
-                if state and len(state.stack) >= 2:
-                    target_val = state.peek(0)
-                    source_val = state.peek(1)
-
-                    if source_val and target_val:
-                        self._record_variable_write(
-                            target_val.value, instruction.address
+            match instruction.opcode:
+                case OpCode.PUSH:
+                    address = instruction.operand
+                    if address is None:
+                        raise Exception(
+                            "Invalid PUSH instruction! An operand expected!"
                         )
-                        self._record_variable_read(
-                            source_val.value, instruction.address
-                        )
+                    if self.program.get_initial_heap_value(address) is not None:
+                        self._record_variable_read(address, instruction.address)
+                case OpCode.COPY:
+                    if state and len(state.stack) >= 2:
+                        target_val = state.peek(0)
+                        source_val = state.peek(1)
 
-            elif instruction.opcode.name == "EXTERN":
-                self._analyze_extern_variables(instruction, state)
+                        if source_val and target_val:
+                            self._record_variable_write(
+                                target_val.value, instruction.address
+                            )
+                            self._record_variable_read(
+                                source_val.value, instruction.address
+                            )
+                case OpCode.EXTERN:
+                    self._analyze_extern_variables(instruction, state)
+                case _:
+                    pass
 
     def _analyze_extern_variables(self, instruction: Instruction, state) -> None:
         if instruction.operand is None:
@@ -170,6 +174,7 @@ class VariableIdentifier:
             )
             return
 
+        # todo: record write to IN_OUT parameters
         for i in range(param_count):
             param_val = frame.peek(param_count - 1 - i)
 
@@ -267,13 +272,6 @@ class VariableIdentifier:
                 return "this.gameObject"
             case _:
                 raise Exception(f"Unrecognized this symbol: {symbol_name}")
-
-    def _find_block_containing(self, address: int) -> Optional[BasicBlock]:
-        for block in self.cfg.graph.nodes():
-            block: BasicBlock
-            if block.contains_address(address):
-                return block
-        return None
 
     def get_variable(self, address: int) -> Optional[Variable]:
         return self._variables.get(address)
