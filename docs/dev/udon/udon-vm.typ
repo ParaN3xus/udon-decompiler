@@ -1,5 +1,6 @@
 #import "/docs/book.typ": book-page, cross-link, heading-reference
 #import "@preview/shiroa:0.3.1": shiroa-sys-target
+#import "../../_utils/common.typ": cross-link-heading
 
 #show: book-page.with(title: "Udon VM")
 
@@ -51,7 +52,7 @@ UnityEngineColor.__op_Addition__UnityEngineColor_UnityEngineColor__\u{200b}Unity
 
 == 内部函数
 
-除了#cross-link("/dev/udon/udon-program.typ", reference: heading-reference[= 入口点表])[入口点表]一节中提到的入口点表外, Udon Sharp 在生成函数时候还做了其他的处理.
+除了#cross-link-heading("/dev/udon/udon-program.typ", [= 入口点表])[入口点表]一节中提到的入口点表外, Udon Sharp 在生成函数时候还做了其他的处理.
 
 大多数(包括非公开的)函数有两个入口: 公开入口和内部入口. 公开入口用于外部调用, 从公开入口进入函数, 其执行结果是 Udon VM 停机. 从内部入口进入函数, 其执行结果是跳回到调用函数的 `JUMP` 之后.
 
@@ -66,6 +67,8 @@ JUMP_INDIRECT, __intnl_returnJump_SystemUInt32_0
 
 当通过公开入口进入时, 这里的 `__intnl_returnJump_SystemUInt32_0` 也就被写入了 `0xFFFFFFFF`, 最终使 Udon VM 停机. 而当内部入口进入时, 则是由调用者负责在调用前在堆中压入返回地址(也即 `JUMP` 指令的下一条指令的地址).
 
+还有一部分函数没有公开入口.
+
 
 == 执行过程
 不断读取当前 PC 处的指令并执行, 直到停机或 PC 超出当前程序有效指令空间或 PC 为 `0xFFFFFFFF`. 不同指令的执行策略为
@@ -73,10 +76,10 @@ JUMP_INDIRECT, __intnl_returnJump_SystemUInt32_0
 - `ANNOTATION`: PC 步进 8 字节
 - `PUSH`: 把 `OPERAND` 作为立即数压栈, PC 步进 8 字节
 - `POP`: 弹栈, 丢弃栈顶值, PC 步进 4 字节
-- `JUMP`: 设置 PC 为 `OPERAND`
+- `JUMP`: 设置 PC 为立即数 `OPERAND`
 - `JUMP_IF_FALSE`: 栈顶是堆地址, 弹栈, 读该地址对应的堆元素(`bool`)的值
   - 若为 `true`, PC 步进 8 字节
-  - 若为 `false`, 设置 PC 为 `OPERAND`
+  - 若为 `false`, 设置 PC 为立即数 `OPERAND`
 - `JUMP_INDIRECT`: 设置 PC 为 `OPERAND` 作为堆地址指向的 `u32` 值
 - `EXTERN`: 调用外部函数. 尝试读取 `OPERAND` 作为堆地址指向的对象
   - 若为 `string`, 通过 `UdonWrapper` 获取该 `string` 对应的 `CachedUdonExternDelegate` (这是通常的情况)
@@ -86,3 +89,5 @@ JUMP_INDIRECT, __intnl_returnJump_SystemUInt32_0
 
   在调用者(对于非静态函数)或返回值存在的情况下, 调用者和返回值分别作为第一个和最后一个参数传入.
 - `COPY`: 从栈中先后弹出 `TARGET` 和 `SOURCE` 两个地址, 然后把堆中 `TARGET` 地址指向的值使用 `SOURCE` 地址指向的值覆盖. 所在 PC 步进 4 字节
+
+从这里也可以看出, 栈中的值都是堆地址. 也即除了 `JUMP` 和 `JUMP_IF_FALSE` 之外的所有指令的 `OPERAND` 值都是堆地址.

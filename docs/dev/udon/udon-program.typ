@@ -6,7 +6,7 @@
 Udon Program 是 Udon Script 的编译产物, 每个 Udon Program 只代表一个类.
 
 = 资产
-使用 AssetRipper 解包地图后, 能得到大量 AssetRipper 无法正确解析的 MonoBehaviour 资产文件. 其中一些 MonoBehaviour 资产包含一个很长的 `serializedProgramCompressedBytes`. 这代表这个资产是一个 Udon Script 的编译产物.
+使用 AssetRipper 解包地图后, 能得到大量 AssetRipper 无法正确解析的 MonoBehaviour 资产文件. 其中一些 MonoBehaviour 资产包含一个 `serializedProgramCompressedBytes`. 这代表这个资产是一个 Udon Script 的编译产物.
 
 `serializedProgramCompressedBytes` 是一个十六进制字符串, 是 GZip 压缩后的 Udon Program 序列化结果.
 
