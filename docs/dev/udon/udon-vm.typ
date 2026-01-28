@@ -65,7 +65,7 @@ COPY
 JUMP_INDIRECT, __intnl_returnJump_SystemUInt32_0
 ```
 
-当通过公开入口进入时, 这里的 `__intnl_returnJump_SystemUInt32_0` 也就被写入了 `0xFFFFFFFF`, 最终使 Udon VM 停机. 而当内部入口进入时, 则是由调用者负责在调用前在堆中压入返回地址(也即 `JUMP` 指令的下一条指令的地址).
+此处 `__intnl_returnJump_SystemUInt32_0` 的名字固定, 且堆地址总是是 `2`. 当通过公开入口进入时, 这里的 `__intnl_returnJump_SystemUInt32_0` 也就被写入了 `0xFFFFFFFF`, 最终使 Udon VM 停机. 而当内部入口进入时, 则是由调用者负责在调用前在堆中压入返回地址(也即 `JUMP` 指令的下一条指令的地址).
 
 还有一部分函数没有公开入口.
 
