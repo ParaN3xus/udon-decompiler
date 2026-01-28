@@ -257,13 +257,15 @@ class VariableIdentifier:
         return VariableScope.GLOBAL, symbol_name
 
     def _resolve_this_symbol(self, symbol_name: str) -> str:
-        if "VRCUdonUdonBehaviour" in symbol_name:
-            return "this"
-        if "UnityEngineTransform" in symbol_name:
-            return "this.transform"
-        if "UnityEngineGameObject" in symbol_name:
-            return "this.gameObject"
-        return "this"
+        match symbol_name[len(SymbolInfo.THIS_SYMBOL_PREFIX) :].rsplit("_")[0]:
+            case "VRCUdonUdonBehaviour":
+                return "this"
+            case "UnityEngineTransform":
+                return "this.transform"
+            case "UnityEngineGameObject":
+                return "this.gameObject"
+            case _:
+                raise Exception(f"Unrecognized this symbol: {symbol_name}")
 
     def _find_block_containing(self, address: int) -> Optional[BasicBlock]:
         for block in self.cfg.graph.nodes():
