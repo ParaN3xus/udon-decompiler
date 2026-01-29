@@ -4,11 +4,6 @@ from udon_decompiler.analysis.basic_block import (
     BasicBlockType,
 )
 from udon_decompiler.analysis.cfg import CFGBuilder, ControlFlowGraph
-from udon_decompiler.analysis.control_flow import (
-    ControlFlowStructureIdentifier,
-    ControlStructure,
-    ControlStructureType,
-)
 from udon_decompiler.analysis.dataflow_analyzer import (
     DataFlowAnalyzer,
     FunctionDataFlowAnalyzer,
@@ -18,6 +13,7 @@ from udon_decompiler.analysis.expression_builder import (
     ExpressionBuilder,
     ExpressionType,
 )
+from udon_decompiler.analysis.scfg_adapter import SCFGAdapter
 from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
     StackSimulator,
@@ -35,9 +31,6 @@ __all__ = [
     "BasicBlockIdentifier",
     "ControlFlowGraph",
     "CFGBuilder",
-    "ControlStructure",
-    "ControlStructureType",
-    "ControlFlowStructureIdentifier",
     "StackSimulator",
     "StackFrame",
     "StackValue",
@@ -47,6 +40,7 @@ __all__ = [
     "ExpressionBuilder",
     "Expression",
     "ExpressionType",
+    "SCFGAdapter",
     "DataFlowAnalyzer",
     "FunctionDataFlowAnalyzer",
 ]

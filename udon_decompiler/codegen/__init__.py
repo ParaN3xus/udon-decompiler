@@ -21,6 +21,7 @@ from udon_decompiler.codegen.code_generator import (
     CSharpCodeGenerator,
     ProgramCodeGenerator,
 )
+from udon_decompiler.codegen.scfg_emitter import _SCFGEmitter
 
 __all__ = [
     # AST Nodes
@@ -44,4 +45,5 @@ __all__ = [
     "ASTBuilder",
     "CSharpCodeGenerator",
     "ProgramCodeGenerator",
+    "_SCFGEmitter",
 ]
