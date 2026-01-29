@@ -142,4 +142,9 @@ __{id1}___{id2}_{methodName}__ret
 
 == 构建表达式
 
-本节尚未完成, 若要理解项目结构, 请自行查阅源代码.
+遍历函数内的所有指令, 结合栈模拟的结果, 不同指令可以构建出下列表达式
+- `COPY`: `ASSIGNMENT`
+- `EXTERN`: `PROPERTY_ACCESS`, `CONSTRUCTOR`, `OPERATOR`, `EXTERNAL_CALL`
+- `JUMP`: `INTERNAL_CALL`
+
+在构建这些表达式时, 会将栈中的值, 也即堆地址同时构建为 `LITERAL` 或 `VARIABLE` 表达式.
