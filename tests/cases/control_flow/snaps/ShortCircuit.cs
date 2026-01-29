@@ -40,11 +40,11 @@ public class ShortCircuit : UdonSharpBehaviour
                 __intnl_SystemBoolean_3 = a == 10;
             }
             __intnl_SystemBoolean_2 = __intnl_SystemBoolean_3;
-            if (__intnl_SystemBoolean_2)
-            {
-                UnityEngine.Debug.Log("Mixed Check Passed");
-            }
-            return;
         }
+        if (__intnl_SystemBoolean_2)
+        {
+            UnityEngine.Debug.Log("Mixed Check Passed");
+        }
+        return;
     }
 }
