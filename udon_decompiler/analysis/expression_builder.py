@@ -282,6 +282,7 @@ class ExpressionBuilder:
     def _stack_value_to_expression(
         self, stack_value: StackValue
     ) -> Optional[Expression]:
+        # todo: review this
         variable = self.variable_identifier.get_variable(stack_value.value)
         if variable:
             return Expression(
