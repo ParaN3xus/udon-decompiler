@@ -21,6 +21,8 @@ class ASTNodeType(Enum):
     ASSIGNMENT = "assignment"
     CALL = "call"
     RETURN = "return"
+    BREAK = "break"
+    CONTINUE = "continue"
     VARIABLE_DECL = "variable_decl"
     LABEL = "label"
     GOTO = "goto"
@@ -202,6 +204,20 @@ class ReturnNode(StatementNode):
     def __post_init__(self):
         super().__post_init__()
         self.node_type = ASTNodeType.RETURN
+
+
+@dataclass
+class BreakNode(StatementNode):
+    def __post_init__(self):
+        super().__post_init__()
+        self.node_type = ASTNodeType.BREAK
+
+
+@dataclass
+class ContinueNode(StatementNode):
+    def __post_init__(self):
+        super().__post_init__()
+        self.node_type = ASTNodeType.CONTINUE
 
 
 class ExpressionType(Enum):

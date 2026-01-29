@@ -11,7 +11,8 @@
 3) `ProgramLoader` parses JSON into `UdonProgramData`.
 4) `BytecodeParser` disassembles bytecode to `Instruction` list.
 5) `DataFlowAnalyzer` builds CFGs and performs stack simulation, variable discovery, expression building.
-6) `ProgramCodeGenerator` builds an AST and `CSharpCodeGenerator` emits formatted C#.
+6) `ASTBuilder` uses `SCFGAdapter` (numba-scfg) + `scfg_emitter` to structure control-flow.
+7) `ProgramCodeGenerator` builds a program AST and `CSharpCodeGenerator` emits formatted C#.
 
 ## Key entry points
 - CLI: `udon-decompiler` (see `udon_decompiler/__main__.py`).
@@ -33,8 +34,8 @@ Mapping details:
 - `udon_decompiler/`
   - `loaders/`: parse JSON program + module info.
   - `parsers/`: `BytecodeParser`.
-  - `analysis/`: CFG, stack sim, expression + variable analysis.
-  - `codegen/`: AST building + C# generation.
+  - `analysis/`: CFG, stack sim, expression + variable analysis, SCFG adapter.
+  - `codegen/`: AST building + SCFG emitter + C# generation.
   - `models/`: program/instruction/module info data structures.
   - `utils/`: logging helpers.
 - `Editor/`: Unity editor scripts (module info extractor, program dumper, UdonSharp compiler).
@@ -62,9 +63,14 @@ Mapping details:
   - expression building (`ExpressionBuilder`).
 
 ## Code generation
-- `ASTBuilder` builds per-function AST (uses `ControlFlowStructureIdentifier`).
+- `ASTBuilder` builds per-function AST via `SCFGAdapter` + `scfg_emitter`.
 - `ProgramCodeGenerator` collects functions + globals into `ProgramNode`.
 - `CSharpCodeGenerator` emits pseudo C# and runs `clang-format` (must be on PATH).
+
+## SCFG (Structured CFG)
+- `analysis/scfg_adapter.py` maps CFG blocks into `numba-scfg` blocks (including switch).
+- `codegen/scfg_emitter.py` walks SCFG regions and emits AST nodes.
+- numba-scfg may introduce synthetic control variables; `scfg_emitter` may inline them.
 
 ## Tests and snapshots
 - Test cases live in `tests/cases/**.md`.
@@ -88,6 +94,9 @@ Mapping details:
 Common pytest flags:
 - `-k <expr>`: run matching tests.
 - `-vv`: verbose output.
+
+## Dependencies
+- Control-flow structuring uses `numba-scfg` (see `pyproject.toml`).
 
 ## Workflows (.github/workflows)
 - `ci.yml`: uv sync (dev), ruff, pyright, download `UdonModuleInfo.json` from secret URL, then `pytest -q -vv`.

@@ -1,45 +1,33 @@
-from collections import Counter
 from typing import List, Optional, Set
 
 from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockType
-from udon_decompiler.analysis.control_flow import (
-    ControlFlowStructureIdentifier,
-    ControlStructure,
-    ControlStructureType,
-)
 from udon_decompiler.analysis.dataflow_analyzer import FunctionDataFlowAnalyzer
 from udon_decompiler.analysis.expression_builder import (
     Expression,
     ExpressionType,
     Operator,
 )
+from udon_decompiler.analysis.scfg_adapter import SCFGAdapter
 from udon_decompiler.analysis.variable_identifier import Variable
 from udon_decompiler.codegen.ast_nodes import (
     AssignmentNode,
     BlockNode,
     CallNode,
     ConstructionNode,
-    DoWhileNode,
     ExpressionNode,
     ExpressionStatementNode,
     FunctionNode,
-    GotoNode,
-    IfElseNode,
-    IfNode,
-    LabelNode,
     LiteralNode,
     OperatorNode,
     PropertyAccessNode,
     PropertyAccessType,
     ReturnNode,
     StatementNode,
-    SwitchCaseNode,
-    SwitchNode,
     TypeNode,
     VariableDeclNode,
     VariableNode,
-    WhileNode,
 )
+from udon_decompiler.codegen.scfg_emitter import _SCFGEmitter
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.module_info import ParameterType
 from udon_decompiler.models.program import SymbolInfo, UdonProgramData
@@ -83,16 +71,21 @@ class ASTBuilder:
             name=self.cfg.function_name,
         )
 
-        struct_identifier = ControlFlowStructureIdentifier(self.cfg)
-        structures = struct_identifier.identify()
-
         body = BlockNode()
 
         self._add_variable_declarations(func_node, body)
-
-        self._build_block_statements(
-            self.cfg.entry_block, body, structures, visited=self._processed_blocks
+        scfg_result = SCFGAdapter(self.cfg).build()
+        emitter = _SCFGEmitter(
+            self,
+            scfg_result.scfg,
+            scfg_result.name_to_block,
+            scfg_result.switch_branches,
         )
+        statements = emitter.emit()
+        for decl in emitter.synthetic_declarations():
+            body.add_statement(decl)
+        for stmt in statements:
+            body.add_statement(stmt)
 
         func_node.body = body
 
@@ -132,301 +125,6 @@ class ASTBuilder:
                 )
                 block.add_statement(decl)
 
-    def _build_block_statements(
-        self,
-        block: BasicBlock,
-        parent_block: BlockNode,
-        structures: List[ControlStructure],
-        visited: Optional[Set[BasicBlock]] = None,
-        allowed_blocks: Optional[Set[BasicBlock]] = None,
-    ) -> None:
-        if visited is None:
-            visited = set()
-
-        if allowed_blocks is not None and block not in allowed_blocks:
-            return
-
-        if block in visited:
-            return
-
-        visited.add(block)
-
-        self._register_block_position(block, parent_block)
-        self._emit_label_if_needed(block, parent_block)
-
-        if self._build_switch_statement(
-            block, parent_block, structures, visited, allowed_blocks
-        ):
-            return
-
-        structure = self._find_structure_with_header(block, structures)
-
-        if structure:
-            self._build_control_structure(
-                structure,
-                parent_block,
-                structures,
-                visited,
-                allowed_blocks,
-            )
-
-            follow_node = self._get_structure_follow_node(structure)
-            if follow_node:
-                self._build_block_statements(
-                    follow_node, parent_block, structures, visited, allowed_blocks
-                )
-        else:
-            self._translate_basic_block(block, parent_block)
-
-            successors = list(self.cfg.get_successors(block))
-
-            if len(successors) == 1:
-                self._handle_single_successor(
-                    block,
-                    successors[0],
-                    parent_block,
-                    structures,
-                    visited,
-                    allowed_blocks,
-                )
-            elif len(successors) > 1:
-                if allowed_blocks is not None:
-                    # condintional block at the end of the do-while body
-                    allowed_succs = [s for s in successors if s in allowed_blocks]
-                    if len(allowed_succs) == 1:
-                        self._build_block_statements(
-                            allowed_succs[0],
-                            parent_block,
-                            structures,
-                            visited,
-                            allowed_blocks,
-                        )
-                        return
-
-                if not self._emit_fallback_conditional_goto(
-                    block, parent_block, structures, visited, allowed_blocks
-                ):
-                    logger.warning(
-                        f"Block 0x{block.start_address:08x} has multiple successors "
-                        "but no control structure"
-                    )
-
-    def _find_structure_with_header(
-        self, block: BasicBlock, structures: List[ControlStructure]
-    ) -> Optional[ControlStructure]:
-        for structure in structures:
-            if structure.header == block:
-                return structure
-        return None
-
-    def _build_control_structure(
-        self,
-        structure: ControlStructure,
-        parent_block: BlockNode,
-        all_structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-        allowed_blocks: Optional[Set[BasicBlock]] = None,
-    ) -> None:
-        if structure.type == ControlStructureType.IF:
-            self._build_if_statement(structure, parent_block, all_structures, visited)
-
-        elif structure.type == ControlStructureType.IF_ELSE:
-            self._build_if_else_statement(
-                structure, parent_block, all_structures, visited
-            )
-
-        elif structure.type == ControlStructureType.WHILE:
-            self._build_while_statement(
-                structure, parent_block, all_structures, visited
-            )
-
-        elif structure.type == ControlStructureType.DO_WHILE:
-            self._build_do_while_statement(
-                structure, parent_block, all_structures, visited
-            )
-
-        if structure.exit and structure.exit not in visited:
-            self._build_block_statements(
-                structure.exit,
-                parent_block,
-                all_structures,
-                visited,
-                allowed_blocks,
-            )
-
-    def _build_if_statement(
-        self,
-        structure: ControlStructure,
-        parent_block: BlockNode,
-        all_structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-    ) -> None:
-        self._translate_basic_block(structure.header, parent_block)
-        condition = self._extract_condition_from_block(structure.header)
-
-        then_block = BlockNode()
-        true_branch_scope = set(structure.true_branch)
-
-        for block in structure.true_branch:
-            if block not in visited:
-                self._build_block_statements(
-                    block,
-                    then_block,
-                    all_structures,
-                    visited,
-                    allowed_blocks=true_branch_scope,
-                )
-        if_node = IfNode(
-            condition=condition,
-            then_block=then_block,
-            address=structure.header.start_address,
-        )
-
-        parent_block.add_statement(if_node)
-
-    def _build_if_else_statement(
-        self,
-        structure: ControlStructure,
-        parent_block: BlockNode,
-        all_structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-    ) -> None:
-        self._translate_basic_block(structure.header, parent_block)
-        condition = self._extract_condition_from_block(structure.header)
-
-        then_block = BlockNode()
-        else_block = BlockNode()
-
-        true_scope = set(structure.true_branch)
-        for block in structure.true_branch:
-            if block not in visited:
-                self._build_block_statements(
-                    block,
-                    then_block,
-                    all_structures,
-                    visited,
-                    allowed_blocks=true_scope,
-                )
-
-        if structure.false_branch:
-            false_scope = set(structure.false_branch)
-            for block in structure.false_branch:
-                if block not in visited:
-                    self._build_block_statements(
-                        block,
-                        else_block,
-                        all_structures,
-                        visited,
-                        allowed_blocks=false_scope,
-                    )
-
-        if_else_node = IfElseNode(
-            condition=condition,
-            then_block=then_block,
-            else_block=else_block,
-            address=structure.header.start_address,
-        )
-
-        parent_block.add_statement(if_else_node)
-
-    def _build_while_statement(
-        self,
-        structure: ControlStructure,
-        parent_block: BlockNode,
-        all_structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-    ) -> None:
-        self._translate_basic_block(structure.header, parent_block)
-        condition = self._extract_condition_from_block(structure.header)
-
-        body = BlockNode()
-
-        if structure.loop_body:
-            loop_scope = set(structure.loop_body)
-            for block in structure.loop_body:
-                if block not in visited:
-                    self._build_block_statements(
-                        block,
-                        body,
-                        all_structures,
-                        visited,
-                        allowed_blocks=loop_scope,
-                    )
-
-        while_node = WhileNode(
-            condition=condition, body=body, address=structure.header.start_address
-        )
-
-        parent_block.add_statement(while_node)
-
-    def _build_do_while_statement(
-        self,
-        structure: ControlStructure,
-        parent_block: BlockNode,
-        all_structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-    ) -> None:
-        body = BlockNode()
-
-        condition_block = structure.condition_block or structure.header
-        condition = self._extract_condition_from_block(condition_block)
-
-        if structure.loop_body is None:
-            raise Exception("Invalid do-while structure: loop_body is None!")
-        loop_scope = set(structure.loop_body)
-        loop_scope.add(structure.header)
-
-        filtered_structures = [s for s in all_structures if s is not structure]
-        local_visited = visited.copy()
-        local_visited.discard(structure.header)
-        if structure.condition_block:
-            local_visited.discard(structure.condition_block)
-
-        self._build_block_statements(
-            structure.header,
-            body,
-            filtered_structures,
-            local_visited,
-            allowed_blocks=loop_scope,
-        )
-        visited.update(local_visited)
-
-        do_while_node = DoWhileNode(
-            condition=condition, body=body, address=structure.header.start_address
-        )
-
-        parent_block.add_statement(do_while_node)
-
-    def _get_structure_follow_node(
-        self, structure: ControlStructure
-    ) -> Optional[BasicBlock]:
-        internal_blocks = set()
-        internal_blocks.add(structure.header)
-
-        match structure.type:
-            case ControlStructureType.IF:
-                if structure.true_branch:
-                    internal_blocks.update(structure.true_branch)
-            case ControlStructureType.IF_ELSE:
-                if structure.true_branch:
-                    internal_blocks.update(structure.true_branch)
-                if structure.false_branch:
-                    internal_blocks.update(structure.false_branch)
-            case ControlStructureType.WHILE:
-                if structure.loop_body:
-                    internal_blocks.update(structure.loop_body)
-            case ControlStructureType.DO_WHILE:
-                if structure.loop_body:
-                    internal_blocks.update(structure.loop_body)
-
-        for block in internal_blocks:
-            successors = self.cfg.get_successors(block)
-            for succ in successors:
-                if succ not in internal_blocks:
-                    return succ
-
-        return None
-
     def _extract_condition_from_block(
         self, block: BasicBlock
     ) -> Optional[ExpressionNode]:
@@ -456,263 +154,19 @@ class ASTBuilder:
         if block.block_type == BasicBlockType.RETURN:
             parent_block.add_statement(ReturnNode())
 
-    def _handle_single_successor(
-        self,
-        block: BasicBlock,
-        successor: BasicBlock,
-        parent_block: BlockNode,
-        structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-        allowed_blocks: Optional[Set[BasicBlock]],
-    ) -> None:
-        if allowed_blocks is not None and successor not in allowed_blocks:
-            return
+    def _translate_block_for_condition(self, block: BasicBlock) -> list[StatementNode]:
+        if not block.instructions:
+            return []
+        instructions = block.instructions
+        if block.block_type == BasicBlockType.CONDITIONAL:
+            instructions = instructions[:-1]
 
-        last_inst = block.last_instruction
-        # jump, target is visited
-        # jump back(to previous block) or to block not in this structure
-        if last_inst.opcode == OpCode.JUMP and (
-            successor in visited
-            or successor.start_address < block.start_address
-            or (allowed_blocks is not None and successor not in allowed_blocks)
-        ):
-            if self._is_loop_back_edge(block, successor, structures):
-                return
-            if allowed_blocks is not None and successor in allowed_blocks:
-                return
-            label = self._ensure_block_label(successor)
-            parent_block.add_statement(GotoNode(target_label=label))
-            return
-
-        self._build_block_statements(
-            successor, parent_block, structures, visited, allowed_blocks
-        )
-
-    def _emit_fallback_conditional_goto(
-        self,
-        block: BasicBlock,
-        parent_block: BlockNode,
-        structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-        allowed_blocks: Optional[Set[BasicBlock]],
-    ) -> bool:
-        last_inst = block.last_instruction
-        # this is a fallback strategy for multiple successors but not control structure
-        # JUMP is ignored since it only have 1 successor
-        # JUMP is processed in self._handle_single_successor
-        if last_inst.opcode != OpCode.JUMP_IF_FALSE:
-            return False
-
-        false_target = last_inst.get_jump_target()
-        false_block = self.cfg.get_block_at(false_target)
-        true_block = self.cfg.get_block_at(last_inst.next_address)
-
-        if false_block is None or true_block is None:
-            return False
-
-        if allowed_blocks is not None:
-            if false_block not in allowed_blocks and true_block not in allowed_blocks:
-                return False
-
-        false_label = self._ensure_block_label(false_block)
-        true_label = self._ensure_block_label(true_block)
-
-        condition = self._extract_condition_from_block(block)
-
-        then_block = BlockNode()
-        then_block.add_statement(GotoNode(target_label=true_label))
-
-        else_block = BlockNode()
-        else_block.add_statement(GotoNode(target_label=false_label))
-
-        parent_block.add_statement(
-            IfElseNode(
-                condition=condition,
-                then_block=then_block,
-                else_block=else_block,
-                address=block.start_address,
-            )
-        )
-
-        self._build_block_statements(
-            true_block, parent_block, structures, visited, allowed_blocks
-        )
-        self._build_block_statements(
-            false_block, parent_block, structures, visited, allowed_blocks
-        )
-
-        return True
-
-    def _is_loop_back_edge(
-        self,
-        block: BasicBlock,
-        successor: BasicBlock,
-        structures: List[ControlStructure],
-    ) -> bool:
-        for structure in structures:
-            if structure.type not in (
-                ControlStructureType.WHILE,
-                ControlStructureType.DO_WHILE,
-            ):
-                continue
-            if structure.header != successor:
-                continue
-            if structure.loop_body and block in structure.loop_body:
-                return True
-        return False
-
-    def _build_switch_statement(
-        self,
-        block: BasicBlock,
-        parent_block: BlockNode,
-        structures: List[ControlStructure],
-        visited: Set[BasicBlock],
-        allowed_blocks: Optional[Set[BasicBlock]],
-    ) -> bool:
-        if block.switch_info is None:
-            return False
-
-        switch_info = block.switch_info
-        if not switch_info.targets:
-            return False
-
-        var = self.analyzer.variable_identifier.get_variable(switch_info.index_operand)
-        if not var:
-            raise Exception("Invalid switch operand! A variable excepted!")
-        switch_expr = self._variable_to_ast(var)
-
-        target_counts = Counter(switch_info.targets)
-        default_target = max(target_counts, key=lambda k: target_counts[k])
-
-        cases_by_target: dict[int, List[int]] = {}
-        for idx, target in enumerate(switch_info.targets):
-            if target == default_target:
-                continue
-            cases_by_target.setdefault(target, []).append(idx)
-
-        case_entries: dict[int, BasicBlock] = {}
-        for target_addr in cases_by_target:
-            entry_block = self.cfg.get_block_at(target_addr)
-            if entry_block:
-                case_entries[target_addr] = entry_block
-
-        default_block = self.cfg.get_block_at(default_target)
-
-        follow_block = self._find_switch_follow_block(
-            block, set(case_entries.values()), default_block
-        )
-
-        stop_blocks: Set[BasicBlock] = set(case_entries.values())
-        if default_block:
-            stop_blocks.add(default_block)
-        if follow_block:
-            stop_blocks.add(follow_block)
-
-        cases: List[SwitchCaseNode] = []
-        for target_addr, values in sorted(
-            cases_by_target.items(), key=lambda item: min(item[1])
-        ):
-            entry_block = case_entries.get(target_addr)
-            if entry_block is None:
-                continue
-            case_body = BlockNode()
-            case_blocks = self._collect_case_blocks(entry_block, stop_blocks)
-            self._build_block_statements(
-                entry_block,
-                case_body,
-                structures,
-                visited,
-                allowed_blocks=case_blocks,
-            )
-            case_values: List[ExpressionNode] = [
-                LiteralNode(value=v, literal_type="System.Int32") for v in values
-            ]
-            cases.append(SwitchCaseNode(values=case_values, body=case_body))
-
-        default_case = None
-        if default_block:
-            default_body = BlockNode()
-            default_blocks = self._collect_case_blocks(default_block, stop_blocks)
-            self._build_block_statements(
-                default_block,
-                default_body,
-                structures,
-                visited,
-                allowed_blocks=default_blocks,
-            )
-            default_case = SwitchCaseNode(
-                values=[],
-                body=default_body,
-                is_default=True,
-            )
-
-        parent_block.add_statement(
-            SwitchNode(
-                expression=switch_expr,
-                cases=cases,
-                default_case=default_case,
-                address=block.start_address,
-            )
-        )
-
-        if follow_block:
-            self._build_block_statements(
-                follow_block, parent_block, structures, visited, allowed_blocks
-            )
-
-        return True
-
-    def _collect_case_blocks(
-        self, entry_block: BasicBlock, stop_blocks: Set[BasicBlock]
-    ) -> Set[BasicBlock]:
-        visited: Set[BasicBlock] = set()
-        stack = [entry_block]
-
-        while stack:
-            block = stack.pop()
-            if block in visited:
-                continue
-
-            if block != entry_block and block in stop_blocks:
-                continue
-
-            visited.add(block)
-
-            for succ in self.cfg.get_successors(block):
-                if succ not in visited and succ not in stop_blocks:
-                    stack.append(succ)
-
-        return visited
-
-    def _find_switch_follow_block(
-        self,
-        header: BasicBlock,
-        case_entries: Set[BasicBlock],
-        default_block: Optional[BasicBlock],
-    ) -> Optional[BasicBlock]:
-        follow = self.cfg.get_immediate_post_dominator(header)
-        if follow and follow not in case_entries and follow != default_block:
-            return follow
-
-        candidates: Counter[BasicBlock] = Counter()
-        for entry in case_entries | ({default_block} if default_block else set()):
-            for succ in self.cfg.get_successors(entry):
-                if succ not in case_entries and succ != default_block:
-                    candidates[succ] += 1
-
-        if candidates:
-            return max(candidates, key=lambda k: candidates[k])
-
-        return None
-
-    def _address_to_expression(self, address: int) -> ExpressionNode:
-        heap_entry = self.program.get_initial_heap_value(address)
-        if heap_entry and heap_entry.value and heap_entry.value.is_serializable:
-            value = heap_entry.value.value
-            if not isinstance(value, (list, dict)):
-                return LiteralNode(value=value, literal_type=heap_entry.type)
-
-        return VariableNode(var_name=f"<addr_{address}>")
+        result: list[StatementNode] = []
+        for inst in instructions:
+            stmt = self._translate_instruction(inst)
+            if stmt:
+                result.append(stmt)
+        return result
 
     def _translate_instruction(self, inst: Instruction) -> Optional[StatementNode]:
         expr = self.analyzer.get_expression(inst.address)
@@ -770,7 +224,7 @@ class ASTBuilder:
 
         value_expr = None
         if expr.arguments:
-            value_expr = self._convert_expression_to_ast(expr.arguments[0])
+            value_expr = self._expression_to_ast(expr.arguments[0])
 
         return AssignmentNode(target=target, value=value_expr, address=inst.address)
 
@@ -820,7 +274,7 @@ class ASTBuilder:
             args.append(
                 (
                     expr.function_info.parameters[i],
-                    self._convert_expression_to_ast(arg, visited, as_value=True),
+                    self._expression_to_ast(arg, visited, as_value=True),
                 )
             )
 
@@ -862,8 +316,7 @@ class ASTBuilder:
                 receiver = self._variable_to_receiver_ast(receiver_var)
 
         oprs = [
-            self._convert_expression_to_ast(arg, visited, as_value=True)
-            for arg in raw_args
+            self._expression_to_ast(arg, visited, as_value=True) for arg in raw_args
         ]
 
         if expr.operator == Operator.Conversion:
@@ -922,9 +375,7 @@ class ASTBuilder:
             this_expr = (
                 TypeNode(type_name=expr.function_info.type_name)
                 if is_static
-                else self._convert_expression_to_ast(
-                    raw_args[0], visited, as_value=True
-                )
+                else self._expression_to_ast(raw_args[0], visited, as_value=True)
             )
 
         target = None
@@ -937,14 +388,10 @@ class ASTBuilder:
                         raise Exception("receiver_var expected!")
                     target = self._variable_to_receiver_ast(receiver_var)
                 else:
-                    target = self._convert_expression_to_ast(
-                        output_arg, visited, as_value=True
-                    )
+                    target = self._expression_to_ast(output_arg, visited, as_value=True)
         elif type == PropertyAccessType.SET:
             if output_arg is not None:
-                value = self._convert_expression_to_ast(
-                    output_arg, visited, as_value=True
-                )
+                value = self._expression_to_ast(output_arg, visited, as_value=True)
 
         return PropertyAccessNode(
             access_type=type,
@@ -983,8 +430,7 @@ class ASTBuilder:
             receiver = self._variable_to_receiver_ast(receiver_var)
 
         args = [
-            self._convert_expression_to_ast(arg, visited, as_value=True)
-            for arg in raw_args
+            self._expression_to_ast(arg, visited, as_value=True) for arg in raw_args
         ]
 
         return ConstructionNode(
@@ -994,7 +440,7 @@ class ASTBuilder:
             emit_as_expression=as_value,
         )
 
-    def _convert_expression_to_ast(
+    def _expression_to_ast(
         self,
         expr: Expression,
         visited: Optional[Set[str]] = None,
@@ -1028,66 +474,6 @@ class ASTBuilder:
         else:
             return LiteralNode(value=f"<{expr.expr_type.value}>")
 
-    def _generate_label(self) -> str:
-        label = f"label_{self._label_counter}"
-        self._label_counter += 1
-        return label
-
-    def _ensure_block_label(self, block: BasicBlock) -> str:
-        if block not in self._block_labels:
-            self._block_labels[block] = self._generate_label()
-        self._goto_targets.add(block)
-        if block not in self._emitted_labels:
-            self._emit_label_if_needed(block, None)
-        return self._block_labels[block]
-
-    def _emit_label_if_needed(
-        self, block: BasicBlock, parent_block: BlockNode | None
-    ) -> None:
-        if (
-            block in self._goto_targets
-            and block not in self._emitted_labels
-            and block in self._block_labels
-        ):
-            location = self._block_emit_positions.get(block)
-            if location is None:
-                if parent_block is None:
-                    return
-                self._register_block_position(block, parent_block)
-                location = self._block_emit_positions[block]
-
-            insert_parent, insert_index = location
-            label = LabelNode(label_name=self._block_labels[block])
-            self._insert_statement_at(insert_parent, insert_index, label, block)
-            self._emitted_labels.add(block)
-
-    def _register_block_position(
-        self, block: BasicBlock, parent_block: BlockNode
-    ) -> None:
-        if block not in self._block_emit_positions:
-            self._block_emit_positions[block] = (
-                parent_block,
-                len(parent_block.statements),
-            )
-
-    def _insert_statement_at(
-        self,
-        parent_block: BlockNode,
-        index: int,
-        stmt: StatementNode,
-        block: BasicBlock,
-    ) -> None:
-        parent_block.statements.insert(index, stmt)
-        for other_block, (other_parent, other_index) in list(
-            self._block_emit_positions.items()
-        ):
-            if other_parent is parent_block and other_block != block:
-                if other_index >= index:
-                    self._block_emit_positions[other_block] = (
-                        other_parent,
-                        other_index + 1,
-                    )
-
     def _get_variable_by_name(self, name: str) -> Variable | None:
         return self._variables_by_name.get(name)
 
@@ -1113,9 +499,7 @@ class ASTBuilder:
             # the expr that writes into the var
             inline_expr = self._get_inline_expression(var)
             if inline_expr:
-                node = self._convert_expression_to_ast(
-                    inline_expr, visited, as_value=True
-                )
+                node = self._expression_to_ast(inline_expr, visited, as_value=True)
                 visited.remove(var.name)
                 return node
 

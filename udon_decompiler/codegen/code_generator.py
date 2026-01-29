@@ -9,8 +9,10 @@ from udon_decompiler.analysis.variable_identifier import Variable
 from udon_decompiler.codegen.ast_nodes import (
     AssignmentNode,
     BlockNode,
+    BreakNode,
     CallNode,
     ConstructionNode,
+    ContinueNode,
     DoWhileNode,
     ExpressionNode,
     ExpressionStatementNode,
@@ -261,6 +263,10 @@ class CSharpCodeGenerator:
                 return [f"{stmt.label_name}:"]
             case GotoNode():
                 return [f"goto {stmt.target_label};"]
+            case BreakNode():
+                return ["break;"]
+            case ContinueNode():
+                return ["continue;"]
             case ReturnNode():
                 return ["return;"]
             case StatementNode():
@@ -432,7 +438,7 @@ class CSharpCodeGenerator:
         if not stmt.body or not stmt.body.statements:
             return False
         last_stmt = stmt.body.statements[-1]
-        return isinstance(last_stmt, (ReturnNode, GotoNode))
+        return isinstance(last_stmt, (ReturnNode, GotoNode, BreakNode, ContinueNode))
 
     def _generate_expression(self, expr: ExpressionNode) -> str:
         match expr:

@@ -8,6 +8,8 @@ public class For : UdonSharpBehaviour
         System.Int32[] __lcl_numbers_SystemInt32Array_0;
         System.Int32 __lcl_total_SystemInt32_0;
         System.Int32 __lcl_i_SystemInt32_0;
+        System.Int32 __scfg_backedge_var_0__;
+        System.Boolean __scfg_loop_cont_1__;
         __lcl_numbers_SystemInt32Array_0 = new System.Int32[](5);
         __lcl_numbers_SystemInt32Array_0.Set(0, 1);
         __lcl_numbers_SystemInt32Array_0.Set(1, 2);
@@ -16,11 +18,21 @@ public class For : UdonSharpBehaviour
         __lcl_numbers_SystemInt32Array_0.Set(4, 5);
         __lcl_total_SystemInt32_0 = 0;
         __lcl_i_SystemInt32_0 = 0;
-        while (__lcl_i_SystemInt32_0 < __lcl_numbers_SystemInt32Array_0.Length)
+        __scfg_loop_cont_1__ = true;
+        while (__scfg_loop_cont_1__)
         {
-            __lcl_total_SystemInt32_0 = __lcl_total_SystemInt32_0 + __lcl_numbers_SystemInt32Array_0.Get(__lcl_i_SystemInt32_0);
-            UnityEngine.Debug.Log(__lcl_i_SystemInt32_0);
-            __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+            if (__lcl_i_SystemInt32_0 < __lcl_numbers_SystemInt32Array_0.Length)
+            {
+                __lcl_total_SystemInt32_0 = __lcl_total_SystemInt32_0 + __lcl_numbers_SystemInt32Array_0.Get(__lcl_i_SystemInt32_0);
+                UnityEngine.Debug.Log(__lcl_i_SystemInt32_0);
+                __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+                __scfg_backedge_var_0__ = 0;
+            }
+            else
+            {
+                __scfg_backedge_var_0__ = 1;
+            }
+            __scfg_loop_cont_1__ = __scfg_backedge_var_0__ == 0;
         }
         UnityEngine.Debug.Log(__lcl_total_SystemInt32_0);
         return;
