@@ -162,7 +162,13 @@ class ASTBuilder:
         structure = self._find_structure_with_header(block, structures)
 
         if structure:
-            self._build_control_structure(structure, parent_block, structures, visited)
+            self._build_control_structure(
+                structure,
+                parent_block,
+                structures,
+                visited,
+                allowed_blocks,
+            )
 
             follow_node = self._get_structure_follow_node(structure)
             if follow_node:
@@ -219,6 +225,7 @@ class ASTBuilder:
         parent_block: BlockNode,
         all_structures: List[ControlStructure],
         visited: Set[BasicBlock],
+        allowed_blocks: Optional[Set[BasicBlock]] = None,
     ) -> None:
         if structure.type == ControlStructureType.IF:
             self._build_if_statement(structure, parent_block, all_structures, visited)
@@ -240,7 +247,11 @@ class ASTBuilder:
 
         if structure.exit and structure.exit not in visited:
             self._build_block_statements(
-                structure.exit, parent_block, all_structures, visited
+                structure.exit,
+                parent_block,
+                all_structures,
+                visited,
+                allowed_blocks,
             )
 
     def _build_if_statement(

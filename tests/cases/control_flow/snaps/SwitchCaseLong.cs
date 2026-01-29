@@ -50,8 +50,8 @@ public class SwitchCaseLong : UdonSharpBehaviour
                         break;
                 }
             }
-            UnityEngine.Debug.Log(__lcl_itemName_SystemString_0);
-            return;
         }
+        UnityEngine.Debug.Log(__lcl_itemName_SystemString_0);
+        return;
     }
 }

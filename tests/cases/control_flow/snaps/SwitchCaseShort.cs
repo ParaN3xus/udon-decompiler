@@ -11,17 +11,14 @@ public class SwitchCaseShort : UdonSharpBehaviour
         {
             UnityEngine.Debug.Log("Mode Zero");
         }
+        else if (__0_mode__param == 1)
+        {
+            UnityEngine.Debug.Log("Mode One");
+        }
         else
         {
-            if (__0_mode__param == 1)
-            {
-                UnityEngine.Debug.Log("Mode One");
-            }
-            else
-            {
-                UnityEngine.Debug.Log("Default Mode");
-            }
-            return;
+            UnityEngine.Debug.Log("Default Mode");
         }
+        return;
     }
 }
