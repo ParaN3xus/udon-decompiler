@@ -174,7 +174,7 @@ class ControlFlowStructureIdentifier:
     def _determine_loop_type(
         self, header: BasicBlock, loop_blocks: Set[BasicBlock]
     ) -> ControlStructureType:
-        # while true
+        # post-tested
         if header.block_type != BasicBlockType.CONDITIONAL:
             return ControlStructureType.DO_WHILE
 
