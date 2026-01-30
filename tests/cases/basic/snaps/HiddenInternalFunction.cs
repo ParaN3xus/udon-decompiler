@@ -32,6 +32,5 @@ public class HiddenInternalFunction : UdonSharpBehaviour
             __0___0_fibonacci__ret = __intnl_SystemInt32_2 + __0___0_fibonacci__ret;
             return;
         }
-        return;
     }
 }
