@@ -1,10 +1,16 @@
 #import "/docs/book.typ": book-page
 #import "@preview/shiroa:0.3.1": shiroa-sys-target
-#import "../../_utils/common.typ": cross-link-heading
+#import "../../_utils/common.typ": cross-link-heading, numba-scfg
 
 #show: book-page.with(title: "概览")
 
-本节介绍本项目代码仓库的文件结构和本项目的大致工作流程.
+本节介绍本项目概况, 代码仓库的文件结构, 大致工作流程, 以便读者快速了解项目.
+
+= 项目概况
+
+本项目主要包括反编译器本体和一些与反编译器本体配合使用的 Unity Editor Script. Editor Script 部分将会在接下来介绍.
+
+关于反编译器本体, 它基本上是一个从 0 开始使用 Python 编写的一般反编译器. 我们没有使用现成的反编译器框架等. 除了 CFG 部分使用了 `networkx` 以及控制流识别部分使用了 #numba-scfg 外, 也基本没有使用其他第三方包来进行功能实现.
 
 = 代码仓库
 ```shell-unix-generic
