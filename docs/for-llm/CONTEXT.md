@@ -11,7 +11,7 @@
 3) `ProgramLoader` parses JSON into `UdonProgramData`.
 4) `BytecodeParser` disassembles bytecode to `Instruction` list.
 5) `DataFlowAnalyzer` builds CFGs and performs stack simulation, variable discovery, expression building.
-6) `ASTBuilder` uses `SCFGAdapter` (numba-scfg) + `scfg_emitter` to structure control-flow.
+6) `ASTBuilder` uses `SCFGAdapter` (numba-scfg) + SCFG raw emitter + lifter pipeline to structure control-flow.
 7) `ProgramCodeGenerator` builds a program AST and `CSharpCodeGenerator` emits formatted C#.
 
 ## Key entry points
@@ -63,14 +63,24 @@ Mapping details:
   - expression building (`ExpressionBuilder`).
 
 ## Code generation
-- `ASTBuilder` builds per-function AST via `SCFGAdapter` + `scfg_emitter`.
+- `ASTBuilder` builds per-function AST via `SCFGAdapter` + `SCFGRawEmitter`, then runs the lifter pipeline.
 - `ProgramCodeGenerator` collects functions + globals into `ProgramNode`.
 - `CSharpCodeGenerator` emits pseudo C# and runs `clang-format` (must be on PATH).
 
 ## SCFG (Structured CFG)
 - `analysis/scfg_adapter.py` maps CFG blocks into `numba-scfg` blocks (including switch).
-- `codegen/scfg_emitter.py` walks SCFG regions and emits AST nodes.
-- numba-scfg may introduce synthetic control variables; `scfg_emitter` may inline them.
+- `codegen/scfg_lifters/raw_emitter.py` walks SCFG regions and emits raw AST nodes.
+- `codegen/scfg_lifters/pipeline.py` applies lifting passes to improve structure/readability.
+- numba-scfg may introduce synthetic control variables; the lifters remove or inline them.
+
+### SCFG lifter pipeline (current order)
+1) `LoopLifter`
+2) `BackedgeLifter`
+3) `ExitVarLifter`
+4) `ControlVarLifter`
+5) `CleanupLifter`
+6) `WhileTrueLifter`
+7) `CleanupLifter` (2nd pass)
 
 ## Tests and snapshots
 - Test cases live in `tests/cases/**.md`.
@@ -83,6 +93,20 @@ Mapping details:
   - Reads dumped JSON block, decompiles, and compares with `snaps/*.cs`.
   - `UDON_MODULE_INFO` env var points to `UdonModuleInfo.json` (tests skip if missing).
 
+### Writing test cases (markdown-driven)
+1) Create or edit `tests/cases/**.md` with a C# fenced block (UdonSharp input).
+2) Optionally leave a second JSON block empty or omit it; CI will fill it.
+3) If the case should not be compiled in Unity CI, add `<!-- ci: skip-compile -->`.
+
+### CI compilation flow (remote)
+- After you push, the `compile-test-cases.yml` workflow compiles the C# snippets in Unity.
+- It writes the compiled dumped JSON back into the markdown as the 2nd code block.
+- Pull the repo to get the completed/updated dumped JSON blocks.
+
+### Local snapshot update
+- Run `pytest --snapshot-update` to regenerate `tests/cases/**/snaps/*.cs`.
+- Review the generated C# before committing snapshot changes.
+
 ### Typical test flow
 1) Write or update a case in `tests/cases/**.md` with C# source.
 2) Commit and push; `Compile Test Cases` workflow compiles and updates dumped JSON in markdown.
@@ -94,6 +118,10 @@ Mapping details:
 Common pytest flags:
 - `-k <expr>`: run matching tests.
 - `-vv`: verbose output.
+
+## Lint & type check
+- Ruff: `uv run ruff check .` (can auto-fix: `uv run ruff check . --fix`).
+- Pyright: `uv run pyright` (requires deps from `uv sync --group dev`).
 
 ## Dependencies
 - Control-flow structuring uses `numba-scfg` (see `pyproject.toml`).
