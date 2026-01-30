@@ -68,16 +68,27 @@
   font-weight: 600;
   font-style: italic;
 }
-.sl-markdown-content > p {
+
+/* prose */
+.sl-markdown-content > p,
+.sl-markdown-content > ul,
+.sl-markdown-content > ol,
+.code-image {
+  margin-top: 0;
   margin-bottom: 20px;
 }
-.code-image {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
 
+/* toc */
 .toc a {
   padding-inline: 0px;
+}
+.toc,
+.toc nav > ol {
+  padding-inline-start: 0;
+  list-style: none;
+}
+.toc ol ol {
+  padding-inline-start: 1.5rem;
 }
 ```
 

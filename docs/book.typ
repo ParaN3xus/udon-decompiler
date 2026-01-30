@@ -4,7 +4,7 @@
 #show: book
 
 #book-meta(
-  title: "Udon Decompiler 文档",
+  title: "Udon Decompiler",
   description: "Udon Decompiler 文档",
   repository: "https://github.com/ParaN3xus/udon-decompiler/",
   repository-edit: "https://github.com/ParaN3xus/udon-decompiler/edit/main/docs/{path}",
