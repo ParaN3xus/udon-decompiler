@@ -50,6 +50,14 @@ public class SwitchCaseLong : UdonSharpBehaviour
                         break;
                 }
             }
+            else
+            {
+                __lcl_itemName_SystemString_0 = "Unknown";
+            }
+        }
+        else
+        {
+            __lcl_itemName_SystemString_0 = "Unknown";
         }
         UnityEngine.Debug.Log(__lcl_itemName_SystemString_0);
         return;

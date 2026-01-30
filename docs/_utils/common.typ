@@ -7,6 +7,7 @@
 #let vrc-sdk-license = link("https://hello.vrchat.com/legal/sdk")[VRChat SDK 许可证]
 #let vcc = link("https://vcc.docs.vrchat.com/")[VCC]
 #let asset-ripper = link("https://github.com/AssetRipper/AssetRipper")[Asset Ripper]
+#let numba-scfg = link("https://github.com/numba/numba-scfg")[numba-scfg]
 
 
 #let cross-link-heading(path, heading, body) = cross-link(path, reference: heading-reference(heading), body)

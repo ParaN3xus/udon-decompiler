@@ -27,7 +27,7 @@ from udon_decompiler.codegen.ast_nodes import (
     VariableDeclNode,
     VariableNode,
 )
-from udon_decompiler.codegen.scfg_emitter import _SCFGEmitter
+from udon_decompiler.codegen.scfg_lifters import SCFGLifterPipeline
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.module_info import ParameterType
 from udon_decompiler.models.program import SymbolInfo, UdonProgramData
@@ -75,14 +75,14 @@ class ASTBuilder:
 
         self._add_variable_declarations(func_node, body)
         scfg_result = SCFGAdapter(self.cfg).build()
-        emitter = _SCFGEmitter(
+        lifter = SCFGLifterPipeline(
             self,
             scfg_result.scfg,
             scfg_result.name_to_block,
             scfg_result.switch_branches,
         )
-        statements = emitter.emit()
-        for decl in emitter.synthetic_declarations():
+        statements, synthetic_decls = lifter.emit()
+        for decl in synthetic_decls:
             body.add_statement(decl)
         for stmt in statements:
             body.add_statement(stmt)
@@ -158,6 +158,7 @@ class ASTBuilder:
         if not block.instructions:
             return []
         instructions = block.instructions
+        # remove jump if false inst
         if block.block_type == BasicBlockType.CONDITIONAL:
             instructions = instructions[:-1]
 
