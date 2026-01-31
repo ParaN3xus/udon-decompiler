@@ -17,6 +17,10 @@
     - #chapter("user/installation.typ")[安装]
     - #chapter("user/usage.typ")[使用]
     - #chapter("user/reporting-issues.typ")[汇报错误]
+    = User Guide (EN)
+    - #chapter("user-en/installation.typ")[Installation]
+    - #chapter("user-en/usage.typ")[Usage]
+    - #chapter("user-en/reporting-issues.typ")[Reporting Issues]
     = 开发指南
     - #chapter("dev/status.typ")[项目现状]
     - #chapter("dev/udon/main.typ")[Udon 和 UdonSharp 相关知识]
