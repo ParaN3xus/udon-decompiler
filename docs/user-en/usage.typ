@@ -3,7 +3,7 @@
 
 #show: book-page.with(title: "Usage")
 
-This document was translated by an LLM.
+This document was translated from Chinese by an LLM.
 
 After installing this project, you can decompile Udon programs in a world.
 

@@ -2,7 +2,7 @@
 
 #show: book-page.with(title: "Reporting Issues")
 
-This document was translated by an LLM.
+This document was translated from Chinese by an LLM.
 
 If you encounter crashes, incorrect generated code logic, or other unexpected behavior while using the project, you can report issues as follows.
 

@@ -3,7 +3,7 @@
 
 #show: book-page.with(title: "Installation")
 
-This document was translated by an LLM.
+This document was translated from Chinese by an LLM.
 
 This section describes how to install this project.
 

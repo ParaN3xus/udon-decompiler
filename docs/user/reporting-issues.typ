@@ -1,6 +1,8 @@
-#import "/docs/book.typ": book-page
+#import "/docs/book.typ": book-page, cross-link
 
 #show: book-page.with(title: "汇报错误")
+
+For English version, refer to #cross-link("/user-en/reporting-issues.typ")[Reporting Issues].
 
 如果在使用过程中出现程序崩溃, 生成代码逻辑错误, 或者观察到其他非预期的程序行为, 你可以按如下步骤向我们汇报错误.
 

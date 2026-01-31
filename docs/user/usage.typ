@@ -3,6 +3,8 @@
 
 #show: book-page.with(title: "使用")
 
+For English version, refer to #cross-link("/user-en/usage.typ")[Usage].
+
 完成本项目的安装后, 你就可以反编译世界中的 Udon 程序了.
 
 = 获取世界文件
