@@ -3,6 +3,8 @@
 
 #show: book-page.with(title: "安装")
 
+For English version, refer to #cross-link("/user-en/installation.typ")[Installation].
+
 本节介绍本项目的安装方式.
 
 = 安装本反编译器
