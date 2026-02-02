@@ -87,14 +87,14 @@ public class UdonModuleInfoExtractor : EditorWindow
                 var isStatic = false;
                 var returnsVoid = false;
 
+                int index = udonNodeDef.name.LastIndexOf(' ');
                 if (defType == "prop")
                 {
                     // __get_ or __set_
-                    originalName = originalName[4..];
+                    originalName = udonNodeDef.name[(index + 5)..];
                 }
                 if (defType == "method")
                 {
-                    int index = udonNodeDef.name.LastIndexOf(' ');
                     originalName = udonNodeDef.name[(index + 1)..];
                 }
                 if ((defType == "prop" || defType == "method") && udonNodeDef.parameters.Count > 0)
