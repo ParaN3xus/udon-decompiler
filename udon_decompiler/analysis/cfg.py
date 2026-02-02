@@ -289,6 +289,9 @@ class CFGBuilder:
                     ep.call_jump_target == target for ep in self.program.entry_points
                 )
                 if is_call_jump:
+                    if last_inst.next_address >= self.program.byte_code_length:
+                        # end of the program
+                        continue
                     returning_block = self._get_block_starting_at(
                         last_inst.next_address
                     )
@@ -309,6 +312,9 @@ class CFGBuilder:
 
                 # "TRUE" branch
                 next_addr = last_inst.next_address
+                if next_addr >= self.program.byte_code_length:
+                    # end of the program
+                    continue
                 next_block = self._get_block_starting_at(next_addr)
                 block.add_successor(next_block)
                 next_block.add_predecessor(block)
@@ -327,6 +333,9 @@ class CFGBuilder:
 
             else:
                 next_addr = last_inst.next_address
+                if next_addr >= self.program.byte_code_length:
+                    # end of the program
+                    continue
                 next_block = self._get_block_starting_at(next_addr)
                 block.add_successor(next_block)
                 next_block.add_predecessor(block)
