@@ -100,12 +100,13 @@ class FunctionDataFlowAnalyzer:
             visited.add(block)
 
             # todo: review this
-            exit_state = self.stack_simulator.simulate_block(block, entry_state)
+            halt, exit_state = self.stack_simulator.simulate_block(block, entry_state)
 
             # recur
-            for successor in self.cfg.get_successors(block):
-                if successor not in visited:
-                    visit_block(successor, exit_state.copy())
+            if not halt:
+                for successor in self.cfg.get_successors(block):
+                    if successor not in visited:
+                        visit_block(successor, exit_state.copy())
 
         entry_point = next(
             (

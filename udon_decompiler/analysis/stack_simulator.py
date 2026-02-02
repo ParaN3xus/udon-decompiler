@@ -283,7 +283,7 @@ class StackSimulator(_StackSemantics):
 
     def simulate_block(
         self, block: BasicBlock, entry_state: Optional[StackFrame] = None
-    ) -> StackFrame:
+    ) -> tuple[bool, StackFrame]:
         if entry_state is None:
             entry_state = StackFrame()
 
@@ -308,7 +308,7 @@ class StackSimulator(_StackSemantics):
             f"stack depth={len(current_state.stack)}"
         )
 
-        return current_state
+        return halt, current_state
 
     def _simulate_instruction(
         self, instruction: Instruction, state: StackFrame
@@ -327,9 +327,11 @@ class StackSimulator(_StackSemantics):
                 if stack_value is not None:
                     state.push(stack_value)
             case OpCode.POP:
-                state.pop()
+                frame = state.pop()
+                assert frame is not None
             case OpCode.JUMP_IF_FALSE:
                 cond_value = state.pop()
+                assert cond_value is not None
                 if cond_value and cond_value.type_hint != "System.Boolean":
                     logger.debug(
                         f"JUMP_IF_FALSE at 0x{instruction.address:08x} "
@@ -341,7 +343,19 @@ class StackSimulator(_StackSemantics):
                     ep.call_jump_target == target for ep in self.program.entry_points
                 )
                 if is_call_jump:
-                    state.pop()
+                    return_frame = state.pop()
+                    if return_frame is None:
+                        raise Exception(
+                            "Failed to simulate instruction! "
+                            "More entries in the stack expected!"
+                        )
+                    sym = self.program.get_symbol_by_address(return_frame.value)
+                    if not sym:
+                        raise Exception(
+                            "Invalid stack frame! corresponding symbol not found!"
+                        )
+                    if sym.name == SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
+                        return True, state
             case OpCode.JUMP_INDIRECT:
                 if instruction.operand is None:
                     raise Exception(
