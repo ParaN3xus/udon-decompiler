@@ -4,7 +4,11 @@ from typing import Dict, List, Optional, Set
 import networkx as nx
 from pydot import Dot
 
-from udon_decompiler.analysis.basic_block import BasicBlock, BasicBlockIdentifier
+from udon_decompiler.analysis.basic_block import (
+    BasicBlock,
+    BasicBlockIdentifier,
+    BasicBlockType,
+)
 from udon_decompiler.analysis.stack_simulator import (
     BlockStackSimulator,
     HeapSimulator,
@@ -275,6 +279,32 @@ class CFGBuilder:
         return changed
 
     def _build_edges(self) -> None:
+        entry_addrs = {
+            ep.address for ep in self.program.entry_points if ep.address is not None
+        }
+        entry_addrs.update(ep.call_jump_target for ep in self.program.entry_points)
+        public_to_internal = {
+            ep.address: ep.call_jump_target
+            for ep in self.program.entry_points
+            if ep.address is not None and ep.address != ep.call_jump_target
+        }
+
+        def _add_fallthrough(block: BasicBlock, next_addr: int) -> None:
+            if next_addr >= self.program.byte_code_length:
+                return
+            if next_addr in entry_addrs:
+                if public_to_internal.get(block.start_address) != next_addr:
+                    # It's entering another function! That means there's no return jump
+                    # and we have to fix this
+                    block.block_type = BasicBlockType.RETURN
+                    return
+            # It's another entry_addr, but they belong to the same function,
+            # which means `block` is the public entry and `next_addr` belongs
+            # to the internal entry. In that case, add fallthrough normally
+            next_block = self._get_block_starting_at(next_addr)
+            block.add_successor(next_block)
+            next_block.add_predecessor(block)
+
         for block in self._all_blocks:
             last_inst = block.last_instruction
 
@@ -289,14 +319,7 @@ class CFGBuilder:
                     ep.call_jump_target == target for ep in self.program.entry_points
                 )
                 if is_call_jump:
-                    if last_inst.next_address >= self.program.byte_code_length:
-                        # end of the program
-                        continue
-                    returning_block = self._get_block_starting_at(
-                        last_inst.next_address
-                    )
-                    block.add_successor(returning_block)
-                    returning_block.add_predecessor(block)
+                    _add_fallthrough(block, last_inst.next_address)
                 else:
                     target_block = self._get_block_starting_at(target)
                     block.add_successor(target_block)
@@ -312,12 +335,7 @@ class CFGBuilder:
 
                 # "TRUE" branch
                 next_addr = last_inst.next_address
-                if next_addr >= self.program.byte_code_length:
-                    # end of the program
-                    continue
-                next_block = self._get_block_starting_at(next_addr)
-                block.add_successor(next_block)
-                next_block.add_predecessor(block)
+                _add_fallthrough(block, next_addr)
 
             elif last_inst.opcode == OpCode.JUMP_INDIRECT:
                 if last_inst.operand is not None:
@@ -333,12 +351,7 @@ class CFGBuilder:
 
             else:
                 next_addr = last_inst.next_address
-                if next_addr >= self.program.byte_code_length:
-                    # end of the program
-                    continue
-                next_block = self._get_block_starting_at(next_addr)
-                block.add_successor(next_block)
-                next_block.add_predecessor(block)
+                _add_fallthrough(block, next_addr)
 
         logger.debug("CFG edges built successfully")
 
