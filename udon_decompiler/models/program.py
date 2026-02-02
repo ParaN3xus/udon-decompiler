@@ -88,6 +88,9 @@ class EntryPointInfo:
     def __hash__(self) -> int:
         return self.call_jump_target
 
+    def __lt__(self, other: "EntryPointInfo") -> bool:
+        return self.call_jump_target < other.call_jump_target
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, EntryPointInfo):
             return False
