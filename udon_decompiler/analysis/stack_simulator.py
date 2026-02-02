@@ -349,12 +349,7 @@ class StackSimulator(_StackSemantics):
                             "Failed to simulate instruction! "
                             "More entries in the stack expected!"
                         )
-                    sym = self.program.get_symbol_by_address(return_frame.value)
-                    if not sym:
-                        raise Exception(
-                            "Invalid stack frame! corresponding symbol not found!"
-                        )
-                    if sym.name == SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
+                    if return_frame.literal_value == Instruction.HALT_JUMP_ADDR:
                         return True, state
             case OpCode.JUMP_INDIRECT:
                 if instruction.operand is None:
