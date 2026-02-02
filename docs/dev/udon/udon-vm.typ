@@ -54,7 +54,7 @@ UnityEngineColor.__op_Addition__UnityEngineColor_UnityEngineColor__\u{200b}Unity
 
 除了#cross-link-heading("/dev/udon/udon-program.typ", [= 入口点表])[入口点表]一节中提到的入口点表外, Udon Sharp 在生成函数时候还做了其他的处理.
 
-大多数(包括非公开的)函数有两个入口: 公开入口和内部入口. 公开入口用于外部调用, 从公开入口进入函数, 其执行结果是 Udon VM 停机. 从内部入口进入函数, 其执行结果是跳回到调用函数的 `JUMP` 之后.
+大多数(包括非公开的)函数有两个入口: 公开入口和内部入口. 公开入口用于外部调用, 从公开入口进入函数, 其执行结果是 Udon VM 停机. 从内部入口进入函数, 其执行结果是跳回到*某个*调用函数的 `JUMP` 之后*或停机*.
 
 两者的区别是, 公开入口比内部入口多了一句 `PUSH __const_SystemUInt32_0`, 这里 `__const_SystemUInt32_0` 的地址不固定, 但是其值永远是 `4294967295`, 也即 `0xFFFFFFFF`. 当这个值被写入 PC(也即 `JUMP` 到这个地址) 时, Udon VM 会停机.
 
@@ -65,7 +65,9 @@ COPY
 JUMP_INDIRECT, __intnl_returnJump_SystemUInt32_0
 ```
 
-此处 `__intnl_returnJump_SystemUInt32_0` 的名字固定, 且堆地址总是是 `2`. 当通过公开入口进入时, 这里的 `__intnl_returnJump_SystemUInt32_0` 也就被写入了 `0xFFFFFFFF`, 最终使 Udon VM 停机. 而当内部入口进入时, 则是由调用者负责在调用前在堆中压入返回地址(也即 `JUMP` 指令的下一条指令的地址).
+此处 `__intnl_returnJump_SystemUInt32_0` 的名字固定, 且堆地址总是是 `2`. 当通过公开入口进入时, 这里的 `__intnl_returnJump_SystemUInt32_0` 也就被写入了 `0xFFFFFFFF`, 最终使 Udon VM 停机. 而当内部入口进入时, 一种可能是由调用者负责在调用前在堆中压入返回地址(也即 `JUMP` 指令的下一条指令的地址), 另一种可能是不压入返回地址, 则这个函数执行结束后会跳回到*某个*调用函数的 `JUMP` 之后, 甚至停机.
+
+为什么是*某个*调用函数呢, 考虑如果某个函数的最后一条指令就是调用另一个内部函数, 且在 `JUMP` 前没有压入返回地址, 那么被调用函数就会代该函数返回, 如果该函数是通过公开入口进入的, 则会代其令 Udon VM 停机.
 
 还有一部分函数没有公开入口.
 
