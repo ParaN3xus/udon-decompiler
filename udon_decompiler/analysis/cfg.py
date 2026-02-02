@@ -230,6 +230,7 @@ class CFGBuilder:
 
             new_entry_points = self._find_call_targets(self._all_blocks)
             updated = self._merge_entry_points(new_entry_points)
+        self.program.entry_points.sort()
 
     def _find_call_targets(self, blocks: List[BasicBlock]) -> List[EntryPointInfo]:
         """
