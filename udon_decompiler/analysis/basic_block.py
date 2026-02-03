@@ -112,45 +112,49 @@ class BasicBlockIdentifier:
         block_starts = set()
         block_starts.update(self.entry_points)
 
-        if self.instructions:
-            block_starts.add(self.instructions[0].address)
+        block_starts.add(self.instructions[0].address)
+
+        last_addr = self.instructions[-1].address
 
         for idx, inst in enumerate(self.instructions):
-            if inst.opcode == OpCode.JUMP or inst.opcode == OpCode.JUMP_IF_FALSE:
-                target = inst.get_jump_target()
+            match inst.opcode:
+                case OpCode.JUMP | OpCode.JUMP_IF_FALSE:
+                    target = inst.get_jump_target()
+                    if target > last_addr:
+                        self.return_jumps.append(inst.address)
+                    else:
+                        block_starts.add(target)
 
-                if target > self.instructions[-1].address:
-                    self.return_jumps.append(inst.address)
-                else:
-                    block_starts.add(target)
+                    next_addr = inst.next_address
+                    if self._address_to_instruction.get(next_addr):
+                        if inst.opcode == OpCode.JUMP and target in self.entry_points:
+                            continue
+                        block_starts.add(next_addr)
 
-                next_addr = inst.next_address
-                if self._address_to_instruction.get(next_addr):
-                    block_starts.add(next_addr)
+                case OpCode.JUMP_INDIRECT:
+                    if inst.operand is None:
+                        raise Exception(
+                            "Invalid JUMP_INDIRECT instruction: missing operand!"
+                        )
 
-            elif inst.opcode == OpCode.JUMP_INDIRECT:
-                if inst.operand is None:
-                    raise Exception(
-                        "Invalid JUMP_INDIRECT instruction: missing operand!"
-                    )
+                    operand_sym = self.program.get_symbol_by_address(inst.operand)
+                    if operand_sym.name == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME:
+                        """
+                        This is ignored because a return jump only targets 0xffffffff
+                        (halt) or the next line following a function call. For a halt
+                        jump, no basic block needs to be created; for a real return
+                        jump, the basic block was already created during the processing
+                        of the call jump.
+                        """
+                        self.return_jumps.append(inst.address)
+                        block_starts.add(inst.next_address)
+                        continue
 
-                operand_sym = self.program.get_symbol_by_address(inst.operand)
-
-                if operand_sym.name == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME:
-                    """
-                    This is ignored because a return jump only targets 0xffffffff
-                    (halt) or the next line following a function call. For a halt
-                    jump, no basic block needs to be created; for a real return
-                    jump, the basic block was already created during the processing
-                    of the call jump.
-                    """
-                    self.return_jumps.append(inst.address)
-                    block_starts.add(inst.next_address)
-                    continue
-
-                switch_info = self._get_switch_targets(idx, operand_sym)
-                if switch_info:
-                    block_starts.update(switch_info.targets)
+                    switch_info = self._get_switch_targets(idx, operand_sym)
+                    if switch_info:
+                        block_starts.update(switch_info.targets)
+                case _:
+                    pass
 
         return block_starts
 
