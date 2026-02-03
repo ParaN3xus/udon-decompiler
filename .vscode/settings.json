@@ -9,6 +9,10 @@
     },
     "python.languageServer": "Pylance",
     "python.analysis.diagnosticMode": "workspace",
+    "[csharp]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true
+    },
     "tinymist.exportTarget": "html",
     "tinymist.lint.enabled": true,
     "tinymist.typstExtraArgs": [
