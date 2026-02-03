@@ -72,6 +72,10 @@ public static class UdonProgramDumper
         var heapDump = new List<ValueTuple<uint, IStrongBox, Type>>();
         heap.DumpHeapObjects(heapDump);
 
+        Debug.Log("Multiple warnings may appear in the console, " +
+                    "but as long as the dump does not terminate due to a fatal error, " +
+                    "it is normal behavior.");
+
         foreach (var (address, strongBox, type) in heapDump)
         {
             object rawValue = strongBox?.Value;
