@@ -182,6 +182,8 @@ class CFGBuilder:
     def _identify_entry_points(self):
         res = set(self.program.entry_points)
         for inst in self.instructions:
+            # https://github.com/ParaN3xus/udon-decompiler/issues/10
+            break
             if inst.opcode != OpCode.PUSH:
                 continue
             if inst.operand is None:
@@ -213,9 +215,8 @@ class CFGBuilder:
             updated = False
             entry_addresses = []
             for e in self.program.entry_points:
-                if e.address is None:
-                    entry_addresses.append(e.call_jump_target)
-                else:
+                entry_addresses.append(e.call_jump_target)
+                if e.call_jump_target != e.address:
                     entry_addresses.append(e.address)
 
             self.identifier = BasicBlockIdentifier(
@@ -254,7 +255,7 @@ class CFGBuilder:
 
                 # when calling a function, there should be an address in the stack
                 # that points to the next instruction to the call jump
-                top = state.peek(0)
+                top = state.pop()
                 if top is None or top.literal_value != inst.next_address:
                     # this is not a call jump
                     continue
