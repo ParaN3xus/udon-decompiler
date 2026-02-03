@@ -3,14 +3,24 @@
 
 public class InternalCall : UdonSharpBehaviour
 {
+    System.Int32 _value = 0;
+    System.Int32 __0_get_Value__ret = 0;
     System.Int32 __0___0_fibonacci__ret = 0;
     System.Int32 __0_n__param = 0;
+
+    public void get_Value()
+    {
+        __0_get_Value__ret = _value;
+        return;
+    }
 
     public void _start()
     {
         __0_n__param = 10;
         fibonacci();
         UnityEngine.Debug.Log(__0___0_fibonacci__ret.ToString());
+        get_Value();
+        UnityEngine.Debug.Log(__0_get_Value__ret.ToString());
         return;
     }
 
