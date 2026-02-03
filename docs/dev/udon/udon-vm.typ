@@ -1,6 +1,6 @@
 #import "/docs/book.typ": book-page, cross-link, heading-reference
 #import "@preview/shiroa:0.3.1": shiroa-sys-target
-#import "../../_utils/common.typ": cross-link-heading
+#import "../../_utils/common.typ": cross-link-heading, udc-issue
 
 #show: book-page.with(title: "Udon VM")
 
@@ -54,9 +54,9 @@ UnityEngineColor.__op_Addition__UnityEngineColor_UnityEngineColor__\u{200b}Unity
 
 除了#cross-link-heading("/dev/udon/udon-program.typ", [= 入口点表])[入口点表]一节中提到的入口点表外, Udon Sharp 在生成函数时候还做了其他的处理.
 
-大多数(包括非公开的)函数有两个入口: 公开入口和内部入口. 公开入口用于外部调用, 从公开入口进入函数, 其执行结果是 Udon VM 停机. 从内部入口进入函数, 其执行结果是跳回到*某个*调用函数的 `JUMP` 之后*或停机*.
+UdonSharp 编译器所产生的大多数(包括非公开的)函数有两个入口: 公开入口和内部入口. 公开入口用于外部调用, 从公开入口进入函数, 其执行结果是 Udon VM 停机. 从内部入口进入函数, 其执行结果是跳回到*某个*调用函数的 `JUMP` 之后*或停机*. 在汇编层面, 两者的区别是公开入口比内部入口多了一句 `PUSH __const_SystemUInt32_0`, 这里 `__const_SystemUInt32_0` 的地址不固定, 但是其值永远是 `4294967295`, 也即 `0xFFFFFFFF`. 当这个值被写入 PC(也即 `JUMP` 到这个地址) 时, Udon VM 会停机.
 
-两者的区别是, 公开入口比内部入口多了一句 `PUSH __const_SystemUInt32_0`, 这里 `__const_SystemUInt32_0` 的地址不固定, 但是其值永远是 `4294967295`, 也即 `0xFFFFFFFF`. 当这个值被写入 PC(也即 `JUMP` 到这个地址) 时, Udon VM 会停机.
+一些通过其他方式产生过的 Udon 程序的函数则不一定有两种入口, 参见 #udc-issue(12).
 
 函数的返回被编译为
 ```asm
