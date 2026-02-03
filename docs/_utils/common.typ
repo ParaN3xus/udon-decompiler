@@ -9,5 +9,9 @@
 #let asset-ripper = link("https://github.com/AssetRipper/AssetRipper")[Asset Ripper]
 #let numba-scfg = link("https://github.com/numba/numba-scfg")[numba-scfg]
 
+#let udc-issue(no) = link(
+  "https://github.com/paran3xus/udon-decompiler/issues/" + str(no),
+  "paran3xus/udon-decompiler#" + str(no),
+)
 
 #let cross-link-heading(path, heading, body) = cross-link(path, reference: heading-reference(heading), body)
