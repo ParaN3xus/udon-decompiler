@@ -112,7 +112,8 @@ class BasicBlockIdentifier:
         block_starts = set()
         block_starts.update(self.entry_points)
 
-        block_starts.add(self.instructions[0].address)
+        if len(self.instructions) == 0:
+            return block_starts
 
         last_addr = self.instructions[-1].address
 
