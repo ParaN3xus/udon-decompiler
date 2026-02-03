@@ -3,6 +3,7 @@
         "ms-python.python",
         "ms-python.vscode-pylance",
         "charliermarsh.ruff",
-        "myriad-dreamin.tinymist"
+        "myriad-dreamin.tinymist",
+        "xaver.clang-format"
     ]
 }
