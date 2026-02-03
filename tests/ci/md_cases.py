@@ -10,7 +10,9 @@ SKIP_COMPILE_DIRECTIVE = "skip-compile"
 def load_cases(root: Path) -> list[Path]:
     if not root.exists():
         return []
-    return sorted(p for p in root.rglob("*.md") if p.is_file())
+    return sorted(
+        p for p in root.rglob("*.md") if p.is_file() and p.name != "README.md"
+    )
 
 
 def parse_markdown_cases(text: str, path: Path) -> list[dict]:
