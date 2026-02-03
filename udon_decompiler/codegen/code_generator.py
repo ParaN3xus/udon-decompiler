@@ -144,34 +144,45 @@ class CSharpCodeGenerator:
     def generate(self, program_node: ProgramNode, class_name: str) -> str:
         logger.info(f"Generating C# code for {class_name}...")
 
-        lines = []
+        lines = [
+            "// Decompiled Udon Program",
+            "// This is pseudo-code and may not compile directly",
+            "",
+        ]
 
-        lines.extend(
-            [
-                "// Decompiled Udon Program",
-                "// This is pseudo-code and may not compile directly",
-                "",
-                f"public class {class_name} : UdonSharpBehaviour",
-                "{",
-            ]
-        )
+        class_lines = [
+            f"public class {class_name} : UdonSharpBehaviour",
+            "{",
+        ]
 
         for global_var in program_node.global_variables:
             decl_lines = self._generate_variable_decl(global_var)
-            lines.extend(decl_lines)
+            class_lines.extend(decl_lines)
 
         if program_node.global_variables:
-            lines.append("")
+            class_lines.append("")
 
         for func_node in program_node.functions:
             func_lines = self._generate_function(func_node)
-            lines.extend(func_lines)
-            lines.append("")
+            class_lines.extend(func_lines)
+            class_lines.append("")
 
         if program_node.functions:
-            lines.pop()
+            class_lines.pop()
 
-        lines.append("}")
+        class_lines.append("}")
+
+        if program_node.namespace:
+            lines.extend(
+                [
+                    f"namespace {program_node.namespace}",
+                    "{",
+                ]
+            )
+            lines.extend(class_lines)
+            lines.append("}")
+        else:
+            lines.extend(class_lines)
 
         code = "\n".join(lines)
 
@@ -604,11 +615,18 @@ class ProgramCodeGenerator:
         )
 
         class_name = program.get_class_name()
+        namespace = None
         name_fallback = False
         if class_name is None:
             cls._class_counter += 1
             name_fallback = True
             class_name = f"DecompiledClass_{cls._class_counter}"
+        elif "." in class_name:
+            namespace, class_name = class_name.rsplit(".", 1)
+            if not namespace:
+                namespace = None
+
+        program_node.namespace = namespace
 
         code = cls._generator.generate(program_node, class_name)
 

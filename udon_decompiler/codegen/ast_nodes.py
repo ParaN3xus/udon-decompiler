@@ -45,6 +45,7 @@ class ASTNode:
 class ProgramNode(ASTNode):
     functions: List["FunctionNode"] = field(default_factory=list)
     global_variables: List["VariableDeclNode"] = field(default_factory=list)
+    namespace: Optional[str] = None
     node_type: ASTNodeType = field(default=ASTNodeType.PROGRAM, init=False)
 
     def __post_init__(self):
