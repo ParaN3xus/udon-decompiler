@@ -618,6 +618,11 @@ class ProgramCodeGenerator:
         namespace = None
         name_fallback = False
         if class_name is None:
+            logger.warning(
+                "Failed to identify the class name! "
+                "This Udon program may not have been compiled by the UdonSharp "
+                "compiler, and the decompilation results may be suboptimal!"
+            )
             cls._class_counter += 1
             name_fallback = True
             class_name = f"DecompiledClass_{cls._class_counter}"

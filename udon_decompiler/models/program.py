@@ -131,29 +131,20 @@ class UdonProgramData:
             UdonProgramData.CLASS_NAME_ADDR
         )
         if possible_class_name_symbol is None:
-            logger.warning(
-                "Class name symbol not found! The Udon program might be broken!"
-            )
+            logger.warning("Class name symbol not found!")
             return None
         if possible_class_name_symbol.name != UdonProgramData.CLASS_NAME_SYMBOL_NAME:
-            logger.warning(
-                "Incorrect class name symbol found! The Udon program might be broken!"
-            )
+            logger.warning("Incorrect class name symbol found!")
             return None
 
         possible_class_name_entry = self.get_initial_heap_value(
             UdonProgramData.CLASS_NAME_ADDR
         )
         if possible_class_name_entry is None:
-            logger.warning(
-                "Class name entry not found! The Udon program might be broken!"
-            )
+            logger.warning("Class name entry not found!")
             return None
         if not possible_class_name_entry.value.is_serializable:
-            logger.warning(
-                "Class name entry is not serializable! "
-                "The Udon program might be broken!"
-            )
+            logger.warning("Class name entry is not serializable!")
             return None
 
         # todo: type verification
