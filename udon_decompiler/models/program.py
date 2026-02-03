@@ -25,6 +25,8 @@ class SymbolInfo:
     @staticmethod
     def try_parse_function_return(symbol_name: str) -> Optional[str]:
         # __{id1}___{id2}_{methodName}__ret
+        # or
+        # __{id1}_get_{propName}__ret
         if (
             len(symbol_name) < 14
             or not symbol_name.startswith("__")
@@ -33,6 +35,12 @@ class SymbolInfo:
             return None
         body = symbol_name[2:-5]
         if "___" not in body:
+            # __{id1}_get_{propName}__ret -> prop_get_{propName}
+            if "_get_" not in body:
+                return None
+            id1_str, _, prop_name = body.partition("_get_")
+            if id1_str.isdigit() and prop_name:
+                return f"get_{prop_name}"
             return None
         id1_str, _, rest = body.partition("___")
         if "_" not in rest:

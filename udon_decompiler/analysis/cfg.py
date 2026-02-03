@@ -445,7 +445,7 @@ class CFGBuilder:
         # PUSH, __0___0_fibonacci__ret
         # EXTERN, "SystemInt32.__op_Addition__SystemInt32_SystemInt32__SystemInt32"
 
-        # find a --copy-> __*___*_name__ret
+        # find a --copy-> __*_{__* | get}_name__ret
         for _, inst2, inst3 in sliding_window(instructions, 3):
             if inst3.opcode != OpCode.COPY:
                 continue

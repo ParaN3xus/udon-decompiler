@@ -6,9 +6,17 @@ using VRC.Udon;
 
 public class InternalCall : UdonSharpBehaviour
 {
+    private int _value;
+
+    public int Value
+    {
+        get { return _value; }
+    }
+
     void Start()
     {
         Debug.Log(fibonacci(10).ToString());
+        Debug.Log(Value.ToString());
     }
 
     int fibonacci(int n)
