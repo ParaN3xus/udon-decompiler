@@ -51,7 +51,8 @@ class ProgramLoader:
                         EntryPointInfo(
                             name=ep_data["name"],
                             address=ep_data["address"],
-                            call_jump_target=ep_data["address"] + OpCode.PUSH.size,
+                            # will be fixed after disassembled
+                            call_jump_target=ep_data["address"],
                         )
                     )
 

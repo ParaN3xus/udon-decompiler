@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 from udon_decompiler.models import Instruction, OpCode, UdonProgramData
+from udon_decompiler.models.program import SymbolInfo
 from udon_decompiler.utils import logger
 
 
@@ -25,6 +26,31 @@ class BytecodeParser:
 
         self._instructions = instructions
         logger.info(f"Parsed {len(instructions)} instructions")
+
+        # fix function headers
+        for e in self.program.entry_points:
+            inst = self.get_instruction_at(e.address)
+            if inst is None:
+                raise Exception(
+                    "Invalid entry point! "
+                    "It's address does not point to any valid instruction!"
+                )
+            if inst.opcode != OpCode.PUSH:
+                continue
+            if inst.operand is None:
+                raise Exception("Invalid PUSH instruction! An operand expected!")
+
+            sym = self.program.get_symbol_by_address(inst.operand)
+            if sym.name != SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
+                continue
+            val = self.program.get_initial_heap_value(inst.operand)
+            if val is None:
+                raise Exception("Invalid symbol! Initial value not found!")
+            if val.value.value != Instruction.HALT_JUMP_ADDR:
+                continue
+            # this is a halt jump target! the next inst is the call jump addr!
+
+            e.call_jump_target = e.address + OpCode.PUSH.size
 
         return instructions
 
