@@ -25,7 +25,7 @@ class ControlFlowGraph:
     is_function_public: bool
     entry_block: BasicBlock
     function_name: Optional[str] = None
-    graph: nx.DiGraph = field(default_factory=nx.DiGraph)
+    graph: "nx.DiGraph[BasicBlock]" = field(default_factory=nx.DiGraph)
 
     def __repr__(self) -> str:
         return (
