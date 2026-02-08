@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 
 from udon_decompiler.analysis.cfg import CFGBuilder, ControlFlowGraph
-from udon_decompiler.analysis.expression_builder import Expression, ExpressionBuilder
+from udon_decompiler.analysis.ir import FunctionIR, IRBuilder
 from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
     StackSimulator,
@@ -67,23 +67,23 @@ class FunctionDataFlowAnalyzer:
 
         self.stack_simulator: StackSimulator
         self.variable_identifier: VariableIdentifier
-        self.expression_builder: ExpressionBuilder
 
         # res
         self.variables: Dict[int, Variable] = {}
-        # instruction address -> expression
-        self.expressions: Dict[int, Expression] = {}
+        self.ir: Optional[FunctionIR] = None
 
     def analyze(self) -> None:
         logger.debug(f"Analyzing dataflow for {self.cfg.function_name}...")
 
         self._simulate_stack()
         self._identify_variables()
-        self._build_expressions()
+        self._build_ir()
 
         logger.debug(
             f"Dataflow analysis complete for {self.cfg.function_name}: "
-            f"{len(self.variables)} variables, {len(self.expressions)} expressions"
+            f"{len(self.variables)} variables, "
+            f"{0 if self.ir is None else len(self.ir.blocks)} "
+            "ir blocks"
         )
 
     def _simulate_stack(self) -> None:
@@ -148,30 +148,26 @@ class FunctionDataFlowAnalyzer:
             f"{len(self.variables)} variables"
         )
 
-    def _build_expressions(self) -> None:
-        logger.debug(f"Building expressions for {self.cfg.function_name}...")
+    def _build_ir(self) -> None:
+        logger.debug(f"Building IR for {self.cfg.function_name}...")
 
-        self.expression_builder = ExpressionBuilder(
+        builder = IRBuilder(
             program=self.program,
+            cfg=self.cfg,
             stack_simulator=self.stack_simulator,
             variable_identifier=self.variable_identifier,
         )
-
-        for block in self.cfg.graph.nodes():
-            for instruction in block.instructions:
-                expr = self.expression_builder.build_expression_from_instruction(
-                    instruction
-                )
-                if expr:
-                    self.expressions[instruction.address] = expr
+        self.ir = builder.build()
 
         logger.debug(
-            f"Expression building complete for {self.cfg.function_name}: "
-            f"{len(self.expressions)} expressions"
+            f"IR complete for {self.cfg.function_name}: "
+            f"{len(self.ir.blocks)} blocks"
         )
 
     def get_variable(self, address: int) -> Optional[Variable]:
         return self.variables.get(address)
 
-    def get_expression(self, instruction_address: int) -> Optional[Expression]:
-        return self.expressions.get(instruction_address)
+    def get_ir(self) -> FunctionIR:
+        if self.ir is None:
+            raise Exception(f"IR not built for {self.cfg.function_name}")
+        return self.ir
