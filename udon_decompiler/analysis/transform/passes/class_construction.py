@@ -1,16 +1,13 @@
-from typing import Optional
-
 from udon_decompiler.analysis.ir.nodes import IRClass, IRFunction
 from udon_decompiler.analysis.transform.pass_base import (
-    PassResult,
-    ProgramPass,
-    TransformContext,
+    IProgramTransform,
+    ProgramTransformContext,
 )
 from udon_decompiler.utils.logger import logger
 
 
-class IRClassConstructionPass(ProgramPass):
-    """Constructs the IRClass object and instantiates it in the context."""
+class IRClassConstructionTransform(IProgramTransform):
+    """Construct IRClass from analyzed functions."""
 
     name = "ir-class-construction"
 
@@ -19,10 +16,9 @@ class IRClassConstructionPass(ProgramPass):
     def run(
         self,
         functions: list[IRFunction],
-        ctx: TransformContext,
-    ) -> PassResult:
-        program = ctx.program
-        class_name = program.get_class_name()
+        context: ProgramTransformContext,
+    ) -> None:
+        class_name = context.program.get_class_name()
         namespace = None
 
         if class_name is None:
@@ -36,12 +32,10 @@ class IRClassConstructionPass(ProgramPass):
             if not namespace:
                 namespace = None
 
-        ctx.ir_class = IRClass(
+        context.ir_class = IRClass(
             class_name=class_name,
             namespace=namespace,
-            program=program,
+            program=context.program,
             variable_declarations=[],
             functions=functions,
         )
-
-        return PassResult(changed=True)
