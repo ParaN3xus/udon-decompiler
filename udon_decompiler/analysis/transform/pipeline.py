@@ -63,6 +63,9 @@ def build_default_pipeline() -> TransformPipeline:
         HighLevelLoopTransform,
     )
     from udon_decompiler.analysis.transform.passes.loop_detection import LoopDetection
+    from udon_decompiler.analysis.transform.passes.temp_variable_inline import (
+        TempVariableInline,
+    )
 
     block_loop_transform = BlockILTransform()
     block_loop_transform.post_order_transforms.append(LoopDetection())
@@ -73,6 +76,7 @@ def build_default_pipeline() -> TransformPipeline:
     return TransformPipeline(
         il_transforms=[
             ConstToLiteral(),
+            TempVariableInline(),
             DetectExitPoints(can_introduce_exit_for_return=False),
             block_loop_transform,
             DetectExitPoints(can_introduce_exit_for_return=True),

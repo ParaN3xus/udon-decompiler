@@ -16,6 +16,9 @@ from udon_decompiler.analysis.transform.passes.high_level_loop_transform import 
 from udon_decompiler.analysis.transform.passes.loop_detection import (
     LoopDetection,
 )
+from udon_decompiler.analysis.transform.passes.temp_variable_inline import (
+    TempVariableInline,
+)
 
 __all__ = [
     "IRClassConstructionTransform",
@@ -24,4 +27,5 @@ __all__ = [
     "DetectExitPoints",
     "HighLevelLoopTransform",
     "LoopDetection",
+    "TempVariableInline",
 ]
