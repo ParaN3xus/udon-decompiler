@@ -53,6 +53,9 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.condition_detection import (
         ConditionDetection,
     )
+    from udon_decompiler.analysis.transform.passes.const_to_literal import (
+        ConstToLiteral,
+    )
     from udon_decompiler.analysis.transform.passes.detect_exit_points import (
         DetectExitPoints,
     )
@@ -69,6 +72,7 @@ def build_default_pipeline() -> TransformPipeline:
 
     return TransformPipeline(
         il_transforms=[
+            ConstToLiteral(),
             DetectExitPoints(can_introduce_exit_for_return=False),
             block_loop_transform,
             DetectExitPoints(can_introduce_exit_for_return=True),
