@@ -17,12 +17,10 @@ from udon_decompiler.analysis.transform.ir_utils import (
     build_dominator_tree_children,
     iter_block_containers,
 )
-from udon_decompiler.models.program import UdonProgramData
-from udon_decompiler.utils.logger import logger
 
 
 class TransformStepper:
-    """No-op stepper compatible with ILSpy-style grouped stepping."""
+    """No-op stepper compatible with ILSpy-style Stepper hooks."""
 
     def start_group(self, _description: str) -> None:
         return
@@ -35,236 +33,307 @@ class TransformStepper:
         return
 
 
-@dataclass(frozen=True)
-class PassResult:
-    changed: bool = False
-
-    @staticmethod
-    def no_change() -> "PassResult":
-        return PassResult(changed=False)
-
-    @staticmethod
-    def changed_result() -> "PassResult":
-        return PassResult(changed=True)
-
-    def merge(self, other: "PassResult") -> "PassResult":
-        return PassResult(changed=self.changed or other.changed)
-
-
 @dataclass
-class TransformContext:
-    program: UdonProgramData
+class ProgramTransformContext:
+    """
+    Program-level transform context.
+
+    ILSpy only has function-level ILTransformContext; we keep this wrapper to carry
+    whole-program state and construct per-function ILTransformContext instances.
+    """
+
+    program: Any
     ir_class: Optional[IRClass] = None
     settings: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
     stepper: TransformStepper = field(default_factory=TransformStepper)
     cancellation_check: Optional[Callable[[], None]] = None
 
-    def check_cancellation(self) -> None:
+    def throw_if_cancellation_requested(self) -> None:
         if self.cancellation_check is not None:
             self.cancellation_check()
 
-    def fork_for_function(self, function: IRFunction) -> "FunctionTransformContext":
-        return FunctionTransformContext(self, function)
+    def create_il_context(self, function: IRFunction) -> "ILTransformContext":
+        return ILTransformContext(function=function, program_context=self)
 
 
-class FunctionTransformContext(TransformContext):
-    def __init__(self, parent: TransformContext, function: IRFunction):
-        super().__init__(
-            program=parent.program,
-            ir_class=parent.ir_class,
-            settings=parent.settings,
-            metadata=parent.metadata,
-            stepper=parent.stepper,
-            cancellation_check=parent.cancellation_check,
-        )
-        self.parent = parent
-        self.function = function
+class ILTransformContext:
+    """Per-function context for IILTransform, mirroring ILSpy naming."""
 
-
-class BlockTransformContext(FunctionTransformContext):
     def __init__(
         self,
-        parent: FunctionTransformContext,
-        container: IRBlockContainer,
-        control_flow_graph: nx.DiGraph,
-        immediate_dominators: Dict[IRBlock, IRBlock],
-        dominator_tree_children: Dict[IRBlock, List[IRBlock]],
-        block: Optional[IRBlock] = None,
+        function: IRFunction,
+        program_context: ProgramTransformContext,
     ):
-        super().__init__(parent, parent.function)
-        self.parent = parent
-        self.container = container
-        self.control_flow_graph = control_flow_graph
-        self.immediate_dominators = immediate_dominators
-        self.dominator_tree_children = dominator_tree_children
-        self.block = block
+        self.function = function
+        self.program_context = program_context
+
+    @property
+    def program(self) -> Any:
+        return self.program_context.program
+
+    @property
+    def ir_class(self) -> Optional[IRClass]:
+        return self.program_context.ir_class
+
+    @ir_class.setter
+    def ir_class(self, value: Optional[IRClass]) -> None:
+        self.program_context.ir_class = value
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return self.program_context.settings
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        return self.program_context.metadata
+
+    @property
+    def stepper(self) -> TransformStepper:
+        return self.program_context.stepper
+
+    def throw_if_cancellation_requested(self) -> None:
+        self.program_context.throw_if_cancellation_requested()
+
+    def step_start_group(self, description: str) -> None:
+        self.stepper.start_group(description)
+
+    def step_end_group(self, keep_if_empty: bool = False) -> None:
+        self.stepper.end_group(keep_if_empty=keep_if_empty)
+
+    def step(self, description: str) -> None:
+        self.stepper.step(description)
 
 
-class StatementTransformContext(BlockTransformContext):
-    def __init__(self, block_context: BlockTransformContext):
-        super().__init__(
-            parent=block_context,
-            container=block_context.container,
-            control_flow_graph=block_context.control_flow_graph,
-            immediate_dominators=block_context.immediate_dominators,
-            dominator_tree_children=block_context.dominator_tree_children,
-            block=block_context.block,
-        )
-        self.block_context = block_context
-        self._rerun_current_position = False
-        self._rerun_position: Optional[int] = None
+class IProgramTransform(ABC):
+    """Program-level transform that sees all functions."""
 
-    def request_rerun(self, pos: Optional[int] = None) -> None:
-        if pos is None:
-            self._rerun_current_position = True
-            return
-        if self._rerun_position is None or pos > self._rerun_position:
-            self._rerun_position = pos
-
-
-class TransformPass(ABC):
     name: Optional[str] = None
 
     @property
     def display_name(self) -> str:
         return self.name or self.__class__.__name__
 
-    def __str__(self) -> str:
-        return self.display_name
-
-
-class ProgramPass(TransformPass):
-    @abstractmethod
-    def run(self, functions: List[IRFunction], ctx: TransformContext) -> PassResult:
-        raise NotImplementedError
-
-
-class FunctionPass(TransformPass):
-    @abstractmethod
-    def run(self, function: IRFunction, ctx: FunctionTransformContext) -> PassResult:
-        raise NotImplementedError
-
-
-class BlockPass(TransformPass):
-    @abstractmethod
-    def run(self, block: IRBlock, ctx: BlockTransformContext) -> PassResult:
-        raise NotImplementedError
-
-
-class StatementPass(TransformPass):
     @abstractmethod
     def run(
-        self, block: IRBlock, pos: int, ctx: StatementTransformContext
-    ) -> PassResult:
+        self,
+        functions: List[IRFunction],
+        context: ProgramTransformContext,
+    ) -> None:
         raise NotImplementedError
 
 
-class LoopingBlockTransform(BlockPass):
+class IILTransform(ABC):
+    """Per-function IL transform."""
+
+    name: Optional[str] = None
+
+    @property
+    def display_name(self) -> str:
+        return self.name or self.__class__.__name__
+
+    @abstractmethod
+    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+        raise NotImplementedError
+
+
+class IBlockTransform(ABC):
+    """Per-block transform, usually orchestrated by BlockILTransform."""
+
+    @abstractmethod
+    def run(self, block: IRBlock, context: "BlockTransformContext") -> None:
+        raise NotImplementedError
+
+
+class IStatementTransform(ABC):
+    """Per-statement transform, executed right-to-left inside one block."""
+
+    @abstractmethod
+    def run(
+        self,
+        block: IRBlock,
+        pos: int,
+        context: "StatementTransformContext",
+    ) -> None:
+        raise NotImplementedError
+
+
+class BlockTransformContext(ILTransformContext):
+    def __init__(
+        self,
+        context: ILTransformContext,
+        container: IRBlockContainer,
+        control_flow_graph: nx.DiGraph,
+        immediate_dominators: Dict[IRBlock, IRBlock],
+        dominator_tree_children: Dict[IRBlock, List[IRBlock]],
+    ):
+        super().__init__(
+            function=context.function,
+            program_context=context.program_context,
+        )
+        self.container = container
+        self.control_flow_graph = control_flow_graph
+        self.immediate_dominators = immediate_dominators
+        self.dominator_tree_children = dominator_tree_children
+
+        self.block: Optional[IRBlock] = None
+        self.control_flow_node: Optional[IRBlock] = None
+        self._dirty = False
+
+    @property
+    def is_dirty(self) -> bool:
+        return self._dirty
+
+    def mark_dirty(self) -> None:
+        self._dirty = True
+
+    def reset_dirty(self) -> None:
+        self._dirty = False
+
+
+class StatementTransformContext(ILTransformContext):
+    def __init__(self, block_context: BlockTransformContext):
+        super().__init__(
+            function=block_context.function,
+            program_context=block_context.program_context,
+        )
+        self.block_context = block_context
+
+        self.rerun_current_position = False
+        self.rerun_position: Optional[int] = None
+
+    @property
+    def block(self) -> Optional[IRBlock]:
+        return self.block_context.block
+
+    def request_rerun(self, pos: Optional[int] = None) -> None:
+        if pos is None:
+            self.rerun_current_position = True
+            return
+        if self.rerun_position is None or pos > self.rerun_position:
+            self.rerun_position = pos
+
+
+def run_block_transforms(
+    block: IRBlock,
+    transforms: Iterable[IBlockTransform],
+    context: BlockTransformContext,
+) -> None:
+    for transform in transforms:
+        context.throw_if_cancellation_requested()
+        context.step_start_group(transform.__class__.__name__)
+        transform.run(block, context)
+        context.step_end_group()
+
+
+def run_il_transforms(
+    function: IRFunction,
+    transforms: Iterable[IILTransform],
+    context: ILTransformContext,
+) -> None:
+    for transform in transforms:
+        context.throw_if_cancellation_requested()
+        context.step_start_group(transform.display_name)
+        transform.run(function, context)
+        context.step_end_group(keep_if_empty=True)
+
+
+class LoopingBlockTransform(IBlockTransform):
     """
-    Re-run child block transforms until a fixed point is reached.
-    Mirrors ILSpy's LoopingBlockTransform behavior.
+    Repeats child block transforms until the block no longer changes.
+
+    Uses BlockTransformContext.mark_dirty()/reset_dirty() in place of ILSpy's
+    instruction dirty flags.
     """
 
-    def __init__(self, *children: BlockPass, max_iterations: int = 32):
-        self.children: Sequence[BlockPass] = children
-        self.max_iterations = max_iterations
+    def __init__(self, *transforms: IBlockTransform):
+        self.transforms: Sequence[IBlockTransform] = transforms
         self._running = False
 
-    def run(self, block: IRBlock, ctx: BlockTransformContext) -> PassResult:
+    def run(self, block: IRBlock, context: BlockTransformContext) -> None:
         if self._running:
             raise RuntimeError(
-                "LoopingBlockTransform is already running; reentrancy is not supported."
+                "LoopingBlockTransform already running. "
+                "Transforms are not re-entrant."
             )
+
         self._running = True
         try:
-            any_change = False
-            for _ in range(self.max_iterations):
-                changed = False
-                for child in self.children:
-                    ctx.check_cancellation()
-                    child_result = child.run(block, ctx)
-                    changed = changed or child_result.changed
-                any_change = any_change or changed
-                if not changed:
-                    return PassResult(changed=any_change)
-            raise RuntimeError(
-                "LoopingBlockTransform did not reach a fixed point "
-                f"within {self.max_iterations} iterations."
-            )
+            count = 1
+            while True:
+                context.reset_dirty()
+                run_block_transforms(block, self.transforms, context)
+                if not context.is_dirty:
+                    break
+                count += 1
+                context.step(f"Block is dirty; running loop iteration #{count}.")
         finally:
             self._running = False
 
 
-class StatementTransform(BlockPass):
+class StatementTransform(IBlockTransform):
     """
-    Runs statement transforms right-to-left with rerun support, similar to ILSpy.
+    Runs statement transforms with ILSpy's right-to-left + rerun semantics.
     """
 
-    def __init__(self, *children: StatementPass):
-        self.children: Sequence[StatementPass] = children
+    def __init__(self, *children: IStatementTransform):
+        self.children: Sequence[IStatementTransform] = children
 
-    def run(self, block: IRBlock, ctx: BlockTransformContext) -> PassResult:
+    def run(self, block: IRBlock, context: BlockTransformContext) -> None:
         if not block.statements:
-            return PassResult.no_change()
+            return
 
-        stmt_ctx = StatementTransformContext(ctx)
-        changed = False
+        stmt_ctx = StatementTransformContext(context)
+
         pos = 0
-        stmt_ctx._rerun_position = len(block.statements) - 1
+        stmt_ctx.rerun_position = len(block.statements) - 1
         while pos >= 0:
-            ctx.check_cancellation()
+            context.throw_if_cancellation_requested()
             if not block.statements:
                 break
 
-            if stmt_ctx._rerun_position is not None:
-                next_pos = min(stmt_ctx._rerun_position, len(block.statements) - 1)
-                pos = next_pos
-                stmt_ctx._rerun_position = None
+            if stmt_ctx.rerun_position is not None:
+                pos = min(stmt_ctx.rerun_position, len(block.statements) - 1)
+                stmt_ctx.rerun_position = None
             elif pos >= len(block.statements):
                 pos = len(block.statements) - 1
 
             for transform in self.children:
-                result = transform.run(block, pos, stmt_ctx)
-                changed = changed or result.changed
+                transform.run(block, pos, stmt_ctx)
 
-                if stmt_ctx._rerun_current_position:
-                    stmt_ctx._rerun_current_position = False
+                if stmt_ctx.rerun_current_position:
+                    stmt_ctx.rerun_current_position = False
                     stmt_ctx.request_rerun(pos)
-                if stmt_ctx._rerun_position is not None:
+                if stmt_ctx.rerun_position is not None:
                     break
 
-            if stmt_ctx._rerun_position is None:
+            if stmt_ctx.rerun_position is None:
                 pos -= 1
 
-        return PassResult(changed=changed)
 
-
-class BlockILTransform(FunctionPass):
+class BlockILTransform(IILTransform):
     """
-    Function transform that visits blocks in dominator-tree order.
+    IL transform that runs block transforms in dominator-tree order.
 
-    - Pre-order transforms run before visiting dominated children.
-    - Post-order transforms run after dominated children are processed.
+    Pre-order transforms run before dominated children;
+    post-order transforms run after children.
     """
 
-    def __init__(
-        self,
-        pre_order_transforms: Optional[Iterable[BlockPass]] = None,
-        post_order_transforms: Optional[Iterable[BlockPass]] = None,
-    ):
-        self.pre_order_transforms = list(pre_order_transforms or [])
-        self.post_order_transforms = list(post_order_transforms or [])
+    def __init__(self):
+        self.pre_order_transforms: List[IBlockTransform] = []
+        self.post_order_transforms: List[IBlockTransform] = []
         self._running = False
 
-    def run(self, function: IRFunction, ctx: FunctionTransformContext) -> PassResult:
+    def run(self, function: IRFunction, context: ILTransformContext) -> None:
         if self._running:
-            raise RuntimeError("BlockILTransform reentrancy detected.")
+            raise RuntimeError(
+                "Reentrancy detected. Transforms are not thread-safe/re-entrant."
+            )
+
         self._running = True
         try:
-            any_change = False
             for container in iter_block_containers(function):
-                ctx.check_cancellation()
+                context.throw_if_cancellation_requested()
                 if container.entry_block is None:
                     continue
 
@@ -273,46 +342,37 @@ class BlockILTransform(FunctionPass):
                 if entry not in cfg:
                     continue
 
-                try:
-                    immediate_dominators = nx.immediate_dominators(cfg, entry)
-                except Exception:
-                    logger.debug(
-                        "Failed to compute dominators for container in %s",
-                        function.function_name,
-                    )
-                    continue
-
+                immediate_dominators = nx.immediate_dominators(cfg, entry)
                 dom_children = build_dominator_tree_children(
-                    immediate_dominators, entry
+                    immediate_dominators,
+                    entry,
                 )
 
                 block_ctx = BlockTransformContext(
-                    parent=ctx,
+                    context=context,
                     container=container,
                     control_flow_graph=cfg,
                     immediate_dominators=immediate_dominators,
                     dominator_tree_children=dom_children,
                 )
 
-                def visit(block: IRBlock) -> None:
-                    nonlocal any_change
-                    block_ctx.block = block
-                    for transform in self.pre_order_transforms:
-                        block_ctx.check_cancellation()
-                        result = transform.run(block, block_ctx)
-                        any_change = any_change or result.changed
-
-                    for child in dom_children.get(block, []):
-                        visit(child)
-
-                    block_ctx.block = block
-                    for transform in self.post_order_transforms:
-                        block_ctx.check_cancellation()
-                        result = transform.run(block, block_ctx)
-                        any_change = any_change or result.changed
-
-                visit(entry)
-
-            return PassResult(changed=any_change)
+                self._visit_block(entry, block_ctx)
         finally:
             self._running = False
+
+    def _visit_block(self, cfg_node: IRBlock, context: BlockTransformContext) -> None:
+        block = cfg_node
+        context.block = block
+        context.control_flow_node = cfg_node
+        context.step_start_group(block.label)
+
+        run_block_transforms(block, self.pre_order_transforms, context)
+
+        for child in context.dominator_tree_children.get(cfg_node, []):
+            self._visit_block(child, context)
+
+        context.block = block
+        context.control_flow_node = cfg_node
+        run_block_transforms(block, self.post_order_transforms, context)
+
+        context.step_end_group()
