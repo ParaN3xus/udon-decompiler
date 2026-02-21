@@ -53,6 +53,9 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.condition_detection import (
         ConditionDetection,
     )
+    from udon_decompiler.analysis.transform.passes.collect_variables import (
+        CollectVariables,
+    )
     from udon_decompiler.analysis.transform.passes.const_to_literal import (
         ConstToLiteral,
     )
@@ -63,6 +66,9 @@ def build_default_pipeline() -> TransformPipeline:
         HighLevelLoopTransform,
     )
     from udon_decompiler.analysis.transform.passes.loop_detection import LoopDetection
+    from udon_decompiler.analysis.transform.passes.promote_globals import (
+        PromoteGlobals,
+    )
     from udon_decompiler.analysis.transform.passes.temp_variable_inline import (
         TempVariableInline,
     )
@@ -82,8 +88,10 @@ def build_default_pipeline() -> TransformPipeline:
             DetectExitPoints(can_introduce_exit_for_return=True),
             block_condition_transform,
             HighLevelLoopTransform(),
+            CollectVariables(),
         ],
         program_transforms=[
             IRClassConstructionTransform(),
+            PromoteGlobals(),
         ],
     )
