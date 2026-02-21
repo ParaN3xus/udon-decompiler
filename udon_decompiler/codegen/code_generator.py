@@ -7,18 +7,24 @@ from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
     IRBlock,
+    IRBlockContainer,
     IRClass,
     IRConstructorCallExpression,
+    IRContainerKind,
     IRExpression,
     IRExpressionStatement,
     IRExternalCallExpression,
     IRFunction,
     IRIf,
     IRInternalCallExpression,
+    IRJump,
+    IRLeave,
     IRLiteralExpression,
     IROperatorCallExpression,
     IRPropertyAccessExpression,
+    IRReturn,
     IRStatement,
+    IRSwitch,
     IRVariableDeclearationStatement,
     IRVariableExpression,
 )
@@ -39,6 +45,13 @@ class CSharpCodeGenerator:
         Operator.LogicalOr,
         Operator.LogicalXor,
     }
+
+    def __init__(self) -> None:
+        self._function_body: Optional[IRBlockContainer] = None
+        self._synthetic_label_counter = 0
+        self._block_label_cache: dict[int, str] = {}
+        self._container_exit_labels: dict[int, str] = {}
+        self._used_container_exit_labels: Set[str] = set()
 
     def generate(self, class_ir: IRClass) -> str:
         logger.info(f"Generating C# code for {class_ir.class_name}...")
@@ -88,6 +101,12 @@ class CSharpCodeGenerator:
         return f"{var_type} {variable.name} = {initial};"
 
     def _generate_function(self, function: IRFunction) -> list[str]:
+        self._function_body = function.body
+        self._synthetic_label_counter = 0
+        self._block_label_cache = {}
+        self._container_exit_labels = {}
+        self._used_container_exit_labels = set()
+
         function_signature = (
             f"{'public ' if function.is_function_public else ''}"
             f"void {function.function_name}()"
@@ -103,210 +122,346 @@ class CSharpCodeGenerator:
         if function.variable_declarations:
             lines.append("")
 
-        if function.body is None:
-            raise Exception("Function body is None")
-        # lines.extend(self._generate_block_container(function.body))
+        lines.extend(
+            self._generate_block_container(
+                function.body,
+                is_root=True,
+                break_target=None,
+            )
+        )
 
         lines.append("}")
         return lines
 
-    def _generate_statement_lines(self, statement: IRStatement) -> list[str]:
-        match statement:
-            case IRAssignmentStatement(target=target, value=value):
-                value_str = self._generate_expression(value, as_value=True)
-                return [f"{target.name} = {value_str};"]
-            case IRExpressionStatement(expression=expression):
-                return [f"{self._generate_expression(expression, as_value=False)};"]
-            case IRVariableDeclearationStatement() as declaration:
-                return [self._generate_variable_declaration(declaration)]
-            case IRIf(
-                condition=condition,
-                true_statement=true_statement,
-                false_statement=false_statement,
-            ):
-                condition_str = self._generate_expression(condition, as_value=True)
-                lines = [f"if ({condition_str})", "{"]
-                lines.extend(self._generate_statement_lines(true_statement))
-                lines.append("}")
-                if false_statement is not None:
-                    lines.extend(["else", "{"])
-                    lines.extend(self._generate_statement_lines(false_statement))
-                    lines.append("}")
-                return lines
-            # case IRSwitchStatement(
-            #     test_value=test_value, cases=cases, default_body=default_body
-            # ):
-            #     lines = [
-            #        f"switch ({self._generate_expression(test_value, as_value=True)})",
-            #         "{",
-            #     ]
-            #     for switch_case in cases:
-            #         for case_value in switch_case.values:
-            #             rendered_case = self._generate_expression(
-            #                 case_value, as_value=True
-            #             )
-            #             lines.append(f"case {rendered_case}:")
-            #         lines.extend(self._generate_block_contents(switch_case.body))
-            #         lines.append("break;")
-            #     if default_body is not None:
-            #         lines.append("default:")
-            #         lines.extend(self._generate_block_contents(default_body))
-            #         lines.append("break;")
-            #     lines.append("}")
-            #     return lines
-            # case IRWhileLoopStatement(condition=condition, body=body):
-            #     condition_str = self._generate_expression(condition, as_value=True)
-            #     lines = [f"while ({condition_str})", "{"]
-            #     lines.extend(self._generate_block_contents(body))
-            #     lines.append("}")
-            #     return lines
-            # case IRDoWhileLoopStatement(condition=condition, body=body):
-            #     condition_str = self._generate_expression(condition, as_value=True)
-            #     lines = ["do", "{"]
-            #     lines.extend(self._generate_block_contents(body))
-            #     lines.append(f"}} while ({condition_str});")
-            #     return lines
-            # case IRBreakStatement():
-            #     return ["break;"]
-            # case IRContinueStatement():
-            #     return ["continue;"]
-            # case IRTerminator() as terminator:
-            #     return self._generate_terminator(terminator, None)
-            # case IRReturnStatement():
-            #     return ["return;"]
-            case IRBlock() as block:
-                return self._generate_block_contents(block)
-            # case IRBasicBlock() as block:
-            #    lines = []
-            #    if block.should_emit_label:
-            #        lines.append(f"{self._label_for(block)}:")
-            #
-            #    for stmt in block.statements:
-            #        lines.extend(self._generate_statement_lines(stmt))
-            #
-            #    if block.terminator:
-            #        lines.extend(self._generate_statement_lines(block.terminator))
-            #
-            #    return lines
-            case _:
-                raise Exception(
-                    f"Unsupported IR statement type: {type(statement).__name__}"
-                )
+    def _generate_block_container(
+        self,
+        container: IRBlockContainer,
+        is_root: bool,
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        structured = self._try_generate_while(container)
+        if structured is not None:
+            return structured
 
-    def _generate_block_contents(self, block: IRBlock) -> list[str]:
-        lines: list[str] = []
-        for statement in block.statements:
-            lines.extend(self._generate_statement_lines(statement))
+        structured = self._try_generate_do_while(container)
+        if structured is not None:
+            return structured
+
+        return self._generate_unstructured_container(
+            container=container,
+            is_root=is_root,
+            break_target=break_target,
+        )
+
+    def _try_generate_while(self, container: IRBlockContainer) -> Optional[list[str]]:
+        if container.kind != IRContainerKind.WHILE:
+            return None
+
+        entry = container.entry_block
+        if entry is None:
+            return None
+        if len(container.blocks) != 1 or not entry.statements:
+            return None
+
+        terminal = entry.statements[-1]
+        if not isinstance(terminal, IRIf):
+            return None
+        if terminal.false_statement is None:
+            return None
+        if not self._is_leave_to_container(terminal.false_statement, container):
+            return None
+        if not isinstance(terminal.true_statement, IRBlock):
+            return None
+
+        condition = self._generate_expression(
+            terminal.condition,
+            as_value=True,
+        )
+        lines = [f"while ({condition})", "{"]
+        body_statements = entry.statements[:-1] + terminal.true_statement.statements
+        for statement in body_statements:
+            lines.extend(
+                self._generate_statement(
+                    statement=statement,
+                    current_container=container,
+                    next_block=None,
+                    break_target=container,
+                )
+            )
+        lines.append("}")
         return lines
 
+    def _try_generate_do_while(
+        self,
+        container: IRBlockContainer,
+    ) -> Optional[list[str]]:
+        if container.kind != IRContainerKind.DO_WHILE:
+            return None
+
+        entry = container.entry_block
+        if entry is None:
+            return None
+        if len(container.blocks) != 1 or not entry.statements:
+            return None
+
+        terminal = entry.statements[-1]
+        if not isinstance(terminal, IRIf):
+            return None
+        if terminal.false_statement is None:
+            return None
+        if not self._is_leave_to_container(terminal.false_statement, container):
+            return None
+        if not self._is_jump_to_block(terminal.true_statement, entry):
+            return None
+
+        lines = ["do", "{"]
+        for statement in entry.statements[:-1]:
+            lines.extend(
+                self._generate_statement(
+                    statement=statement,
+                    current_container=container,
+                    next_block=None,
+                    break_target=container,
+                )
+            )
+        condition = self._generate_expression(terminal.condition, as_value=True)
+        lines.append(f"}} while ({condition});")
+        return lines
+
+    def _generate_unstructured_container(
+        self,
+        container: IRBlockContainer,
+        is_root: bool,
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        lines: list[str] = []
+        if not is_root:
+            lines.append("{")
+
+        for index, block in enumerate(container.blocks):
+            lines.append(f"{self._label_for_block(block)}:")
+            next_block = (
+                container.blocks[index + 1]
+                if index + 1 < len(container.blocks)
+                else None
+            )
+            for stmt_index, statement in enumerate(block.statements):
+                statement_next_block = (
+                    next_block if stmt_index == len(block.statements) - 1 else None
+                )
+                lines.extend(
+                    self._generate_statement(
+                        statement=statement,
+                        current_container=container,
+                        next_block=statement_next_block,
+                        break_target=break_target,
+                    )
+                )
+
+        exit_label = self._container_exit_labels.get(id(container))
+        if exit_label is not None and exit_label in self._used_container_exit_labels:
+            lines.append(f"{exit_label}:")
+            lines.append(";")
+
+        if not is_root:
+            lines.append("}")
+        return lines
+
+    def _generate_statement(
+        self,
+        statement: IRStatement,
+        current_container: Optional[IRBlockContainer],
+        next_block: Optional[IRBlock],
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        if isinstance(statement, IRAssignmentStatement):
+            rhs = self._generate_expression(statement.value, as_value=True)
+            return [f"{statement.target.name} = {rhs};"]
+
+        if isinstance(statement, IRExpressionStatement):
+            expression = self._generate_expression(
+                statement.expression,
+                as_value=False,
+            )
+            return [f"{expression};"]
+
+        if isinstance(statement, IRIf):
+            return self._generate_if_statement(
+                statement=statement,
+                current_container=current_container,
+                break_target=break_target,
+            )
+
+        if isinstance(statement, IRJump):
+            if (
+                break_target is not None
+                and break_target.entry_block is not None
+                and statement.target is break_target.entry_block
+            ):
+                return ["continue;"]
+            if next_block is not None and statement.target is next_block:
+                return []
+            return [f"goto {self._label_for_block(statement.target)};"]
+
+        if isinstance(statement, IRLeave):
+            if (
+                self._function_body is not None
+                and statement.target_container is self._function_body
+            ):
+                return ["return;"]
+            if break_target is not None and statement.target_container is break_target:
+                return ["break;"]
+            exit_label = self._get_container_exit_label(statement.target_container)
+            self._used_container_exit_labels.add(exit_label)
+            return [f"goto {exit_label};"]
+
+        if isinstance(statement, IRReturn):
+            return ["return;"]
+
+        if isinstance(statement, IRSwitch):
+            index_expr = self._generate_expression(
+                statement.index_expression,
+                as_value=True,
+            )
+            lines = [f"switch ({index_expr})", "{"]
+            for case_value, target in sorted(
+                statement.cases.items(),
+                key=lambda item: item[0],
+            ):
+                lines.append(f"case {case_value}:")
+                lines.append(f"goto {self._label_for_block(target)};")
+            if statement.default_target is not None:
+                lines.append("default:")
+                lines.append(f"goto {self._label_for_block(statement.default_target)};")
+            lines.append("}")
+            return lines
+
+        if isinstance(statement, IRBlock):
+            lines: list[str] = []
+            for nested in statement.statements:
+                lines.extend(
+                    self._generate_statement(
+                        statement=nested,
+                        current_container=current_container,
+                        next_block=None,
+                        break_target=break_target,
+                    )
+                )
+            return lines
+
+        if isinstance(statement, IRBlockContainer):
+            return self._generate_block_container(
+                container=statement,
+                is_root=False,
+                break_target=break_target,
+            )
+
+        raise Exception(f"Unsupported IR statement type: {type(statement).__name__}")
+
+    def _generate_if_statement(
+        self,
+        statement: IRIf,
+        current_container: Optional[IRBlockContainer],
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        condition = self._generate_expression(statement.condition, as_value=True)
+        lines = [f"if ({condition})", "{"]
+        lines.extend(
+            self._generate_branch_statement(
+                statement.true_statement,
+                current_container=current_container,
+                break_target=break_target,
+            )
+        )
+        lines.append("}")
+
+        if statement.false_statement is not None:
+            lines.append("else")
+            lines.append("{")
+            lines.extend(
+                self._generate_branch_statement(
+                    statement.false_statement,
+                    current_container=current_container,
+                    break_target=break_target,
+                )
+            )
+            lines.append("}")
+
+        return lines
+
+    def _generate_branch_statement(
+        self,
+        statement: IRStatement,
+        current_container: Optional[IRBlockContainer],
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        if isinstance(statement, IRBlock):
+            if current_container is not None and statement in current_container.blocks:
+                return [f"goto {self._label_for_block(statement)};"]
+
+            lines: list[str] = []
+            for nested in statement.statements:
+                lines.extend(
+                    self._generate_statement(
+                        statement=nested,
+                        current_container=current_container,
+                        next_block=None,
+                        break_target=break_target,
+                    )
+                )
+            return lines
+
+        return self._generate_statement(
+            statement=statement,
+            current_container=current_container,
+            next_block=None,
+            break_target=break_target,
+        )
+
+    def _label_for_block(self, block: IRBlock) -> str:
+        if block.start_address >= 0:
+            return f"label_bb_{block.start_address:08x}"
+
+        key = id(block)
+        existing = self._block_label_cache.get(key)
+        if existing is not None:
+            return existing
+
+        label = f"label_synth_{self._synthetic_label_counter:04d}"
+        self._synthetic_label_counter += 1
+        self._block_label_cache[key] = label
+        return label
+
+    def _get_container_exit_label(self, container: IRBlockContainer) -> str:
+        key = id(container)
+        existing = self._container_exit_labels.get(key)
+        if existing is not None:
+            return existing
+
+        label = f"label_exit_{len(self._container_exit_labels):04d}"
+        self._container_exit_labels[key] = label
+        return label
+
     @staticmethod
-    def _label_for_id(block_id: int) -> str:
-        return f"label_bb_{block_id:08x}"
+    def _is_leave_to_container(
+        statement: IRStatement,
+        container: IRBlockContainer,
+    ) -> bool:
+        return (
+            isinstance(statement, IRLeave)
+            and statement.target_container is container
+        )
 
-    # def _generate_terminator(
-    #     self, terminator: IRTerminator, next_block: Optional[IRBasicBlock]
-    # ) -> list[str]:
-    #     match terminator:
-    #         case IRJumpTerminator(target=target):
-    #             if self._is_fallthrough(target, next_block):
-    #                 return []
-    #             return [f"goto {self._label_for(target)};"]
-    #         case IRConditionalJumpTerminator(
-    #             condition=condition,
-    #             true_target=true_target,
-    #             false_target=false_target,
-    #         ):
-    #             return self._generate_conditional_terminator(
-    #                 condition=condition,
-    #                 true_target=true_target,
-    #                 false_target=false_target,
-    #                 next_block=next_block,
-    #             )
-    #         case IRSwitchTerminator(
-    #             index_expression=index_expression,
-    #             cases=cases,
-    #             default_target=default_target,
-    #         ):
-    #             return self._generate_switch_terminator(
-    #                 index_expression=index_expression,
-    #                 cases=cases,
-    #                 default_target=default_target,
-    #                 next_block=next_block,
-    #             )
-    #         case IRReturnTerminator():
-    #             return ["return;"]
-    #         case IRNoOpTerminator():
-    #             return []
-    #         case _:
-    #             raise Exception(
-    #                 f"Unsupported terminator type: {type(terminator).__name__}"
-    #             )
+    @staticmethod
+    def _is_jump_to_block(statement: IRStatement, target: IRBlock) -> bool:
+        if isinstance(statement, IRJump):
+            return statement.target is target
+        if isinstance(statement, IRBlock) and len(statement.statements) == 1:
+            inner = statement.statements[0]
+            return isinstance(inner, IRJump) and inner.target is target
+        return False
 
-    # def _generate_conditional_terminator(
-    #    self,
-    #    condition: IRExpression,
-    #    true_target: IRBasicBlock,
-    #    false_target: IRBasicBlock,
-    #    next_block: Optional[IRBasicBlock],
-    # ) -> list[str]:
-    #    condition_str = self._generate_expression(condition, as_value=True)
-    #
-    #    true_is_next = self._is_fallthrough(true_target, next_block)
-    #    false_is_next = self._is_fallthrough(false_target, next_block)
-    #
-    #    if false_is_next:
-    #        if true_is_next:
-    #            return []
-    #        return self._if_goto(condition_str, self._label_for(true_target))
-    #
-    #    if true_is_next:
-    #        return self._if_goto(
-    #            f"!({condition_str})",
-    #            self._label_for(false_target),
-    #        )
-    #
-    #    lines = self._if_goto(condition_str, self._label_for(true_target))
-    #    lines.append(f"goto {self._label_for(false_target)};")
-    #    return lines
-    #
-    # def _generate_switch_terminator(
-    #    self,
-    #    index_expression: IRExpression,
-    #    cases: dict[int, IRBasicBlock],
-    #    default_target: Optional[IRBasicBlock],
-    #    next_block: Optional[IRBasicBlock],
-    # ) -> list[str]:
-    #    lines: list[str] = []
-    #    index_str = self._generate_expression(index_expression, as_value=True)
-    #
-    #    for case_value, target in sorted(cases.items(), key=lambda item: item[0]):
-    #        if self._is_fallthrough(target, next_block):
-    #            continue
-    #        lines.extend(
-    #            self._if_goto(
-    #                f"{index_str} == {case_value}",
-    #                self._label_for(target),
-    #            )
-    #        )
-    #
-    #    if default_target is not None and not self._is_fallthrough(
-    #        default_target,
-    #        next_block,
-    #    ):
-    #        lines.append(f"goto {self._label_for(default_target)};")
-    #
-    #    return lines
-
-    def _if_goto(self, condition: str, label: str) -> list[str]:
-        return [f"if ({condition})", "{", f"goto {label};", "}"]
-
-    # def _is_fallthrough(
-    #    self,
-    #    candidate: IRBasicBlock,
-    #    next_block: Optional[IRBasicBlock],
-    # ) -> bool:
-    #    return next_block is not None and candidate.id == next_block.id
-
+    # region Expression
     def _generate_expression(self, expression: IRExpression, as_value: bool) -> str:
         match expression:
             case IRLiteralExpression(value=value, type_hint=type_hint):
@@ -346,12 +501,11 @@ class CSharpCodeGenerator:
                 return f"new {function_info.type_name}({args})"
             case IROperatorCallExpression(
                 operator=operator,
-                function_info=function_info,
                 arguments=arguments,
             ):
                 return self._generate_operator(
                     operator=operator,
-                    function_info=function_info,
+                    function_info=None,
                     arguments=arguments,
                 )
             case _:
@@ -449,6 +603,8 @@ class CSharpCodeGenerator:
                 operand=arguments[0],
                 operand_index=0,
             )
+            if function_info is None:
+                return value
             return f"({function_info.type_name}){value}"
 
         operands = [
@@ -551,8 +707,7 @@ class CSharpCodeGenerator:
         except TypeError:
             return json.dumps(str(value))
 
-    # def _label_for(self, block: IRBasicBlock) -> str:
-    #     return f"label_bb_{block.id:08x}"
+    # endregion
 
     def _format(self, code: str) -> str:
         clang_format = shutil.which("clang-format")
