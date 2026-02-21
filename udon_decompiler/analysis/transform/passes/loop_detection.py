@@ -10,6 +10,7 @@ from udon_decompiler.analysis.ir.dominance import (
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
     IRBlockContainer,
+    IRContainerKind,
     IRIf,
     IRJump,
     IRLeave,
@@ -114,7 +115,10 @@ class LoopDetection(IBlockTransform):
             node.visited = False
             assert head.dominates(node) or not node.is_reachable
 
-        switch_container = IRBlockContainer(blocks=[])
+        switch_container = IRBlockContainer(
+            blocks=[],
+            kind=IRContainerKind.SWITCH,
+        )
         new_entry = IRBlock(
             statements=[switch_inst],
             start_address=self._next_synthetic_block_address(),
@@ -432,7 +436,10 @@ class LoopDetection(IBlockTransform):
             exit_point.user_data if exit_point else None,
         )
 
-        loop_container = IRBlockContainer(blocks=[])
+        loop_container = IRBlockContainer(
+            blocks=[],
+            kind=IRContainerKind.LOOP,
+        )
         new_entry = IRBlock(
             statements=list(old_entry.statements),
             start_address=self._next_synthetic_block_address(),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Optional
 
 from udon_decompiler.analysis.expression_builder import Operator
@@ -65,6 +66,15 @@ class IRStatement:
     pass
 
 
+class IRContainerKind(Enum):
+    BLOCK = "block"
+    LOOP = "loop"
+    SWITCH = "switch"
+    WHILE = "while"
+    DO_WHILE = "do_while"
+    FOR = "for"
+
+
 @dataclass
 class IRAssignmentStatement(IRStatement):
     target: Variable
@@ -106,6 +116,7 @@ class IRBlock(IRStatement):
 @dataclass
 class IRBlockContainer(IRStatement):
     blocks: List[IRBlock]
+    kind: IRContainerKind = IRContainerKind.BLOCK
 
     @property
     def entry_block(self) -> Optional[IRBlock]:
