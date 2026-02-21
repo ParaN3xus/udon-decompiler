@@ -2,21 +2,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, cast
 
-import networkx as nx
-
+from udon_decompiler.analysis.ir.control_flow_graph import ControlFlowGraph
+from udon_decompiler.analysis.ir.control_flow_node import ControlFlowNode
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
-    IRBlockContainer,
     IRClass,
     IRFunction,
 )
-from udon_decompiler.analysis.transform.ir_utils import (
-    build_container_cfg,
-    build_dominator_tree_children,
-    iter_block_containers,
-)
+from udon_decompiler.analysis.transform.ir_utils import iter_block_containers
 
 
 class TransformStepper:
@@ -162,22 +157,17 @@ class BlockTransformContext(ILTransformContext):
     def __init__(
         self,
         context: ILTransformContext,
-        container: IRBlockContainer,
-        control_flow_graph: nx.DiGraph,
-        immediate_dominators: Dict[IRBlock, IRBlock],
-        dominator_tree_children: Dict[IRBlock, List[IRBlock]],
+        control_flow_graph: ControlFlowGraph,
     ):
         super().__init__(
             function=context.function,
             program_context=context.program_context,
         )
-        self.container = container
+        self.container = control_flow_graph.container
         self.control_flow_graph = control_flow_graph
-        self.immediate_dominators = immediate_dominators
-        self.dominator_tree_children = dominator_tree_children
 
         self.block: Optional[IRBlock] = None
-        self.control_flow_node: Optional[IRBlock] = None
+        self.control_flow_node: Optional[ControlFlowNode] = None
         self._dirty = False
 
     @property
@@ -337,38 +327,34 @@ class BlockILTransform(IILTransform):
                 if container.entry_block is None:
                     continue
 
-                cfg = build_container_cfg(container)
-                entry = container.entry_block
-                if entry not in cfg:
-                    continue
-
-                immediate_dominators = nx.immediate_dominators(cfg, entry)
-                dom_children = build_dominator_tree_children(
-                    immediate_dominators,
-                    entry,
+                cfg = ControlFlowGraph(
+                    container=container,
+                    function_body=function.body,
                 )
+                entry_node = cfg.get_node(container.entry_block)
 
                 block_ctx = BlockTransformContext(
                     context=context,
-                    container=container,
                     control_flow_graph=cfg,
-                    immediate_dominators=immediate_dominators,
-                    dominator_tree_children=dom_children,
                 )
 
-                self._visit_block(entry, block_ctx)
+                self._visit_block(entry_node, block_ctx)
         finally:
             self._running = False
 
-    def _visit_block(self, cfg_node: IRBlock, context: BlockTransformContext) -> None:
-        block = cfg_node
+    def _visit_block(
+        self,
+        cfg_node: ControlFlowNode,
+        context: BlockTransformContext,
+    ) -> None:
+        block = cast(IRBlock, cfg_node.user_data)
         context.block = block
         context.control_flow_node = cfg_node
         context.step_start_group(block.label)
 
         run_block_transforms(block, self.pre_order_transforms, context)
 
-        for child in context.dominator_tree_children.get(cfg_node, []):
+        for child in cfg_node.dominator_tree_children or []:
             self._visit_block(child, context)
 
         context.block = block
