@@ -9,8 +9,6 @@ from udon_decompiler.analysis.dataflow_analyzer import (
     FunctionDataFlowAnalyzer,
 )
 from udon_decompiler.analysis.expression_builder import (
-    Expression,
-    ExpressionBuilder,
     ExpressionType,
 )
 from udon_decompiler.analysis.ir import (
@@ -64,8 +62,6 @@ __all__ = [
     "VariableIdentifier",
     "Variable",
     "VariableScope",
-    "ExpressionBuilder",
-    "Expression",
     "ExpressionType",
     "DataFlowAnalyzer",
     "FunctionDataFlowAnalyzer",
