@@ -1,11 +1,9 @@
-from typing import Dict, Final, List, Optional, cast
+from typing import Dict, Final, List, Optional, Set, cast
 
 from udon_decompiler.analysis.basic_block import (
     BasicBlock,
     BasicBlockType,
-    SwitchTableInfo,
 )
-from udon_decompiler.analysis.cfg import ControlFlowGraph
 from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
@@ -19,9 +17,13 @@ from udon_decompiler.analysis.ir.nodes import (
     IRIf,
     IRInternalCallExpression,
     IRJump,
+    IRLeave,
+    IRLiteralExpression,
     IROperatorCallExpression,
     IRPropertyAccessExpression,
+    IRReturn,
     IRStatement,
+    IRSwitch,
     IRVariableExpression,
 )
 from udon_decompiler.analysis.stack_simulator import (
@@ -67,16 +69,17 @@ class IRBuilder:
         self.module_info = UdonModuleInfo()
 
         self._block_map: Dict[int, IRBlock] = {}
+        self._body_container: Optional[IRBlockContainer] = None
 
     def build(self) -> IRFunction:
         for raw_block in self.raw_blocks:
-            ir_block = IRBlock(statements=[])
+            ir_block = IRBlock(statements=[], start_address=raw_block.start_address)
             self._block_map[raw_block.start_address] = ir_block
 
         body = IRBlockContainer(blocks=[])
+        self._body_container = body
         for raw_block in self.raw_blocks:
-            ir_block = self._block_map[raw_block.start_address]
-            ir_block.statements = self._build_statements(raw_block)
+            ir_block = self._build_block(raw_block)
             body.blocks.append(ir_block)
 
         return IRFunction(
@@ -86,14 +89,19 @@ class IRBuilder:
             body=body,
         )
 
+    def _build_block(self, block: BasicBlock) -> IRBlock:
+        ir_block = self._block_map[block.start_address]
+        ir_block.statements = self._build_statements(block)
+        return ir_block
+
     # region _build_statements
 
     def _build_statements(self, block: BasicBlock) -> List[IRStatement]:
         statements: List[IRStatement] = []
         for instruction in block.instructions:
-            statements.extend(
-                self._build_statements_from_instruction(block, instruction)
-            )
+            new_statements = self._build_statements_from_instruction(block, instruction)
+            statements.extend(new_statements)
+        self._append_implicit_fallthrough(block, statements)
         return statements
 
     def _build_statements_from_instruction(
@@ -107,11 +115,16 @@ class IRBuilder:
             case OpCode.JUMP:
                 return self._build_jump_statements(instruction)
             case OpCode.JUMP_IF_FALSE:
-                return self._build_jump_if_false_statements(instruction)
+                return self._build_jump_if_false_statements(block, instruction)
             case OpCode.JUMP_INDIRECT:
                 return self._build_jump_indirect_statements(block, instruction)
             case OpCode.NOP | OpCode.ANNOTATION | OpCode.POP | OpCode.PUSH:
                 return []
+            case _:
+                raise Exception(
+                    f"Unsupported opcode at 0x{instruction.address:08x}: "
+                    f"{instruction.opcode.name}"
+                )
 
     def _build_copy_statements(self, instruction: Instruction) -> List[IRStatement]:
         state = self._require_instruction_state(instruction.address)
@@ -250,18 +263,14 @@ class IRBuilder:
 
     def _build_jump_statements(self, instruction: Instruction) -> List[IRStatement]:
         internal_call_entry = self._resolve_internal_call_entry(instruction)
-        if internal_call_entry is None:
-            return self._build_internal_call_statements(instruction)
-
+        if internal_call_entry is not None:
+            return self._build_internal_call_statements(internal_call_entry)
         target_addr = instruction.get_jump_target()
-        return [IRJump(target=self._get_block_ref(target_addr))]
+        return [self._build_direct_jump_target_statement(target_addr)]
 
     def _build_internal_call_statements(
-        self, instruction: Instruction
+        self, target_entry: EntryPointInfo
     ) -> List[IRStatement]:
-        target_entry = self._resolve_internal_call_entry(instruction)
-        if target_entry is None:
-            return []
         return [
             IRExpressionStatement(
                 expression=IRInternalCallExpression(entry_point=target_entry),
@@ -269,11 +278,13 @@ class IRBuilder:
         ]
 
     def _build_jump_if_false_statements(
-        self, instruction: Instruction
+        self, block: BasicBlock, instruction: Instruction
     ) -> List[IRStatement]:
         false_addr = instruction.get_jump_target()
-        false_block = self._get_block_ref(false_addr)
-        jump_statement: IRStatement = IRJump(target=false_block)
+        false_branch = self._build_direct_jump_target_statement(false_addr)
+        true_branch = self._resolve_fallthrough_terminator(
+            block, excluded_addresses={false_addr}
+        )
 
         condition = self._build_condition_expression(instruction)
 
@@ -284,8 +295,8 @@ class IRBuilder:
                     condition=IROperatorCallExpression(
                         arguments=[condition], operator=Operator.UnaryNegation
                     ),
-                    true_statement=jump_statement,
-                    false_statement=None,
+                    true_statement=false_branch,
+                    false_statement=true_branch,
                 ),
             )
         ]
@@ -293,18 +304,97 @@ class IRBuilder:
     def _build_jump_indirect_statements(
         self, block: BasicBlock, instruction: Instruction
     ) -> List[IRStatement]:
+        if block.block_type == BasicBlockType.RETURN:
+            return [self._build_function_exit_statement()]
+
         switch_info = block.switch_info
         if switch_info is None:
-            raise Exception("JUMP_INDIRECT without switch_info detected!")
+            raise Exception(
+                "Expected JUMP_INDIRECT to have switch_info for non-return block"
+            )
         index_expr = self._operand_to_expression(switch_info.index_operand)
 
         cases: Dict[int, IRBlock] = {}
         for case_val, target_addr in enumerate(switch_info.targets):
             cases[case_val] = self._get_block_ref(target_addr)
 
-        # todo!
+        excluded = {target.start_address for target in cases.values()}
+        default_target = self._resolve_fallthrough_target(
+            block, excluded_addresses=excluded
+        )
+        return [
+            IRSwitch(
+                index_expression=index_expr,
+                cases=cases,
+                default_target=default_target,
+            )
+        ]
 
     # endregion
+
+    def _append_implicit_fallthrough(
+        self, block: BasicBlock, statements: List[IRStatement]
+    ) -> None:
+        if statements and self._is_terminator(statements[-1]):
+            return
+
+        if block.block_type == BasicBlockType.RETURN:
+            statements.append(self._build_function_exit_statement())
+            return
+
+        target = self._resolve_fallthrough_target(block)
+        if target is not None:
+            statements.append(IRJump(target=target))
+
+    @staticmethod
+    def _is_terminator(statement: IRStatement) -> bool:
+        return isinstance(statement, (IRIf, IRJump, IRLeave, IRReturn, IRSwitch))
+
+    def _resolve_fallthrough_terminator(
+        self, block: BasicBlock, excluded_addresses: Optional[Set[int]] = None
+    ) -> Optional[IRStatement]:
+        target = self._resolve_fallthrough_target(block, excluded_addresses)
+        if target is not None:
+            return IRJump(target=target)
+        if block.block_type == BasicBlockType.RETURN:
+            return self._build_function_exit_statement()
+        return None
+
+    def _resolve_fallthrough_target(
+        self, block: BasicBlock, excluded_addresses: Optional[Set[int]] = None
+    ) -> Optional[IRBlock]:
+        excluded = excluded_addresses or set()
+        candidates = [
+            succ for succ in block.successors if succ.start_address not in excluded
+        ]
+        if len(candidates) == 1:
+            return self._get_block_ref(candidates[0].start_address)
+        if len(candidates) > 1:
+            next_block = self._resolve_fallthrough_by_next_address(block, excluded)
+            if next_block is not None:
+                return next_block
+            return self._get_block_ref(
+                min(candidates, key=lambda succ: succ.start_address).start_address
+            )
+        return self._resolve_fallthrough_by_next_address(block, excluded)
+
+    def _resolve_fallthrough_by_next_address(
+        self, block: BasicBlock, excluded_addresses: Set[int]
+    ) -> Optional[IRBlock]:
+        next_addr = block.last_instruction.next_address
+        if next_addr in self._block_map and next_addr not in excluded_addresses:
+            return self._get_block_ref(next_addr)
+        return None
+
+    def _build_direct_jump_target_statement(self, target_addr: int) -> IRStatement:
+        if target_addr in self._block_map:
+            return IRJump(target=self._get_block_ref(target_addr))
+        return self._build_function_exit_statement()
+
+    def _build_function_exit_statement(self) -> IRStatement:
+        if self._body_container is None:
+            raise Exception("IR body container is not initialized")
+        return IRLeave(target_container=self._body_container)
 
     def _build_condition_expression(self, instruction: Instruction) -> IRExpression:
         state = self._require_instruction_state(instruction.address)
@@ -319,6 +409,10 @@ class IRBuilder:
         variable = self.variable_identifier.get_variable(stack_value.value)
         if variable is not None:
             return IRVariableExpression(variable=variable)
+        if stack_value.literal_value is not None:
+            return IRLiteralExpression(
+                value=stack_value.literal_value, type_hint=stack_value.type_hint
+            )
 
         raise Exception("Unknown stack address 0x%08x in IR build" % stack_value.value)
 
@@ -326,8 +420,7 @@ class IRBuilder:
         variable = self.variable_identifier.get_variable(operand)
         if variable is not None:
             return IRVariableExpression(variable=variable)
-
-        raise Exception(f"Unknown operand 0x{operand:08x} for switch index")
+        return IRLiteralExpression(value=operand, type_hint="System.UInt32")
 
     def _resolve_operator(self, function_info: ExternFunctionInfo) -> Operator:
         if not function_info.function_name.startswith(self.EXTERN_OP_PREFIX):
@@ -344,6 +437,11 @@ class IRBuilder:
     def _resolve_internal_call_entry(
         self, instruction: Instruction
     ) -> Optional[EntryPointInfo]:
+        state = self.stack_simulator.get_instruction_state(instruction.address)
+        top = state.peek(0) if state is not None else None
+        if top is None or top.literal_value != instruction.next_address:
+            return None
+
         target = instruction.get_jump_target()
         return next(
             (ep for ep in self.program.entry_points if ep.call_jump_target == target),
