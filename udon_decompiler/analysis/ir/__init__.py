@@ -5,6 +5,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
     IRBlock,
     IRClass,
+    IRContainerKind,
     IRConstructorCallExpression,
     IRExpression,
     IRExpressionStatement,
@@ -35,5 +36,6 @@ __all__ = [
     "IRExpressionStatement",
     "IRFunction",
     "IRBlock",
+    "IRContainerKind",
     "IRClass",
 ]
