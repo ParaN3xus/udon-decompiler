@@ -1,11 +1,19 @@
 from udon_decompiler.analysis.transform.passes.class_construction import (
     IRClassConstructionTransform,
 )
+from udon_decompiler.analysis.transform.passes.condition_detection import (
+    ConditionDetection,
+)
+from udon_decompiler.analysis.transform.passes.detect_exit_points import (
+    DetectExitPoints,
+)
 from udon_decompiler.analysis.transform.passes.loop_detection import (
     LoopDetection,
 )
 
 __all__ = [
     "IRClassConstructionTransform",
+    "ConditionDetection",
+    "DetectExitPoints",
     "LoopDetection",
 ]

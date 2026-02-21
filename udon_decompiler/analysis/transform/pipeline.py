@@ -50,13 +50,27 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.class_construction import (
         IRClassConstructionTransform,
     )
+    from udon_decompiler.analysis.transform.passes.condition_detection import (
+        ConditionDetection,
+    )
+    from udon_decompiler.analysis.transform.passes.detect_exit_points import (
+        DetectExitPoints,
+    )
     from udon_decompiler.analysis.transform.passes.loop_detection import LoopDetection
 
-    block_transform = BlockILTransform()
-    block_transform.post_order_transforms.append(LoopDetection())
+    block_loop_transform = BlockILTransform()
+    block_loop_transform.post_order_transforms.append(LoopDetection())
+
+    block_condition_transform = BlockILTransform()
+    block_condition_transform.post_order_transforms.append(ConditionDetection())
 
     return TransformPipeline(
-        il_transforms=[block_transform],
+        il_transforms=[
+            DetectExitPoints(can_introduce_exit_for_return=False),
+            block_loop_transform,
+            DetectExitPoints(can_introduce_exit_for_return=True),
+            block_condition_transform,
+        ],
         program_transforms=[
             IRClassConstructionTransform(),
         ],
