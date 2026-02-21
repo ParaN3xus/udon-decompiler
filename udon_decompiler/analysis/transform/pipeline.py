@@ -46,12 +46,17 @@ class TransformPipeline:
 
 
 def build_default_pipeline() -> TransformPipeline:
+    from udon_decompiler.analysis.transform.pass_base import BlockILTransform
     from udon_decompiler.analysis.transform.passes.class_construction import (
         IRClassConstructionTransform,
     )
+    from udon_decompiler.analysis.transform.passes.loop_detection import LoopDetection
+
+    block_transform = BlockILTransform()
+    block_transform.post_order_transforms.append(LoopDetection())
 
     return TransformPipeline(
-        il_transforms=[],
+        il_transforms=[block_transform],
         program_transforms=[
             IRClassConstructionTransform(),
         ],
