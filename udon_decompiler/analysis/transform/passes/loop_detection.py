@@ -44,6 +44,9 @@ class LoopDetection(IBlockTransform):
         if head.user_data is not block:
             head = context.control_flow_graph.get_node(block)
 
+        if block.statements and isinstance(block.statements[-1], IRSwitch):
+            self._detect_switch_body(block, head)
+
         loop: Optional[list[ControlFlowNode]] = None
         for pred in head.predecessors:
             if not head.dominates(pred):
@@ -60,7 +63,11 @@ class LoopDetection(IBlockTransform):
 
         self._include_nested_containers(loop)
 
-        exit_point = self._extend_loop(head, loop)
+        exit_point = self._extend_loop(
+            head,
+            loop,
+            treat_back_edges_as_exits=False,
+        )
 
         loop.sort(key=lambda n: -n.post_order_number)
         for node in loop:
@@ -69,6 +76,65 @@ class LoopDetection(IBlockTransform):
 
         self._construct_loop(loop, exit_point)
         context.mark_dirty()
+
+    def _detect_switch_body(
+        self,
+        block: IRBlock,
+        head: ControlFlowNode,
+    ) -> None:
+        if not block.statements or not isinstance(block.statements[-1], IRSwitch):
+            return
+
+        switch_inst = cast(IRSwitch, block.statements[-1])
+
+        nodes_in_switch: list[ControlFlowNode] = [head]
+        head.visited = True
+        exit_point = self._extend_loop(
+            head,
+            nodes_in_switch,
+            treat_back_edges_as_exits=True,
+        )
+
+        assert self.context is not None
+        cfg = self.context.control_flow_graph
+        if (
+            exit_point is not None
+            and len(exit_point.predecessors) == 1
+            and not cfg.has_reachable_exit(exit_point)
+        ):
+            for node in self._dominator_pre_order(exit_point):
+                if node.visited:
+                    continue
+                node.visited = True
+                nodes_in_switch.append(node)
+            exit_point = None
+
+        nodes_in_switch.sort(key=lambda n: -n.post_order_number)
+        for node in nodes_in_switch:
+            node.visited = False
+            assert head.dominates(node) or not node.is_reachable
+
+        switch_container = IRBlockContainer(blocks=[])
+        new_entry = IRBlock(
+            statements=[switch_inst],
+            start_address=self._next_synthetic_block_address(),
+        )
+        switch_container.blocks.append(new_entry)
+
+        block.statements[-1] = switch_container
+        exit_target = cast(
+            Optional[IRBlock],
+            exit_point.user_data if exit_point else None,
+        )
+        if exit_target is not None:
+            block.statements.append(IRJump(target=exit_target))
+
+        self._move_blocks_into_container(nodes_in_switch, switch_container)
+        self._rewrite_switch_exit_edges(
+            switch_container=switch_container,
+            exit_target=exit_target,
+        )
+        self.context.mark_dirty()
 
     def _include_nested_containers(self, loop: list[ControlFlowNode]) -> None:
         index = 0
@@ -114,8 +180,13 @@ class LoopDetection(IBlockTransform):
         self,
         loop_head: ControlFlowNode,
         loop: list[ControlFlowNode],
+        treat_back_edges_as_exits: bool,
     ) -> Optional[ControlFlowNode]:
-        exit_point = self._find_exit_point(loop_head, loop)
+        exit_point = self._find_exit_point(
+            loop_head,
+            loop,
+            treat_back_edges_as_exits=treat_back_edges_as_exits,
+        )
         if exit_point is not None:
             self._add_dominated_until_exit(loop_head, loop, exit_point)
             if exit_point is self._NO_EXIT_POINT:
@@ -129,11 +200,18 @@ class LoopDetection(IBlockTransform):
         self,
         loop_head: ControlFlowNode,
         natural_loop: list[ControlFlowNode],
+        treat_back_edges_as_exits: bool,
     ) -> Optional[object]:
         assert self.context is not None
         cfg = self.context.control_flow_graph
 
-        if not cfg.has_reachable_exit(loop_head):
+        has_reachable_exit = cfg.has_reachable_exit(loop_head)
+        if not has_reachable_exit and treat_back_edges_as_exits:
+            has_reachable_exit = any(
+                loop_head.dominates(pred) for pred in loop_head.predecessors
+            )
+
+        if not has_reachable_exit:
             best_exit = self._pick_exit_point(loop_head)
             if best_exit is not None:
                 return best_exit
@@ -141,7 +219,7 @@ class LoopDetection(IBlockTransform):
 
         rev_cfg, exit_node_arity = self._prepare_reverse_cfg(
             loop_head,
-            treat_back_edges_as_exits=False,
+            treat_back_edges_as_exits=treat_back_edges_as_exits,
         )
 
         common_ancestor = rev_cfg[loop_head.user_index]
@@ -365,11 +443,7 @@ class LoopDetection(IBlockTransform):
         if exit_target is not None:
             old_entry.statements.append(IRJump(target=exit_target))
 
-        for node in loop[1:]:
-            block = cast(IRBlock, node.user_data)
-            if block in self.current_container.blocks:
-                self.current_container.blocks.remove(block)
-                loop_container.blocks.append(block)
+        self._move_blocks_into_container(loop, loop_container)
 
         self._rewrite_container_control_flow(
             loop_container,
@@ -377,6 +451,88 @@ class LoopDetection(IBlockTransform):
             new_entry,
             exit_target,
         )
+
+    def _move_blocks_into_container(
+        self,
+        nodes: list[ControlFlowNode],
+        target_container: IRBlockContainer,
+    ) -> None:
+        assert self.current_container is not None
+
+        for node in nodes[1:]:
+            block = cast(IRBlock, node.user_data)
+            if block in self.current_container.blocks:
+                self.current_container.blocks.remove(block)
+                target_container.blocks.append(block)
+
+    def _rewrite_switch_exit_edges(
+        self,
+        switch_container: IRBlockContainer,
+        exit_target: Optional[IRBlock],
+    ) -> None:
+        if exit_target is None:
+            return
+
+        for block in switch_container.blocks:
+            block.statements = [
+                self._rewrite_switch_exit_statement(
+                    statement=statement,
+                    switch_container=switch_container,
+                    exit_target=exit_target,
+                )
+                for statement in block.statements
+            ]
+
+    def _rewrite_switch_exit_statement(
+        self,
+        statement: IRStatement,
+        switch_container: IRBlockContainer,
+        exit_target: IRBlock,
+    ) -> IRStatement:
+        if isinstance(statement, IRJump):
+            if statement.target is exit_target:
+                return IRLeave(target_container=switch_container)
+            return statement
+
+        if isinstance(statement, IRIf):
+            statement.true_statement = self._rewrite_switch_exit_statement(
+                statement.true_statement,
+                switch_container,
+                exit_target,
+            )
+            if statement.false_statement is not None:
+                statement.false_statement = self._rewrite_switch_exit_statement(
+                    statement.false_statement,
+                    switch_container,
+                    exit_target,
+                )
+            return statement
+
+        if isinstance(statement, IRBlockContainer):
+            for block in statement.blocks:
+                block.statements = [
+                    self._rewrite_switch_exit_statement(
+                        nested,
+                        switch_container,
+                        exit_target,
+                    )
+                    for nested in block.statements
+                ]
+            return statement
+
+        return statement
+
+    @staticmethod
+    def _dominator_pre_order(root: ControlFlowNode) -> list[ControlFlowNode]:
+        result: list[ControlFlowNode] = []
+        stack: list[ControlFlowNode] = [root]
+        while stack:
+            node = stack.pop()
+            result.append(node)
+            children = node.dominator_tree_children or []
+            for child in reversed(children):
+                stack.append(child)
+        return result
 
     def _rewrite_container_control_flow(
         self,

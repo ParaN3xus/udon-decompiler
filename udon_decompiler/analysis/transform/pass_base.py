@@ -322,7 +322,11 @@ class BlockILTransform(IILTransform):
 
         self._running = True
         try:
-            for container in iter_block_containers(function):
+            # Snapshot containers before transforms, mirroring ILSpy's ToList()
+            # behavior. This avoids re-processing newly created containers
+            # in the same BlockILTransform run (e.g. during loop/switch detection).
+            containers = list(iter_block_containers(function))
+            for container in containers:
                 context.throw_if_cancellation_requested()
                 if container.entry_block is None:
                     continue
