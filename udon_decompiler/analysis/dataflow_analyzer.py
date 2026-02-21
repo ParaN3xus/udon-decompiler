@@ -8,7 +8,7 @@ from udon_decompiler.analysis.stack_simulator import (
     StackValue,
 )
 from udon_decompiler.analysis.transform import (
-    TransformContext,
+    ProgramTransformContext,
     build_default_pipeline,
 )
 from udon_decompiler.analysis.variable_identifier import (
@@ -54,14 +54,14 @@ class DataFlowAnalyzer:
 
         # Run transform pipeline on all functions
         all_functions = [a.get_ir() for a in self.function_analyzers.values()]
-        ctx = TransformContext(program=self.program)
+        ctx = ProgramTransformContext(program=self.program)
         pipeline = build_default_pipeline()
         pipeline.run(all_functions, ctx)
 
         logger.info(f"Completed dataflow analysis for {len(self.cfgs)} functions")
 
         if ctx.ir_class is None:
-            # Should be created by IRClassConstructionPass
+            # Should be created by IRClassConstructionTransform
             raise RuntimeError("IRClass was not constructed by the pipeline.")
 
         return ctx.ir_class
