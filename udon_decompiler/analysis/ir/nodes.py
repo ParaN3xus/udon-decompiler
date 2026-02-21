@@ -1,9 +1,10 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.variable_identifier import Variable
-from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.module_info import ExternFunctionInfo
 from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
 
@@ -76,19 +77,39 @@ class IRExpressionStatement(IRStatement):
 
 
 @dataclass
-class IRVariableDeclearationStatement(IRStatement):
+class IRVariableDeclarationStatement(IRStatement):
     variable: Variable
     init_value: Optional[IRLiteralExpression]
 
 
-@dataclass
+IRVariableDeclearationStatement = IRVariableDeclarationStatement
+
+
+@dataclass(eq=False)
 class IRBlock(IRStatement):
     statements: List[IRStatement]
+    start_address: int = -1
+
+    @property
+    def label(self) -> str:
+        return f"BB_{self.start_address:08x}"
+
+    def __hash__(self) -> int:
+        return hash(self.start_address)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, IRBlock):
+            return False
+        return self.start_address == other.start_address
 
 
 @dataclass
 class IRBlockContainer(IRStatement):
     blocks: List[IRBlock]
+
+    @property
+    def entry_block(self) -> Optional[IRBlock]:
+        return self.blocks[0] if self.blocks else None
 
 
 @dataclass
@@ -104,10 +125,27 @@ class IRJump(IRStatement):
 
 
 @dataclass
+class IRLeave(IRStatement):
+    target_container: IRBlockContainer
+
+
+@dataclass
+class IRReturn(IRStatement):
+    pass
+
+
+@dataclass
+class IRSwitch(IRStatement):
+    index_expression: IRExpression
+    cases: Dict[int, IRBlock]
+    default_target: Optional[IRBlock] = None
+
+
+@dataclass
 class IRFunction:
     function_name: str
     is_function_public: bool
-    variable_declarations: List[IRVariableDeclearationStatement]
+    variable_declarations: List[IRVariableDeclarationStatement]
 
     body: IRBlockContainer
 
@@ -117,5 +155,5 @@ class IRClass:
     class_name: str
     namespace: Optional[str]
     program: UdonProgramData
-    variable_declarations: List[IRVariableDeclearationStatement]
+    variable_declarations: List[IRVariableDeclarationStatement]
     functions: list[IRFunction]
