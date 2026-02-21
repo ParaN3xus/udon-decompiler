@@ -56,6 +56,9 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.detect_exit_points import (
         DetectExitPoints,
     )
+    from udon_decompiler.analysis.transform.passes.high_level_loop_transform import (
+        HighLevelLoopTransform,
+    )
     from udon_decompiler.analysis.transform.passes.loop_detection import LoopDetection
 
     block_loop_transform = BlockILTransform()
@@ -70,6 +73,7 @@ def build_default_pipeline() -> TransformPipeline:
             block_loop_transform,
             DetectExitPoints(can_introduce_exit_for_return=True),
             block_condition_transform,
+            HighLevelLoopTransform(),
         ],
         program_transforms=[
             IRClassConstructionTransform(),
