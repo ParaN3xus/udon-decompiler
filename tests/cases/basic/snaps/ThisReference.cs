@@ -5,9 +5,9 @@ public class ThisReference : UdonSharpBehaviour
 {
     public void _start()
     {
-        VRC.Udon.UdonBehaviour __lcl_currentBehaviour_VRCUdonUdonBehaviour_0;
-        UnityEngine.GameObject __lcl_currentGo_UnityEngineGameObject_0;
-        UnityEngine.Transform __lcl_currentTrans_UnityEngineTransform_0;
+        VRC.Udon.UdonBehaviour __lcl_currentBehaviour_VRCUdonUdonBehaviour_0 = null;
+        UnityEngine.GameObject __lcl_currentGo_UnityEngineGameObject_0 = null;
+        UnityEngine.Transform __lcl_currentTrans_UnityEngineTransform_0 = null;
 
         __lcl_currentBehaviour_VRCUdonUdonBehaviour_0 = this;
         UnityEngine.Debug.Log("Behaviour: " + __lcl_currentBehaviour_VRCUdonUdonBehaviour_0.name);

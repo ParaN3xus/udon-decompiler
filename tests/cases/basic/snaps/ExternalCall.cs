@@ -5,8 +5,8 @@ public class ExternalCall : UdonSharpBehaviour
 {
     public void _start()
     {
-        System.Int32 __lcl_absValue_SystemInt32_0;
-        UnityEngine.Transform __lcl_child_UnityEngineTransform_0;
+        System.Int32 __lcl_absValue_SystemInt32_0 = 0;
+        UnityEngine.Transform __lcl_child_UnityEngineTransform_0 = null;
 
         UnityEngine.Random.InitState(12345);
         __lcl_absValue_SystemInt32_0 = UnityEngine.Mathf.Abs(-99);

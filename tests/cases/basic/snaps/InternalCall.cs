@@ -26,12 +26,11 @@ public class InternalCall : UdonSharpBehaviour
 
     void fibonacci()
     {
-        System.Int32 __intnl_SystemInt32_2;
+        System.Int32 __intnl_SystemInt32_2 = 0;
 
         if (__0_n__param <= 2)
         {
             __0___0_fibonacci__ret = 1;
-            return;
         }
         else
         {
@@ -41,7 +40,7 @@ public class InternalCall : UdonSharpBehaviour
             __intnl_SystemInt32_2 = __0___0_fibonacci__ret;
             fibonacci();
             __0___0_fibonacci__ret = __intnl_SystemInt32_2 + __0___0_fibonacci__ret;
-            return;
         }
+        return;
     }
 }
