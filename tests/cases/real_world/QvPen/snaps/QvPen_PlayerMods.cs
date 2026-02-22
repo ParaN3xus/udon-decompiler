@@ -5,13 +5,13 @@ namespace QvPen.UdonScript.World
 {
     public class QvPen_PlayerMods : UdonSharpBehaviour
     {
-        System.Single jumpImpulse = 3.0f;
-        VRC.SDKBase.VRCPlayerApi onPlayerJoinedPlayer = null;
-        System.Boolean useLegacyLocomotion = false;
-        System.Single runSpeed = 4.0f;
         System.Single walkSpeed = 2.0f;
+        System.Single runSpeed = 4.0f;
         System.Single strafeSpeed = 2.0f;
+        System.Single jumpImpulse = 3.0f;
         System.Single gravityStrength = 1.0f;
+        System.Boolean useLegacyLocomotion = false;
+        VRC.SDKBase.VRCPlayerApi onPlayerJoinedPlayer = null;
 
         public void _onPlayerJoined()
         {
