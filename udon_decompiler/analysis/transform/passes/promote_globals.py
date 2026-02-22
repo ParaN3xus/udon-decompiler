@@ -7,10 +7,11 @@ from udon_decompiler.analysis.transform.pass_base import (
     IProgramTransform,
     ProgramTransformContext,
 )
+from udon_decompiler.analysis.variable_identifier import VariableScope
 
 
 class PromoteGlobals(IProgramTransform):
-    """Promote variables referenced by multiple functions into class globals."""
+    """Promote globals and shared locals into class-level declarations."""
 
     def run(
         self,
@@ -22,11 +23,14 @@ class PromoteGlobals(IProgramTransform):
 
         address_to_functions: Dict[int, set[int]] = {}
         address_to_decl: Dict[int, IRVariableDeclarationStatement] = {}
+        forced_global_addresses: set[int] = set()
 
         for fn_index, function in enumerate(functions):
             for declaration in function.variable_declarations:
                 addr = declaration.variable.address
                 address_to_functions.setdefault(addr, set()).add(fn_index)
+                if declaration.variable.scope == VariableScope.GLOBAL:
+                    forced_global_addresses.add(addr)
                 existing = address_to_decl.get(addr)
                 if existing is None or (
                     existing.init_value is None and declaration.init_value is not None
@@ -36,6 +40,7 @@ class PromoteGlobals(IProgramTransform):
         promoted_addresses = {
             addr for addr, owners in address_to_functions.items() if len(owners) >= 2
         }
+        promoted_addresses.update(forced_global_addresses)
 
         for function in functions:
             function.variable_declarations = [
