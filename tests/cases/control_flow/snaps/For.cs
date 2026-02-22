@@ -22,7 +22,6 @@ public class For : UdonSharpBehaviour
             __lcl_total_SystemInt32_0 = __lcl_total_SystemInt32_0 + __lcl_numbers_SystemInt32Array_0.Get(__lcl_i_SystemInt32_0);
             UnityEngine.Debug.Log(__lcl_i_SystemInt32_0);
             __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
-            continue;
         }
         UnityEngine.Debug.Log(__lcl_total_SystemInt32_0);
         return;

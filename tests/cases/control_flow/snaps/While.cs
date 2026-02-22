@@ -5,8 +5,8 @@ public class While : UdonSharpBehaviour
 {
     public void _start()
     {
-        System.Int32 __lcl_counter_SystemInt32_0;
-        System.Int32 __lcl_sum_SystemInt32_0;
+        System.Int32 __lcl_counter_SystemInt32_0 = 0;
+        System.Int32 __lcl_sum_SystemInt32_0 = 0;
 
         __lcl_counter_SystemInt32_0 = 0;
         __lcl_sum_SystemInt32_0 = 0;
@@ -17,7 +17,6 @@ public class While : UdonSharpBehaviour
             if (__lcl_sum_SystemInt32_0 > 20)
             {
                 UnityEngine.Debug.Log("Sum is growing");
-                continue;
             }
         }
         UnityEngine.Debug.Log(__lcl_sum_SystemInt32_0);
