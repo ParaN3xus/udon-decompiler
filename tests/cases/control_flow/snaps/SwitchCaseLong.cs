@@ -7,45 +7,50 @@ public class SwitchCaseLong : UdonSharpBehaviour
 
     public void __0_Run()
     {
-        System.String __lcl_itemName_SystemString_0;
+        System.String __lcl_itemName_SystemString_0 = null;
 
         __lcl_itemName_SystemString_0 = "";
-        switch (__0_id__param)
+        if (__0_id__param >= 0 && __0_id__param <= 110)
         {
-            case 101:
-                __lcl_itemName_SystemString_0 = "Apple";
-                break;
-            case 102:
-                __lcl_itemName_SystemString_0 = "Banana";
-                break;
-            case 103:
-                __lcl_itemName_SystemString_0 = "Cherry";
-                break;
-            case 104:
-                __lcl_itemName_SystemString_0 = "Date";
-                break;
-            case 105:
-                __lcl_itemName_SystemString_0 = "Elderberry";
-                break;
-            case 106:
-                __lcl_itemName_SystemString_0 = "Fig";
-                break;
-            case 107:
-                __lcl_itemName_SystemString_0 = "Grape";
-                break;
-            case 108:
-                __lcl_itemName_SystemString_0 = "Honeydew";
-                break;
-            case 109:
-                __lcl_itemName_SystemString_0 = "Pear";
-                break;
-            case 110:
-                __lcl_itemName_SystemString_0 = "Peach";
-                break;
-            default:
-                __lcl_itemName_SystemString_0 = "Unknown";
-                break;
+            switch (__0_id__param)
+            {
+                case 101:
+                    __lcl_itemName_SystemString_0 = "Apple";
+                    goto label_bb_000001d8;
+                case 102:
+                    __lcl_itemName_SystemString_0 = "Banana";
+                    goto label_bb_000001d8;
+                case 103:
+                    __lcl_itemName_SystemString_0 = "Cherry";
+                    goto label_bb_000001d8;
+                case 104:
+                    __lcl_itemName_SystemString_0 = "Date";
+                    goto label_bb_000001d8;
+                case 105:
+                    __lcl_itemName_SystemString_0 = "Elderberry";
+                    goto label_bb_000001d8;
+                case 106:
+                    __lcl_itemName_SystemString_0 = "Fig";
+                    goto label_bb_000001d8;
+                case 107:
+                    __lcl_itemName_SystemString_0 = "Grape";
+                    goto label_bb_000001d8;
+                case 108:
+                    __lcl_itemName_SystemString_0 = "Honeydew";
+                    goto label_bb_000001d8;
+                case 109:
+                    __lcl_itemName_SystemString_0 = "Pear";
+                    goto label_bb_000001d8;
+                case 110:
+                    __lcl_itemName_SystemString_0 = "Peach";
+                    goto label_bb_000001d8;
+                default:
+                    goto label_bb_000001bc;
+            }
         }
+    label_bb_000001bc:
+        __lcl_itemName_SystemString_0 = "Unknown";
+    label_bb_000001d8:
         UnityEngine.Debug.Log(__lcl_itemName_SystemString_0);
         return;
     }
