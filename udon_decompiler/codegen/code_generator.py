@@ -165,7 +165,7 @@ class CSharpCodeGenerator:
         entry = container.entry_block
         if entry is None:
             return None
-        if len(container.blocks) != 1 or not entry.statements:
+        if not entry.statements:
             return None
 
         terminal = entry.statements[-1]
@@ -175,7 +175,13 @@ class CSharpCodeGenerator:
             return None
         if not self._is_leave_to_container(terminal.false_statement, container):
             return None
-        if not isinstance(terminal.true_statement, IRBlock):
+        if not isinstance(terminal.true_statement, (IRBlock, IRJump)):
+            return None
+
+        # Keep `while (cond)` lowering simple and correct for now: if entry carries
+        # pre-condition side effects, fall back to unstructured output.
+        entry_prefix = entry.statements[:-1]
+        if entry_prefix:
             return None
 
         condition = self._generate_expression(
@@ -183,16 +189,40 @@ class CSharpCodeGenerator:
             as_value=True,
         )
         lines = [f"while ({condition})", "{"]
-        body_statements = entry.statements[:-1] + terminal.true_statement.statements
-        for statement in body_statements:
+
+        tail_blocks = container.blocks[1:]
+        tail_entry = tail_blocks[0] if tail_blocks else None
+
+        if isinstance(terminal.true_statement, IRBlock):
             lines.extend(
-                self._generate_statement(
-                    statement=statement,
+                self._generate_linear_statements(
+                    statements=terminal.true_statement.statements,
                     current_container=container,
-                    next_block=None,
+                    next_block=tail_entry,
                     break_target=container,
                 )
             )
+        else:
+            lines.extend(
+                self._generate_statement(
+                    statement=terminal.true_statement,
+                    current_container=container,
+                    next_block=tail_entry,
+                    break_target=container,
+                )
+            )
+
+        lines.extend(
+            self._generate_linear_blocks(
+                blocks=tail_blocks,
+                current_container=container,
+                break_target=container,
+            )
+        )
+
+        if lines and lines[-1] == "continue;":
+            lines.pop()
+
         lines.append("}")
         return lines
 
@@ -271,6 +301,47 @@ class CSharpCodeGenerator:
 
         if not is_root:
             lines.append("}")
+        return lines
+
+    def _generate_linear_blocks(
+        self,
+        blocks: list[IRBlock],
+        current_container: IRBlockContainer,
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        lines: list[str] = []
+        for index, block in enumerate(blocks):
+            next_block = blocks[index + 1] if index + 1 < len(blocks) else None
+            lines.extend(
+                self._generate_linear_statements(
+                    statements=block.statements,
+                    current_container=current_container,
+                    next_block=next_block,
+                    break_target=break_target,
+                )
+            )
+        return lines
+
+    def _generate_linear_statements(
+        self,
+        statements: list[IRStatement],
+        current_container: IRBlockContainer,
+        next_block: Optional[IRBlock],
+        break_target: Optional[IRBlockContainer],
+    ) -> list[str]:
+        lines: list[str] = []
+        for stmt_index, statement in enumerate(statements):
+            statement_next_block = (
+                next_block if stmt_index == len(statements) - 1 else None
+            )
+            lines.extend(
+                self._generate_statement(
+                    statement=statement,
+                    current_container=current_container,
+                    next_block=statement_next_block,
+                    break_target=break_target,
+                )
+            )
         return lines
 
     def _generate_statement(
