@@ -14,7 +14,8 @@ public class ShortCircuit : UdonSharpBehaviour
         System.Boolean __intnl_SystemBoolean_2 = false;
         System.Boolean __intnl_SystemBoolean_3 = false;
 
-        if (a > 0)
+        __intnl_SystemBoolean_0 = a > 0;
+        if (__intnl_SystemBoolean_0)
         {
             __intnl_SystemBoolean_0 = b < 100;
         }
@@ -22,7 +23,8 @@ public class ShortCircuit : UdonSharpBehaviour
         {
             UnityEngine.Debug.Log("AND Check Passed");
         }
-        if (!(a == 5))
+        __intnl_SystemBoolean_1 = a == 5;
+        if (!__intnl_SystemBoolean_1)
         {
             __intnl_SystemBoolean_1 = b == 5;
         }
@@ -30,9 +32,11 @@ public class ShortCircuit : UdonSharpBehaviour
         {
             UnityEngine.Debug.Log("OR Check Passed");
         }
-        if (a > b)
+        __intnl_SystemBoolean_2 = a > b;
+        if (__intnl_SystemBoolean_2)
         {
-            if (!(b > c))
+            __intnl_SystemBoolean_3 = b > c;
+            if (!__intnl_SystemBoolean_3)
             {
                 __intnl_SystemBoolean_3 = a == 10;
             }
