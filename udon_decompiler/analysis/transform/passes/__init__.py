@@ -16,6 +16,9 @@ from udon_decompiler.analysis.transform.passes.detect_exit_points import (
 from udon_decompiler.analysis.transform.passes.high_level_loop_transform import (
     HighLevelLoopTransform,
 )
+from udon_decompiler.analysis.transform.passes.high_level_switch_transform import (
+    HighLevelSwitchTransform,
+)
 from udon_decompiler.analysis.transform.passes.loop_detection import (
     LoopDetection,
 )
@@ -33,6 +36,7 @@ __all__ = [
     "ConstToLiteral",
     "DetectExitPoints",
     "HighLevelLoopTransform",
+    "HighLevelSwitchTransform",
     "LoopDetection",
     "PromoteGlobals",
     "TempVariableInline",

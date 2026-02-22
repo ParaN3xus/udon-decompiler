@@ -153,6 +153,19 @@ class IRSwitch(IRStatement):
 
 
 @dataclass
+class IRHighLevelSwitchSection:
+    labels: List[int]
+    body: IRBlock
+    is_default: bool = False
+
+
+@dataclass
+class IRHighLevelSwitch(IRStatement):
+    index_expression: IRExpression
+    sections: List[IRHighLevelSwitchSection]
+
+
+@dataclass
 class IRFunction:
     function_name: str
     is_function_public: bool

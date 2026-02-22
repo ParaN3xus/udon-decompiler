@@ -11,6 +11,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRExpressionStatement,
     IRExternalCallExpression,
     IRFunction,
+    IRHighLevelSwitch,
     IRIf,
     IRInternalCallExpression,
     IRLiteralExpression,
@@ -108,6 +109,12 @@ class CollectVariables(IILTransform):
 
         if isinstance(statement, IRSwitch):
             self._collect_from_expression(statement.index_expression, collected)
+            return
+
+        if isinstance(statement, IRHighLevelSwitch):
+            self._collect_from_expression(statement.index_expression, collected)
+            for section in statement.sections:
+                self._collect_from_block(section.body, seen_blocks, collected)
             return
 
     def _collect_from_expression(
