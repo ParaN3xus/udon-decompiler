@@ -7,6 +7,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
     IRBlockContainer,
     IRFunction,
+    IRHighLevelSwitch,
     IRIf,
     IRJump,
     IRLeave,
@@ -107,7 +108,17 @@ def _iter_nested_containers(statement: IRStatement) -> Iterator[IRBlockContainer
                 yield from _iter_nested_containers(nested_statement)
         return
 
+    if isinstance(statement, IRBlock):
+        for nested_statement in statement.statements:
+            yield from _iter_nested_containers(nested_statement)
+        return
+
     if isinstance(statement, IRIf):
         yield from _iter_nested_containers(statement.true_statement)
         if statement.false_statement is not None:
             yield from _iter_nested_containers(statement.false_statement)
+        return
+
+    if isinstance(statement, IRHighLevelSwitch):
+        for section in statement.sections:
+            yield from _iter_nested_containers(section.body)
