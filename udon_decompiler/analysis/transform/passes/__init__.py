@@ -13,6 +13,9 @@ from udon_decompiler.analysis.transform.passes.collect_label_usage import (
 from udon_decompiler.analysis.transform.passes.const_to_literal import (
     ConstToLiteral,
 )
+from udon_decompiler.analysis.transform.passes.control_flow_simplification import (
+    ControlFlowSimplification,
+)
 from udon_decompiler.analysis.transform.passes.detect_exit_points import (
     DetectExitPoints,
 )
@@ -41,6 +44,7 @@ __all__ = [
     "CollectVariables",
     "CollectLabelUsage",
     "ConstToLiteral",
+    "ControlFlowSimplification",
     "DetectExitPoints",
     "HighLevelLoopTransform",
     "HighLevelSwitchTransform",

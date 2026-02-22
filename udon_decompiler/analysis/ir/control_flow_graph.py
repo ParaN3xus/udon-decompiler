@@ -80,7 +80,7 @@ class ControlFlowGraph:
 
     def _initialize_nodes(self) -> None:
         for index, block in enumerate(self.container.blocks):
-            node = ControlFlowNode(user_index=index, user_data=block)
+            node = ControlFlowNode(user_index=index, block=block)
             self.cfg.append(node)
             self._dict[block] = node
 
