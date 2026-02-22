@@ -7,7 +7,9 @@ from udon_decompiler.analysis.ir.nodes import (
     IRBlockContainer,
     IRContainerKind,
     IRFunction,
+    IRHighLevelDoWhile,
     IRHighLevelSwitch,
+    IRHighLevelWhile,
     IRIf,
     IRJump,
     IRLeave,
@@ -35,6 +37,7 @@ class CollectLabelUsage(IILTransform):
         self._analyze_container(
             container=function.body,
             break_target=None,
+            continue_target=None,
             function_body=function.body,
         )
 
@@ -59,6 +62,10 @@ class CollectLabelUsage(IILTransform):
                     self._reset_in_statement(nested)
             return
 
+        if isinstance(statement, (IRHighLevelWhile, IRHighLevelDoWhile)):
+            self._reset_flags(statement.body)
+            return
+
         if isinstance(statement, IRBlock):
             statement.should_emit_label = False
             for nested in statement.statements:
@@ -72,11 +79,13 @@ class CollectLabelUsage(IILTransform):
         self,
         container: IRBlockContainer,
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
         function_body: IRBlockContainer,
     ) -> None:
         if self._analyze_while_like(
             container=container,
             break_target=break_target,
+            continue_target=continue_target,
             function_body=function_body,
         ):
             return
@@ -84,6 +93,7 @@ class CollectLabelUsage(IILTransform):
         if self._analyze_do_while_like(
             container=container,
             break_target=break_target,
+            continue_target=continue_target,
             function_body=function_body,
         ):
             return
@@ -103,6 +113,7 @@ class CollectLabelUsage(IILTransform):
                     current_container=container,
                     next_block=statement_next_block,
                     break_target=break_target,
+                    continue_target=continue_target,
                     function_body=function_body,
                 )
 
@@ -110,6 +121,7 @@ class CollectLabelUsage(IILTransform):
         self,
         container: IRBlockContainer,
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
         function_body: IRBlockContainer,
     ) -> bool:
         if container.kind != IRContainerKind.WHILE:
@@ -136,6 +148,7 @@ class CollectLabelUsage(IILTransform):
                 current_container=container,
                 next_block=None,
                 break_target=container,
+                continue_target=continue_target,
                 function_body=function_body,
             )
         return True
@@ -144,6 +157,7 @@ class CollectLabelUsage(IILTransform):
         self,
         container: IRBlockContainer,
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
         function_body: IRBlockContainer,
     ) -> bool:
         _ = break_target
@@ -170,6 +184,7 @@ class CollectLabelUsage(IILTransform):
                 current_container=container,
                 next_block=None,
                 break_target=container,
+                continue_target=continue_target,
                 function_body=function_body,
             )
         return True
@@ -180,6 +195,7 @@ class CollectLabelUsage(IILTransform):
         current_container: Optional[IRBlockContainer],
         next_block: Optional[IRBlock],
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
         function_body: IRBlockContainer,
     ) -> None:
         if isinstance(statement, IRIf):
@@ -187,6 +203,7 @@ class CollectLabelUsage(IILTransform):
                 statement=statement.true_statement,
                 current_container=current_container,
                 break_target=break_target,
+                continue_target=continue_target,
                 function_body=function_body,
             )
             if statement.false_statement is not None:
@@ -194,8 +211,27 @@ class CollectLabelUsage(IILTransform):
                     statement=statement.false_statement,
                     current_container=current_container,
                     break_target=break_target,
+                    continue_target=continue_target,
                     function_body=function_body,
                 )
+            return
+
+        if isinstance(statement, IRHighLevelWhile):
+            self._analyze_container(
+                container=statement.body,
+                break_target=statement.break_target,
+                continue_target=statement.continue_target,
+                function_body=function_body,
+            )
+            return
+
+        if isinstance(statement, IRHighLevelDoWhile):
+            self._analyze_container(
+                container=statement.body,
+                break_target=statement.break_target,
+                continue_target=statement.continue_target,
+                function_body=function_body,
+            )
             return
 
         if isinstance(statement, IRHighLevelSwitch):
@@ -206,15 +242,15 @@ class CollectLabelUsage(IILTransform):
                         current_container=current_container,
                         next_block=None,
                         break_target=None,
+                        continue_target=None,
                         function_body=function_body,
                     )
             return
 
         if isinstance(statement, IRJump):
             if (
-                break_target is not None
-                and break_target.entry_block is not None
-                and statement.target is break_target.entry_block
+                continue_target is not None
+                and statement.target is continue_target
             ):
                 return
             if next_block is not None and statement.target is next_block:
@@ -240,6 +276,7 @@ class CollectLabelUsage(IILTransform):
                     current_container=current_container,
                     next_block=None,
                     break_target=break_target,
+                    continue_target=continue_target,
                     function_body=function_body,
                 )
             return
@@ -248,6 +285,7 @@ class CollectLabelUsage(IILTransform):
             self._analyze_container(
                 container=statement,
                 break_target=break_target,
+                continue_target=continue_target,
                 function_body=function_body,
             )
 
@@ -256,6 +294,7 @@ class CollectLabelUsage(IILTransform):
         statement: IRStatement,
         current_container: Optional[IRBlockContainer],
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
         function_body: IRBlockContainer,
     ) -> None:
         if (
@@ -271,6 +310,7 @@ class CollectLabelUsage(IILTransform):
             current_container=current_container,
             next_block=None,
             break_target=break_target,
+            continue_target=continue_target,
             function_body=function_body,
         )
 

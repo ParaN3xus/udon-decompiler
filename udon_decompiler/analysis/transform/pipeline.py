@@ -79,6 +79,7 @@ def build_default_pipeline() -> TransformPipeline:
         PromoteGlobals,
     )
     from udon_decompiler.analysis.transform.passes import (
+        high_level_loop_statement_transform,
         structured_control_flow_cleanup_transform,
     )
     from udon_decompiler.analysis.transform.passes.temp_variable_inline import (
@@ -102,6 +103,7 @@ def build_default_pipeline() -> TransformPipeline:
             block_condition_transform,
             HighLevelLoopTransform(),
             HighLevelSwitchTransform(),
+            high_level_loop_statement_transform.HighLevelLoopStatementTransform(),
             structured_control_flow_cleanup_transform.StructuredControlFlowCleanupTransform(),
             CollectLabelUsage(),
             CollectVariables(),

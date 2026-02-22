@@ -15,7 +15,9 @@ from udon_decompiler.analysis.ir.nodes import (
     IRExpressionStatement,
     IRExternalCallExpression,
     IRFunction,
+    IRHighLevelDoWhile,
     IRHighLevelSwitch,
+    IRHighLevelWhile,
     IRIf,
     IRInternalCallExpression,
     IRJump,
@@ -126,6 +128,7 @@ class CSharpCodeGenerator:
                 function.body,
                 is_root=True,
                 break_target=None,
+                continue_target=None,
             )
         )
 
@@ -137,6 +140,7 @@ class CSharpCodeGenerator:
         container: IRBlockContainer,
         is_root: bool,
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
     ) -> list[str]:
         if container.kind == IRContainerKind.SWITCH:
             raise Exception(
@@ -144,130 +148,19 @@ class CSharpCodeGenerator:
                 "expected HighLevelSwitchTransform to lift it first."
             )
 
-        structured = self._try_generate_while(container)
-        if structured is not None:
-            return structured
-
-        structured = self._try_generate_do_while(container)
-        if structured is not None:
-            return structured
-
         return self._generate_unstructured_container(
             container=container,
             is_root=is_root,
             break_target=break_target,
+            continue_target=continue_target,
         )
-
-    def _try_generate_while(self, container: IRBlockContainer) -> Optional[list[str]]:
-        if container.kind != IRContainerKind.WHILE:
-            return None
-
-        entry = container.entry_block
-        if entry is None:
-            return None
-        if not entry.statements:
-            return None
-
-        terminal = entry.statements[-1]
-        if not isinstance(terminal, IRIf):
-            return None
-        if terminal.false_statement is None:
-            return None
-        if not self._is_leave_to_container(terminal.false_statement, container):
-            return None
-        if not isinstance(terminal.true_statement, (IRBlock, IRJump)):
-            return None
-
-        # Keep `while (cond)` lowering simple and correct for now: if entry carries
-        # pre-condition side effects, fall back to unstructured output.
-        entry_prefix = entry.statements[:-1]
-        if entry_prefix:
-            return None
-
-        condition = self._generate_expression(
-            terminal.condition,
-            as_value=True,
-        )
-        lines = [f"while ({condition})", "{"]
-
-        tail_blocks = container.blocks[1:]
-        tail_entry = tail_blocks[0] if tail_blocks else None
-
-        if isinstance(terminal.true_statement, IRBlock):
-            lines.extend(
-                self._generate_linear_statements(
-                    statements=terminal.true_statement.statements,
-                    current_container=container,
-                    next_block=tail_entry,
-                    break_target=container,
-                )
-            )
-        else:
-            lines.extend(
-                self._generate_statement(
-                    statement=terminal.true_statement,
-                    current_container=container,
-                    next_block=tail_entry,
-                    break_target=container,
-                )
-            )
-
-        lines.extend(
-            self._generate_linear_blocks(
-                blocks=tail_blocks,
-                current_container=container,
-                break_target=container,
-            )
-        )
-
-        if lines and lines[-1] == "continue;":
-            lines.pop()
-
-        lines.append("}")
-        return lines
-
-    def _try_generate_do_while(
-        self,
-        container: IRBlockContainer,
-    ) -> Optional[list[str]]:
-        if container.kind != IRContainerKind.DO_WHILE:
-            return None
-
-        entry = container.entry_block
-        if entry is None:
-            return None
-        if len(container.blocks) != 1 or not entry.statements:
-            return None
-
-        terminal = entry.statements[-1]
-        if not isinstance(terminal, IRIf):
-            return None
-        if terminal.false_statement is None:
-            return None
-        if not self._is_leave_to_container(terminal.false_statement, container):
-            return None
-        if not self._is_jump_to_block(terminal.true_statement, entry):
-            return None
-
-        lines = ["do", "{"]
-        for statement in entry.statements[:-1]:
-            lines.extend(
-                self._generate_statement(
-                    statement=statement,
-                    current_container=container,
-                    next_block=None,
-                    break_target=container,
-                )
-            )
-        condition = self._generate_expression(terminal.condition, as_value=True)
-        lines.append(f"}} while ({condition});")
-        return lines
 
     def _generate_unstructured_container(
         self,
         container: IRBlockContainer,
         is_root: bool,
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
     ) -> list[str]:
         lines: list[str] = []
         if not is_root:
@@ -291,6 +184,7 @@ class CSharpCodeGenerator:
                         current_container=container,
                         next_block=statement_next_block,
                         break_target=break_target,
+                        continue_target=continue_target,
                     )
                 )
 
@@ -303,53 +197,13 @@ class CSharpCodeGenerator:
             lines.append("}")
         return lines
 
-    def _generate_linear_blocks(
-        self,
-        blocks: list[IRBlock],
-        current_container: IRBlockContainer,
-        break_target: Optional[IRBlockContainer],
-    ) -> list[str]:
-        lines: list[str] = []
-        for index, block in enumerate(blocks):
-            next_block = blocks[index + 1] if index + 1 < len(blocks) else None
-            lines.extend(
-                self._generate_linear_statements(
-                    statements=block.statements,
-                    current_container=current_container,
-                    next_block=next_block,
-                    break_target=break_target,
-                )
-            )
-        return lines
-
-    def _generate_linear_statements(
-        self,
-        statements: list[IRStatement],
-        current_container: IRBlockContainer,
-        next_block: Optional[IRBlock],
-        break_target: Optional[IRBlockContainer],
-    ) -> list[str]:
-        lines: list[str] = []
-        for stmt_index, statement in enumerate(statements):
-            statement_next_block = (
-                next_block if stmt_index == len(statements) - 1 else None
-            )
-            lines.extend(
-                self._generate_statement(
-                    statement=statement,
-                    current_container=current_container,
-                    next_block=statement_next_block,
-                    break_target=break_target,
-                )
-            )
-        return lines
-
     def _generate_statement(
         self,
         statement: IRStatement,
         current_container: Optional[IRBlockContainer],
         next_block: Optional[IRBlock],
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
     ) -> list[str]:
         if isinstance(statement, IRAssignmentStatement):
             rhs = self._generate_expression(statement.value, as_value=True)
@@ -367,7 +221,14 @@ class CSharpCodeGenerator:
                 statement=statement,
                 current_container=current_container,
                 break_target=break_target,
+                continue_target=continue_target,
             )
+
+        if isinstance(statement, IRHighLevelWhile):
+            return self._generate_high_level_while(statement)
+
+        if isinstance(statement, IRHighLevelDoWhile):
+            return self._generate_high_level_do_while(statement)
 
         if isinstance(statement, IRHighLevelSwitch):
             return self._generate_high_level_switch(
@@ -377,9 +238,8 @@ class CSharpCodeGenerator:
 
         if isinstance(statement, IRJump):
             if (
-                break_target is not None
-                and break_target.entry_block is not None
-                and statement.target is break_target.entry_block
+                continue_target is not None
+                and statement.target is continue_target
             ):
                 return ["continue;"]
             if next_block is not None and statement.target is next_block:
@@ -415,6 +275,7 @@ class CSharpCodeGenerator:
                         current_container=current_container,
                         next_block=None,
                         break_target=break_target,
+                        continue_target=continue_target,
                     )
                 )
             return lines
@@ -424,6 +285,7 @@ class CSharpCodeGenerator:
                 container=statement,
                 is_root=False,
                 break_target=break_target,
+                continue_target=continue_target,
             )
 
         raise Exception(f"Unsupported IR statement type: {type(statement).__name__}")
@@ -433,6 +295,7 @@ class CSharpCodeGenerator:
         statement: IRIf,
         current_container: Optional[IRBlockContainer],
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
     ) -> list[str]:
         condition = self._generate_expression(statement.condition, as_value=True)
         lines = [f"if ({condition})", "{"]
@@ -441,6 +304,7 @@ class CSharpCodeGenerator:
                 statement.true_statement,
                 current_container=current_container,
                 break_target=break_target,
+                continue_target=continue_target,
             )
         )
         lines.append("}")
@@ -453,6 +317,7 @@ class CSharpCodeGenerator:
                     statement.false_statement,
                     current_container=current_container,
                     break_target=break_target,
+                    continue_target=continue_target,
                 )
             )
             lines.append("}")
@@ -464,6 +329,7 @@ class CSharpCodeGenerator:
         statement: IRStatement,
         current_container: Optional[IRBlockContainer],
         break_target: Optional[IRBlockContainer],
+        continue_target: Optional[IRBlock],
     ) -> list[str]:
         if isinstance(statement, IRBlock):
             if current_container is not None and statement in current_container.blocks:
@@ -477,6 +343,7 @@ class CSharpCodeGenerator:
                         current_container=current_container,
                         next_block=None,
                         break_target=break_target,
+                        continue_target=continue_target,
                     )
                 )
             return lines
@@ -486,6 +353,7 @@ class CSharpCodeGenerator:
             current_container=current_container,
             next_block=None,
             break_target=break_target,
+            continue_target=continue_target,
         )
 
     def _generate_high_level_switch(
@@ -512,6 +380,7 @@ class CSharpCodeGenerator:
                         current_container=current_container,
                         next_block=None,
                         break_target=None,
+                        continue_target=None,
                     )
                 )
 
@@ -519,6 +388,44 @@ class CSharpCodeGenerator:
                 lines.append("break;")
 
         lines.append("}")
+        return lines
+
+    def _generate_high_level_while(
+        self,
+        statement: IRHighLevelWhile,
+    ) -> list[str]:
+        condition = (
+            "true"
+            if statement.condition is None
+            else self._generate_expression(statement.condition, as_value=True)
+        )
+        lines = [f"while ({condition})", "{"]
+        lines.extend(
+            self._generate_block_container(
+                container=statement.body,
+                is_root=True,
+                break_target=statement.break_target,
+                continue_target=statement.continue_target,
+            )
+        )
+        lines.append("}")
+        return lines
+
+    def _generate_high_level_do_while(
+        self,
+        statement: IRHighLevelDoWhile,
+    ) -> list[str]:
+        lines = ["do", "{"]
+        lines.extend(
+            self._generate_block_container(
+                container=statement.body,
+                is_root=True,
+                break_target=statement.break_target,
+                continue_target=statement.continue_target,
+            )
+        )
+        condition = self._generate_expression(statement.condition, as_value=True)
+        lines.append(f"}} while ({condition});")
         return lines
 
     @staticmethod
@@ -551,25 +458,6 @@ class CSharpCodeGenerator:
         label = f"label_exit_{len(self._container_exit_labels):04d}"
         self._container_exit_labels[key] = label
         return label
-
-    @staticmethod
-    def _is_leave_to_container(
-        statement: IRStatement,
-        container: IRBlockContainer,
-    ) -> bool:
-        return (
-            isinstance(statement, IRLeave)
-            and statement.target_container is container
-        )
-
-    @staticmethod
-    def _is_jump_to_block(statement: IRStatement, target: IRBlock) -> bool:
-        if isinstance(statement, IRJump):
-            return statement.target is target
-        if isinstance(statement, IRBlock) and len(statement.statements) == 1:
-            inner = statement.statements[0]
-            return isinstance(inner, IRJump) and inner.target is target
-        return False
 
     # region Expression
     def _generate_expression(self, expression: IRExpression, as_value: bool) -> str:

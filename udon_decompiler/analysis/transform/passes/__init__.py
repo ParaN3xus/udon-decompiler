@@ -22,6 +22,9 @@ from udon_decompiler.analysis.transform.passes.detect_exit_points import (
 from udon_decompiler.analysis.transform.passes.high_level_loop_transform import (
     HighLevelLoopTransform,
 )
+from udon_decompiler.analysis.transform.passes import (
+    high_level_loop_statement_transform,
+)
 from udon_decompiler.analysis.transform.passes.high_level_switch_transform import (
     HighLevelSwitchTransform,
 )
@@ -47,6 +50,7 @@ __all__ = [
     "ControlFlowSimplification",
     "DetectExitPoints",
     "HighLevelLoopTransform",
+    "HighLevelLoopStatementTransform",
     "HighLevelSwitchTransform",
     "StructuredControlFlowCleanupTransform",
     "LoopDetection",
@@ -56,4 +60,7 @@ __all__ = [
 
 StructuredControlFlowCleanupTransform = (
     structured_control_flow_cleanup_transform.StructuredControlFlowCleanupTransform
+)
+HighLevelLoopStatementTransform = (
+    high_level_loop_statement_transform.HighLevelLoopStatementTransform
 )
