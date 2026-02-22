@@ -15,6 +15,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRExpressionStatement,
     IRExternalCallExpression,
     IRFunction,
+    IRHighLevelSwitch,
     IRIf,
     IRInternalCallExpression,
     IRJump,
@@ -139,6 +140,12 @@ class CSharpCodeGenerator:
         is_root: bool,
         break_target: Optional[IRBlockContainer],
     ) -> list[str]:
+        if container.kind == IRContainerKind.SWITCH:
+            raise Exception(
+                "Low-level switch container reached codegen; "
+                "expected HighLevelSwitchTransform to lift it first."
+            )
+
         structured = self._try_generate_while(container)
         if structured is not None:
             return structured
@@ -292,6 +299,12 @@ class CSharpCodeGenerator:
                 break_target=break_target,
             )
 
+        if isinstance(statement, IRHighLevelSwitch):
+            return self._generate_high_level_switch(
+                statement=statement,
+                current_container=current_container,
+            )
+
         if isinstance(statement, IRJump):
             if (
                 break_target is not None
@@ -319,22 +332,10 @@ class CSharpCodeGenerator:
             return ["return;"]
 
         if isinstance(statement, IRSwitch):
-            index_expr = self._generate_expression(
-                statement.index_expression,
-                as_value=True,
+            raise Exception(
+                "Low-level IRSwitch reached codegen; "
+                "expected HighLevelSwitchTransform to lift it first."
             )
-            lines = [f"switch ({index_expr})", "{"]
-            for case_value, target in sorted(
-                statement.cases.items(),
-                key=lambda item: item[0],
-            ):
-                lines.append(f"case {case_value}:")
-                lines.append(f"goto {self._label_for_block(target)};")
-            if statement.default_target is not None:
-                lines.append("default:")
-                lines.append(f"goto {self._label_for_block(statement.default_target)};")
-            lines.append("}")
-            return lines
 
         if isinstance(statement, IRBlock):
             lines: list[str] = []
@@ -417,6 +418,46 @@ class CSharpCodeGenerator:
             next_block=None,
             break_target=break_target,
         )
+
+    def _generate_high_level_switch(
+        self,
+        statement: IRHighLevelSwitch,
+        current_container: Optional[IRBlockContainer],
+    ) -> list[str]:
+        index_expr = self._generate_expression(
+            statement.index_expression,
+            as_value=True,
+        )
+        lines = [f"switch ({index_expr})", "{"]
+
+        for section in statement.sections:
+            for label in section.labels:
+                lines.append(f"case {label}:")
+            if section.is_default:
+                lines.append("default:")
+
+            for nested in section.body.statements:
+                lines.extend(
+                    self._generate_statement(
+                        statement=nested,
+                        current_container=current_container,
+                        next_block=None,
+                        break_target=None,
+                    )
+                )
+
+            if self._switch_section_needs_break(section.body):
+                lines.append("break;")
+
+        lines.append("}")
+        return lines
+
+    @staticmethod
+    def _switch_section_needs_break(body: IRBlock) -> bool:
+        if not body.statements:
+            return True
+        last = body.statements[-1]
+        return not isinstance(last, (IRJump, IRLeave, IRReturn))
 
     def _label_for_block(self, block: IRBlock) -> str:
         if block.start_address >= 0:
