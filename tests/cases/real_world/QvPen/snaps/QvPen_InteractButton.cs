@@ -53,9 +53,12 @@ namespace QvPen.Udon.UI
                         {
                             return;
                         }
+                        goto label_bb_00000178;
                     }
                 }
+                return;
             }
+        label_bb_00000178:
             if (VRC.SDKBase.Utilities.IsValid(udonSharpBehaviour))
             {
                 if (isGlobalEvent)
