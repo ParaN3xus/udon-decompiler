@@ -323,7 +323,6 @@ namespace QvPen.UdonScript
                             if (!VRC.SDKBase.Utilities.IsValid(__lcl_ink_UnityEngineLineRenderer_0))
                             {
                                 nextInk = null;
-                                break;
                             }
                             else
                             {
@@ -331,12 +330,9 @@ namespace QvPen.UdonScript
                                 {
                                     continue;
                                 }
-                                else
-                                {
-                                    nextInk = __lcl_ink_UnityEngineLineRenderer_0;
-                                    break;
-                                }
+                                nextInk = __lcl_ink_UnityEngineLineRenderer_0;
                             }
+                            break;
                         }
                         __lcl_lengthVectors_UnityEngineVector3Array_0 = new UnityEngine.Vector3[]((__lcl_lengthList_VRCSDK3DataDataList_0.Count + 2) / 3);
                         __lcl_i_SystemInt32_0 = 0;

@@ -241,6 +241,31 @@ class HighLevelSwitchTransform(IILTransform):
         common_exit: Optional[IRBlock],
         can_drop_common_exit_jump: bool,
     ) -> IRBlock:
+        # Most lowered switches use internal switch-container target blocks
+        # ending with `leave switch`. These blocks must be inlined into
+        # section bodies; emitting `jump -> target` would become dangling
+        # once the switch container gets replaced by IRHighLevelSwitch.
+        if target in switch_container.blocks:
+            copied_statements: List[IRStatement] = list(target.statements)
+            if copied_statements:
+                tail = copied_statements[-1]
+                if (
+                    isinstance(tail, IRLeave)
+                    and tail.target_container is switch_container
+                ):
+                    copied_statements.pop()
+                elif (
+                    isinstance(tail, IRJump)
+                    and common_exit is not None
+                    and tail.target is common_exit
+                    and common_exit not in parent_container.blocks
+                ):
+                    copied_statements.pop()
+            return IRBlock(
+                statements=copied_statements,
+                start_address=target.start_address,
+            )
+
         consumable = self._is_consumable_target(
             target=target,
             parent_container=parent_container,

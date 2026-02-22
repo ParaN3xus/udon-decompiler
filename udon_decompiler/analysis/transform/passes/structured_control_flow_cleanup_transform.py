@@ -32,7 +32,8 @@ class StructuredControlFlowCleanupTransform(IILTransform):
     """
 
     def run(self, function: IRFunction, context: ILTransformContext) -> None:
-        _ = context
+        self._context = context
+        self._root_body = function.body
         self._rewrite_container(function.body)
 
     def _rewrite_container(self, container: IRBlockContainer) -> None:
@@ -59,6 +60,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 self._rewrite_statement(stmt) for stmt in statement.statements
             ]
             self._simplify_if_else_join_jumps(statement)
+            self._simplify_if_missing_jump_to_else(statement)
             return statement
 
         if isinstance(statement, IRBlockContainer):
@@ -70,6 +72,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 IRBlockContainer,
                 self._rewrite_statement(statement.body),
             )
+            self._eliminate_nested_gotos_to_next_block(statement.body)
             self._simplify_linear_if_goto_diamonds(statement.body)
             self._simplify_two_way_if_goto_diamonds(statement.body)
             self._simplify_true_terminal_if_gotos(statement.body)
@@ -84,6 +87,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 IRBlockContainer,
                 self._rewrite_statement(statement.body),
             )
+            self._eliminate_nested_gotos_to_next_block(statement.body)
             self._simplify_linear_if_goto_diamonds(statement.body)
             self._simplify_two_way_if_goto_diamonds(statement.body)
             self._simplify_true_terminal_if_gotos(statement.body)
@@ -99,6 +103,146 @@ class StructuredControlFlowCleanupTransform(IILTransform):
             return statement
 
         return statement
+
+    def _eliminate_nested_gotos_to_next_block(
+        self,
+        body: IRBlockContainer,
+    ) -> None:
+        """
+        Eliminate nested `goto nextBlock` patterns inside loop bodies.
+
+        Typical shape:
+            if (outer) {
+                ...;
+                if (inner) { ...; goto NEXT; }
+                tail...; <terminal>;
+            }
+            goto NEXT;
+
+        Rewritten to:
+            if (outer) {
+                ...;
+                if (inner) { ...; }
+                else { tail...; <terminal>; }
+            }
+            goto NEXT;
+        """
+        changed = True
+        while changed:
+            changed = False
+            for index, block in enumerate(list(body.blocks)):
+                if index + 1 >= len(body.blocks):
+                    continue
+                next_block = body.blocks[index + 1]
+                if self._rewrite_nested_goto_in_statement_list(
+                    block.statements,
+                    next_block,
+                ):
+                    changed = True
+                    break
+
+    def _rewrite_nested_goto_in_statement_list(
+        self,
+        statements: list[IRStatement],
+        next_block: IRBlock,
+    ) -> bool:
+        changed = True
+        any_changed = False
+        while changed:
+            changed = False
+            for index, statement in enumerate(list(statements)):
+                if self._rewrite_nested_goto_in_statement(
+                    statement,
+                    next_block,
+                ):
+                    changed = True
+                    any_changed = True
+                    break
+
+                if not isinstance(statement, IRIf):
+                    continue
+                if statement.false_statement is not None:
+                    continue
+                if not isinstance(statement.true_statement, IRBlock):
+                    continue
+
+                true_block = statement.true_statement
+                if not true_block.statements:
+                    continue
+                tail = true_block.statements[-1]
+                if not isinstance(tail, IRJump) or tail.target is not next_block:
+                    continue
+
+                suffix = statements[index + 1 :]
+                if not suffix:
+                    continue
+                if not self._statements_end_unreachable(suffix):
+                    continue
+                if self._has_nested_control_flow_statement(suffix):
+                    continue
+
+                true_block.statements.pop()
+                statement.false_statement = IRBlock(
+                    statements=list(suffix),
+                    start_address=self._new_block_start_address(suffix[0]),
+                )
+                del statements[index + 1 :]
+
+                changed = True
+                any_changed = True
+                break
+
+        return any_changed
+
+    def _rewrite_nested_goto_in_statement(
+        self,
+        statement: IRStatement,
+        next_block: IRBlock,
+    ) -> bool:
+        if isinstance(statement, IRIf):
+            changed = self._rewrite_nested_goto_in_statement(
+                statement.true_statement,
+                next_block,
+            )
+            if statement.false_statement is not None:
+                changed = (
+                    self._rewrite_nested_goto_in_statement(
+                        statement.false_statement,
+                        next_block,
+                    )
+                    or changed
+                )
+            return changed
+
+        if isinstance(statement, IRBlock):
+            return self._rewrite_nested_goto_in_statement_list(
+                statement.statements,
+                next_block,
+            )
+
+        return False
+
+    def _has_nested_control_flow_statement(
+        self,
+        statements: list[IRStatement],
+    ) -> bool:
+        for statement in statements:
+            if isinstance(
+                statement,
+                (
+                    IRIf,
+                    IRBlockContainer,
+                    IRHighLevelSwitch,
+                    IRHighLevelWhile,
+                    IRHighLevelDoWhile,
+                    IRSwitch,
+                ),
+            ):
+                return True
+            if isinstance(statement, IRBlock):
+                if self._has_nested_control_flow_statement(statement.statements):
+                    return True
+        return False
 
     @staticmethod
     def _is_truly_empty_branch(statement: IRStatement) -> bool:
@@ -527,6 +671,59 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 changed = True
                 break
 
+    def _simplify_if_missing_jump_to_else(self, block: IRBlock) -> None:
+        """
+        Repair pattern produced by earlier block transforms:
+            ...;
+            if (c) { ...; goto <missing-target>; }
+            <suffix>
+
+        where `<missing-target>` no longer exists in any container.
+        Rewrite into:
+            ...;
+            if (c) { ... } else { <suffix> }
+        """
+        changed = True
+        while changed:
+            changed = False
+            known_blocks = self._collect_all_blocks(self._root_body)
+
+            for index, statement in enumerate(list(block.statements)):
+                if not isinstance(statement, IRIf):
+                    continue
+                if statement.false_statement is not None:
+                    continue
+                if not isinstance(statement.true_statement, IRBlock):
+                    continue
+
+                true_block = statement.true_statement
+                if not true_block.statements:
+                    continue
+                tail = true_block.statements[-1]
+                if not isinstance(tail, IRJump):
+                    continue
+                if tail.target in known_blocks:
+                    continue
+
+                suffix = block.statements[index + 1 :]
+                if not suffix:
+                    continue
+                if not self._statements_end_unreachable(suffix):
+                    continue
+
+                statement.true_statement = IRBlock(
+                    statements=list(true_block.statements[:-1]),
+                    start_address=true_block.start_address,
+                )
+                statement.false_statement = IRBlock(
+                    statements=list(suffix),
+                    start_address=self._new_block_start_address(suffix[0]),
+                )
+                block.statements = block.statements[: index + 1]
+
+                changed = True
+                break
+
     def _count_jump_target_references_in_block(
         self,
         block: IRBlock,
@@ -658,6 +855,62 @@ class StructuredControlFlowCleanupTransform(IILTransform):
             return False
 
         return False
+
+    def _collect_all_blocks(self, container: IRBlockContainer) -> set[IRBlock]:
+        blocks: set[IRBlock] = set()
+
+        def visit_statement(statement: IRStatement) -> None:
+            if isinstance(statement, IRIf):
+                visit_statement(statement.true_statement)
+                if statement.false_statement is not None:
+                    visit_statement(statement.false_statement)
+                return
+
+            if isinstance(statement, IRBlock):
+                for nested in statement.statements:
+                    visit_statement(nested)
+                return
+
+            if isinstance(statement, IRBlockContainer):
+                visit_container(statement)
+                return
+
+            if isinstance(statement, (IRHighLevelWhile, IRHighLevelDoWhile)):
+                visit_container(statement.body)
+                return
+
+            if isinstance(statement, IRHighLevelSwitch):
+                for section in statement.sections:
+                    visit_statement(section.body)
+
+        def visit_container(current: IRBlockContainer) -> None:
+            for current_block in current.blocks:
+                blocks.add(current_block)
+                for nested_statement in current_block.statements:
+                    visit_statement(nested_statement)
+
+        visit_container(container)
+        return blocks
+
+    @staticmethod
+    def _statement_start_address(statement: IRStatement) -> int:
+        if isinstance(statement, IRBlock):
+            return statement.start_address
+        return -1
+
+    def _new_block_start_address(self, first_statement: IRStatement) -> int:
+        start = self._statement_start_address(first_statement)
+        if start != -1:
+            return start
+        return self._next_synthetic_block_address()
+
+    def _next_synthetic_block_address(self) -> int:
+        key = "_synthetic_block_addr"
+        current = self._context.metadata.get(key)
+        if not isinstance(current, int):
+            current = -1
+        self._context.metadata[key] = current - 1
+        return current - 1
 
     def _simplify_late_true_target_if_gotos(
         self,

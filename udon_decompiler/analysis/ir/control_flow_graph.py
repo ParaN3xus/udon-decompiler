@@ -10,9 +10,13 @@ from udon_decompiler.analysis.ir.dominance import (
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
     IRBlockContainer,
+    IRHighLevelDoWhile,
+    IRHighLevelSwitch,
+    IRHighLevelWhile,
     IRIf,
     IRJump,
     IRLeave,
+    IRReturn,
     IRStatement,
     IRSwitch,
 )
@@ -98,6 +102,28 @@ class ControlFlowGraph:
                     statement=statement,
                     descendant_container_ids=descendant_container_ids,
                 )
+            self._add_fallthrough_edge_if_needed(
+                source_node=source_node,
+                block=block,
+                block_index=index,
+            )
+
+    def _add_fallthrough_edge_if_needed(
+        self,
+        source_node: ControlFlowNode,
+        block: IRBlock,
+        block_index: int,
+    ) -> None:
+        if self._block_has_unreachable_endpoint(block):
+            return
+
+        next_index = block_index + 1
+        if next_index < len(self.cfg):
+            source_node.add_edge_to(self.cfg[next_index])
+            return
+
+        # Falling off the end of the current container exits the region.
+        self._node_has_direct_exit_out_of_container[source_node.user_index] = True
 
     def _process_statement(
         self,
@@ -153,6 +179,38 @@ class ControlFlowGraph:
                         nested_statement,
                         descendant_container_ids,
                     )
+
+    def _block_has_unreachable_endpoint(self, block: IRBlock) -> bool:
+        if not block.statements:
+            return False
+        return self._statement_has_unreachable_endpoint(block.statements[-1])
+
+    def _statement_has_unreachable_endpoint(self, statement: IRStatement) -> bool:
+        if isinstance(statement, (IRJump, IRLeave, IRReturn, IRSwitch)):
+            return True
+
+        if isinstance(statement, IRIf):
+            if statement.false_statement is None:
+                return False
+            return (
+                self._statement_has_unreachable_endpoint(statement.true_statement)
+                and self._statement_has_unreachable_endpoint(
+                    statement.false_statement
+                )
+            )
+
+        if isinstance(statement, IRBlock):
+            if not statement.statements:
+                return False
+            return self._statement_has_unreachable_endpoint(statement.statements[-1])
+
+        if isinstance(statement, IRHighLevelSwitch):
+            return True
+
+        if isinstance(statement, (IRHighLevelWhile, IRHighLevelDoWhile)):
+            return False
+
+        return False
 
     def _process_branch_target(
         self,

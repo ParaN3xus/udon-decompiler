@@ -72,9 +72,11 @@ namespace QvPen.UdonScript.UI
                     {
                         __lcl_displayName_SystemString_0 =
                             System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
-                        break;
                     }
-                    __lcl_displayName_SystemString_0 = __lcl_displayName_SystemString_0 + "...";
+                    else
+                    {
+                        __lcl_displayName_SystemString_0 = __lcl_displayName_SystemString_0 + "...";
+                    }
                     break;
                 }
                 __lcl_messageString_SystemString_0 = System.String.Format("<size=8>[Only {0}]</size>", __lcl_displayName_SystemString_0);

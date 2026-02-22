@@ -9,6 +9,9 @@ from udon_decompiler.analysis.ir.nodes import (
     IRBlockContainer,
     IRExpression,
     IRFunction,
+    IRHighLevelDoWhile,
+    IRHighLevelSwitch,
+    IRHighLevelWhile,
     IRIf,
     IRJump,
     IRLeave,
@@ -347,10 +350,34 @@ class ConditionDetection(IBlockTransform):
                 )
             return count
 
+        if isinstance(statement, IRBlock):
+            return self._count_targets_in_statement_list(
+                statement.statements,
+                target,
+            )
+
         if isinstance(statement, IRBlockContainer):
             total = 0
             for block in statement.blocks:
                 total += self._count_targets_in_statement_list(block.statements, target)
+            return total
+
+        if isinstance(statement, IRHighLevelSwitch):
+            total = 0
+            for section in statement.sections:
+                total += self._count_targets_in_statement(
+                    section.body,
+                    target,
+                )
+            return total
+
+        if isinstance(statement, (IRHighLevelWhile, IRHighLevelDoWhile)):
+            total = 0
+            for block in statement.body.blocks:
+                total += self._count_targets_in_statement_list(
+                    block.statements,
+                    target,
+                )
             return total
 
         if isinstance(statement, IRSwitch):
