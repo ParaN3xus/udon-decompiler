@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional
 
 from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
@@ -33,18 +33,40 @@ class CollectVariables(IILTransform):
     """Collect referenced variables into ``function.variable_declarations``."""
 
     def run(self, function: IRFunction, context: ILTransformContext) -> None:
-        _ = context
-
         seen_blocks: set[int] = set()
         collected: Dict[int, Variable] = {}
 
         self._collect_from_container(function.body, seen_blocks, collected)
 
         declarations = [
-            IRVariableDeclarationStatement(variable=var, init_value=None)
+            IRVariableDeclarationStatement(
+                variable=var,
+                init_value=self._create_init_value(var, context),
+            )
             for _, var in sorted(collected.items(), key=lambda item: item[0])
         ]
         function.variable_declarations = declarations
+
+    def _create_init_value(
+        self,
+        variable: Variable,
+        context: ILTransformContext,
+    ) -> Optional[IRLiteralExpression]:
+        heap_entry = context.program.get_initial_heap_value(variable.address)
+        if heap_entry is None:
+            return None
+
+        heap_value = heap_entry.value
+        if not heap_value.is_serializable:
+            return IRLiteralExpression(
+                value=heap_value.value["toString"],
+                type_hint=variable.type_hint or heap_entry.type,
+            )
+
+        return IRLiteralExpression(
+            value=heap_value.value,
+            type_hint=variable.type_hint or heap_entry.type,
+        )
 
     def _collect_from_container(
         self,
