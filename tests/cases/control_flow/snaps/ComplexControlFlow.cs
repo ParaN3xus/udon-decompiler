@@ -25,86 +25,64 @@ public class ComplexControlFlow : UdonSharpBehaviour
         while (true)
         {
             __lcl_local_SystemInt32_0 = __lcl_i_SystemInt32_0 * seed;
-            __intnl_SystemBoolean_0 = __lcl_local_SystemInt32_0 % 2 == 0;
-            if (__intnl_SystemBoolean_0)
+            if (__lcl_local_SystemInt32_0 % 2 == 0)
             {
                 __intnl_SystemBoolean_0 = __lcl_i_SystemInt32_0 < limit;
             }
-            if (!__intnl_SystemBoolean_0)
-            {
-                __intnl_SystemBoolean_1 = __lcl_local_SystemInt32_0 % 3 == 0;
-                if (!__intnl_SystemBoolean_1)
-                {
-                    __intnl_SystemBoolean_1 = __lcl_i_SystemInt32_0 == 0;
-                }
-                else
-                {
-                }
-                if (!__intnl_SystemBoolean_1)
-                {
-                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 1;
-                }
-                else
-                {
-                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 - __lcl_local_SystemInt32_0;
-                }
-            }
-            else
+            if (__intnl_SystemBoolean_0)
             {
                 __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + __lcl_local_SystemInt32_0;
             }
-            __lcl_j_SystemInt32_0 = 0;
-            __intnl_SystemBoolean_2 = __lcl_j_SystemInt32_0 < 4;
-            while (__intnl_SystemBoolean_2)
+            else
             {
-                __intnl_SystemBoolean_3 = __lcl_j_SystemInt32_0 == 2;
-                if (!__intnl_SystemBoolean_3)
+                if (!(__lcl_local_SystemInt32_0 % 3 == 0))
                 {
-                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + __lcl_j_SystemInt32_0;
-                    __intnl_SystemBoolean_4 = __lcl_sum_SystemInt32_0 > 50;
-                    if (!__intnl_SystemBoolean_4)
-                    {
-                        __lcl_j_SystemInt32_0 = __lcl_j_SystemInt32_0 + 1;
-                    }
-                    else
-                    {
-                        __lcl_flag_SystemBoolean_0 = true;
-                        goto label_bb_00000013;
-                    }
+                    __intnl_SystemBoolean_1 = __lcl_i_SystemInt32_0 == 0;
+                }
+                if (__intnl_SystemBoolean_1)
+                {
+                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 - __lcl_local_SystemInt32_0;
                 }
                 else
+                {
+                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 1;
+                }
+            }
+            __lcl_j_SystemInt32_0 = 0;
+            while (__lcl_j_SystemInt32_0 < 4)
+            {
+                if (__lcl_j_SystemInt32_0 == 2)
                 {
                     __lcl_j_SystemInt32_0 = __lcl_j_SystemInt32_0 + 1;
                 }
+                else
+                {
+                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + __lcl_j_SystemInt32_0;
+                    if (__lcl_sum_SystemInt32_0 > 50)
+                    {
+                        __lcl_flag_SystemBoolean_0 = true;
+                        break;
+                    }
+                    __lcl_j_SystemInt32_0 = __lcl_j_SystemInt32_0 + 1;
+                }
             }
-        label_bb_00000013:
             if (!__lcl_flag_SystemBoolean_0)
             {
-                __intnl_SystemBoolean_3 = __lcl_i_SystemInt32_0 == 0;
-                if (!__intnl_SystemBoolean_3)
-                {
-                    __intnl_SystemBoolean_4 = __lcl_i_SystemInt32_0 == 1;
-                    if (!__intnl_SystemBoolean_4)
-                    {
-                        if (!(__lcl_i_SystemInt32_0 == 2))
-                        {
-                            __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 30;
-                            goto label_bb_0000001e;
-                        }
-                        else
-                        {
-                        }
-                    }
-                    else
-                    {
-                    }
-                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 20;
-                }
-                else
+                if (__lcl_i_SystemInt32_0 == 0)
                 {
                     __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 10;
                 }
-            label_bb_0000001e:
+                else
+                {
+                    if (!(__lcl_i_SystemInt32_0 == 1) & !(__lcl_i_SystemInt32_0 == 2))
+                    {
+                        __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 30;
+                    }
+                    else
+                    {
+                        __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 20;
+                    }
+                }
                 __lcl_k_SystemInt32_0 = 0;
                 __intnl_SystemBoolean_3 = __lcl_k_SystemInt32_0 < 3;
                 while (__intnl_SystemBoolean_3)
