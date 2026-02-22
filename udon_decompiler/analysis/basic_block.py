@@ -21,6 +21,9 @@ class SwitchTableInfo:
     targets: List[int]
     index_operand: int
     table_operand: int
+    # Addresses of lowered switch-table scaffold instructions that should not
+    # survive into high-level IR statements.
+    scaffold_instruction_addresses: Set[int] = field(default_factory=set)
 
 
 @dataclass
@@ -207,6 +210,12 @@ class BasicBlockIdentifier:
                 targets=addr_table,
                 index_operand=push_switch_exp_inst.operand,
                 table_operand=push_addr_table_inst.operand,
+                scaffold_instruction_addresses={
+                    push_addr_table_inst.address,
+                    push_switch_exp_inst.address,
+                    push_addr_inst.address,
+                    extern_inst.address,
+                },
             )
             self.switch_cases_indir_jumps[self.instructions[jump_idx].address] = info
 
