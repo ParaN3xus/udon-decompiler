@@ -74,7 +74,7 @@ public class ComplexControlFlow : UdonSharpBehaviour
                 }
                 else
                 {
-                    if (!(__lcl_i_SystemInt32_0 == 1) & !(__lcl_i_SystemInt32_0 == 2))
+                    if (!(__lcl_i_SystemInt32_0 == 1) && !(__lcl_i_SystemInt32_0 == 2))
                     {
                         __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + 30;
                     }
