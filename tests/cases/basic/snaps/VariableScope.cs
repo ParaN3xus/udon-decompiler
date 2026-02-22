@@ -7,11 +7,11 @@ public class VariableScope : UdonSharpBehaviour
 
     public void _start()
     {
-        System.Int32 __lcl_rootVar_SystemInt32_0;
-        System.Int32 __lcl_i_SystemInt32_0;
-        System.Int32 __lcl_branchVar_SystemInt32_0;
-        System.Int32 __lcl_loopInternal_SystemInt32_0;
-        System.Int32 __lcl_deepVar_SystemInt32_0;
+        System.Int32 __lcl_rootVar_SystemInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_0 = 0;
+        System.Int32 __lcl_branchVar_SystemInt32_0 = 0;
+        System.Int32 __lcl_loopInternal_SystemInt32_0 = 0;
+        System.Int32 __lcl_deepVar_SystemInt32_0 = 0;
 
         __lcl_rootVar_SystemInt32_0 = 100;
         if (fieldVal > 5)
@@ -35,7 +35,6 @@ public class VariableScope : UdonSharpBehaviour
                 __lcl_rootVar_SystemInt32_0 = __lcl_rootVar_SystemInt32_0 + __lcl_deepVar_SystemInt32_0;
             }
             __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
-            continue;
         }
         fieldVal = __lcl_rootVar_SystemInt32_0;
         return;
