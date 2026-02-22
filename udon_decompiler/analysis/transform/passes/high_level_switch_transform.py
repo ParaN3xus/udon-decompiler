@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
@@ -42,17 +42,20 @@ class HighLevelSwitchTransform(IILTransform):
             block.statements = self._rewrite_statement_list(
                 block.statements,
                 parent_container=container,
+                parent_block=block,
             )
 
     def _rewrite_statement_list(
         self,
         statements: List[IRStatement],
         parent_container: IRBlockContainer,
+        parent_block: IRBlock,
     ) -> List[IRStatement]:
         return [
             self._rewrite_statement(
                 statement=statement,
                 parent_container=parent_container,
+                parent_block=parent_block,
             )
             for statement in statements
         ]
@@ -61,16 +64,19 @@ class HighLevelSwitchTransform(IILTransform):
         self,
         statement: IRStatement,
         parent_container: IRBlockContainer,
+        parent_block: IRBlock,
     ) -> IRStatement:
         if isinstance(statement, IRIf):
             statement.true_statement = self._rewrite_statement(
                 statement.true_statement,
                 parent_container=parent_container,
+                parent_block=parent_block,
             )
             if statement.false_statement is not None:
                 statement.false_statement = self._rewrite_statement(
                     statement.false_statement,
                     parent_container=parent_container,
+                    parent_block=parent_block,
                 )
             return statement
 
@@ -78,13 +84,18 @@ class HighLevelSwitchTransform(IILTransform):
             statement.statements = self._rewrite_statement_list(
                 statement.statements,
                 parent_container=parent_container,
+                parent_block=statement,
             )
             return statement
 
         if isinstance(statement, IRBlockContainer):
             self._rewrite_container(statement)
             if statement.kind == IRContainerKind.SWITCH:
-                return self._lift_switch_container(statement, parent_container)
+                return self._lift_switch_container(
+                    statement,
+                    parent_container,
+                    parent_block,
+                )
             return statement
 
         return statement
@@ -93,6 +104,7 @@ class HighLevelSwitchTransform(IILTransform):
         self,
         switch_container: IRBlockContainer,
         parent_container: IRBlockContainer,
+        parent_block: IRBlock,
     ) -> IRStatement:
         entry = switch_container.entry_block
         if entry is None or len(entry.statements) != 1:
@@ -129,6 +141,7 @@ class HighLevelSwitchTransform(IILTransform):
         incoming_counts = self._count_incoming_edges(parent_container)
         switch_ref_counts = self._count_switch_refs(switch_inst)
         common_exit = self._detect_common_exit(unique_targets)
+        can_drop_common_exit_jump = parent_block in parent_container.blocks
 
         sections: List[IRHighLevelSwitchSection] = []
         consumed_blocks: List[IRBlock] = []
@@ -147,6 +160,7 @@ class HighLevelSwitchTransform(IILTransform):
                 incoming_counts=incoming_counts,
                 switch_ref_counts=switch_ref_counts,
                 common_exit=common_exit,
+                can_drop_common_exit_jump=can_drop_common_exit_jump,
             )
             if (
                 body.start_address == target.start_address
@@ -184,6 +198,7 @@ class HighLevelSwitchTransform(IILTransform):
                 incoming_counts=incoming_counts,
                 switch_ref_counts=switch_ref_counts,
                 common_exit=common_exit,
+                can_drop_common_exit_jump=can_drop_common_exit_jump,
             )
             if (
                 default_body.start_address == default_target.start_address
@@ -224,15 +239,38 @@ class HighLevelSwitchTransform(IILTransform):
         incoming_counts: Dict[IRBlock, int],
         switch_ref_counts: Dict[IRBlock, int],
         common_exit: Optional[IRBlock],
+        can_drop_common_exit_jump: bool,
     ) -> IRBlock:
-        if not self._is_consumable_target(
+        consumable = self._is_consumable_target(
             target=target,
             parent_container=parent_container,
             incoming_counts=incoming_counts,
             switch_ref_counts=switch_ref_counts,
             switch_container=switch_container,
             common_exit=common_exit,
-        ):
+        )
+
+        if not consumable:
+            # Pattern seen in range-guarded lowered switches:
+            # target block was inlined by an earlier pass, but we still have the
+            # original target block object and can inline its payload safely.
+            if (
+                target not in parent_container.blocks
+                and target.statements
+                and isinstance(target.statements[-1], IRJump)
+                and common_exit is not None
+                and cast(IRJump, target.statements[-1]).target is common_exit
+            ):
+                copied = deepcopy(target.statements)
+                # Keep the trailing jump when its destination is still emitted in
+                # this container. This preserves "assign then goto exit" shape and
+                # avoids duplicated fall-through assignments after the switch.
+                if common_exit not in parent_container.blocks:
+                    copied = copied[:-1]
+                return IRBlock(
+                    statements=copied,
+                    start_address=target.start_address,
+                )
             return IRBlock(
                 statements=[IRJump(target=target)],
                 start_address=target.start_address,
@@ -244,6 +282,7 @@ class HighLevelSwitchTransform(IILTransform):
             original_last = target.statements[-1]
             if (
                 isinstance(original_last, IRJump)
+                and can_drop_common_exit_jump
                 and common_exit is not None
                 and original_last.target is common_exit
             ):
@@ -254,7 +293,9 @@ class HighLevelSwitchTransform(IILTransform):
             ):
                 drop_last_leave = True
 
-        copied_statements: List[IRStatement] = deepcopy(target.statements)
+        # Preserve block target identity in IRJump so later label collection can
+        # mark the real destination block.
+        copied_statements: List[IRStatement] = list(target.statements)
         if copied_statements and (drop_last_jump or drop_last_leave):
             copied_statements.pop()
 
