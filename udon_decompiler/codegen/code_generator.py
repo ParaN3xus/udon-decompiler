@@ -3,6 +3,8 @@ import shutil
 import subprocess
 from typing import Optional
 
+from clang_format import get_executable
+
 from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
@@ -237,10 +239,7 @@ class CSharpCodeGenerator:
             )
 
         if isinstance(statement, IRJump):
-            if (
-                continue_target is not None
-                and statement.target is continue_target
-            ):
+            if continue_target is not None and statement.target is continue_target:
                 return ["continue;"]
             if next_block is not None and statement.target is next_block:
                 return []
@@ -710,7 +709,7 @@ class CSharpCodeGenerator:
     # endregion
 
     def _format(self, code: str) -> str:
-        clang_format = shutil.which("clang-format")
+        clang_format = get_executable("clang-format")
         if clang_format is None:
             raise RuntimeError(
                 "clang-format not found on PATH. Install it or adjust PATH."
