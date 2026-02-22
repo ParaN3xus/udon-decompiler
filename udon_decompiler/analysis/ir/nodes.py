@@ -99,6 +99,7 @@ IRVariableDeclearationStatement = IRVariableDeclarationStatement
 class IRBlock(IRStatement):
     statements: List[IRStatement]
     start_address: int = -1
+    should_emit_label: bool = False
 
     @property
     def label(self) -> str:
@@ -117,6 +118,7 @@ class IRBlock(IRStatement):
 class IRBlockContainer(IRStatement):
     blocks: List[IRBlock]
     kind: IRContainerKind = IRContainerKind.BLOCK
+    should_emit_exit_label: bool = False
 
     @property
     def entry_block(self) -> Optional[IRBlock]:

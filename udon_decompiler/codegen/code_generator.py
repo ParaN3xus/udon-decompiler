@@ -1,7 +1,7 @@
 import json
 import shutil
 import subprocess
-from typing import Optional, Set
+from typing import Optional
 
 from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
@@ -52,7 +52,6 @@ class CSharpCodeGenerator:
         self._synthetic_label_counter = 0
         self._block_label_cache: dict[int, str] = {}
         self._container_exit_labels: dict[int, str] = {}
-        self._used_container_exit_labels: Set[str] = set()
 
     def generate(self, class_ir: IRClass) -> str:
         logger.info(f"Generating C# code for {class_ir.class_name}...")
@@ -106,7 +105,6 @@ class CSharpCodeGenerator:
         self._synthetic_label_counter = 0
         self._block_label_cache = {}
         self._container_exit_labels = {}
-        self._used_container_exit_labels = set()
 
         function_signature = (
             f"{'public ' if function.is_function_public else ''}"
@@ -246,7 +244,8 @@ class CSharpCodeGenerator:
             lines.append("{")
 
         for index, block in enumerate(container.blocks):
-            lines.append(f"{self._label_for_block(block)}:")
+            if block.should_emit_label:
+                lines.append(f"{self._label_for_block(block)}:")
             next_block = (
                 container.blocks[index + 1]
                 if index + 1 < len(container.blocks)
@@ -265,8 +264,8 @@ class CSharpCodeGenerator:
                     )
                 )
 
-        exit_label = self._container_exit_labels.get(id(container))
-        if exit_label is not None and exit_label in self._used_container_exit_labels:
+        if container.should_emit_exit_label:
+            exit_label = self._get_container_exit_label(container)
             lines.append(f"{exit_label}:")
             lines.append(";")
 
@@ -325,7 +324,6 @@ class CSharpCodeGenerator:
             if break_target is not None and statement.target_container is break_target:
                 return ["break;"]
             exit_label = self._get_container_exit_label(statement.target_container)
-            self._used_container_exit_labels.add(exit_label)
             return [f"goto {exit_label};"]
 
         if isinstance(statement, IRReturn):

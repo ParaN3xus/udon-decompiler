@@ -56,6 +56,9 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.collect_variables import (
         CollectVariables,
     )
+    from udon_decompiler.analysis.transform.passes.collect_label_usage import (
+        CollectLabelUsage,
+    )
     from udon_decompiler.analysis.transform.passes.const_to_literal import (
         ConstToLiteral,
     )
@@ -92,6 +95,7 @@ def build_default_pipeline() -> TransformPipeline:
             block_condition_transform,
             HighLevelLoopTransform(),
             HighLevelSwitchTransform(),
+            CollectLabelUsage(),
             CollectVariables(),
         ],
         program_transforms=[

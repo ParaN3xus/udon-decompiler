@@ -7,6 +7,9 @@ from udon_decompiler.analysis.transform.passes.condition_detection import (
 from udon_decompiler.analysis.transform.passes.collect_variables import (
     CollectVariables,
 )
+from udon_decompiler.analysis.transform.passes.collect_label_usage import (
+    CollectLabelUsage,
+)
 from udon_decompiler.analysis.transform.passes.const_to_literal import (
     ConstToLiteral,
 )
@@ -33,6 +36,7 @@ __all__ = [
     "IRClassConstructionTransform",
     "ConditionDetection",
     "CollectVariables",
+    "CollectLabelUsage",
     "ConstToLiteral",
     "DetectExitPoints",
     "HighLevelLoopTransform",
