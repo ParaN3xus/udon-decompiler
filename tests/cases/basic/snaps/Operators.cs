@@ -39,8 +39,8 @@ public class Operators : UdonSharpBehaviour
         __lcl_flag_SystemBoolean_0 = true;
         __lcl_notFlag_SystemBoolean_0 = !__lcl_flag_SystemBoolean_0;
         __lcl_bitNot_SystemInt32_0 = __lcl_a_SystemInt32_0 ^ -1;
-        __lcl_bitAnd_SystemInt32_0 = __lcl_a_SystemInt32_0 & __lcl_b_SystemInt32_0;
-        __lcl_bitOr_SystemInt32_0 = __lcl_a_SystemInt32_0 | __lcl_b_SystemInt32_0;
+        __lcl_bitAnd_SystemInt32_0 = __lcl_a_SystemInt32_0 && __lcl_b_SystemInt32_0;
+        __lcl_bitOr_SystemInt32_0 = __lcl_a_SystemInt32_0 || __lcl_b_SystemInt32_0;
         __lcl_bitXor_SystemInt32_0 = __lcl_a_SystemInt32_0 ^ __lcl_b_SystemInt32_0;
         __lcl_lShift_SystemInt32_0 = __lcl_a_SystemInt32_0 << 1;
         __lcl_rShift_SystemInt32_0 = __lcl_a_SystemInt32_0 >> 1;
