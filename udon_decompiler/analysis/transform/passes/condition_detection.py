@@ -8,11 +8,13 @@ from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
     IRBlockContainer,
     IRExpression,
+    IRFunction,
     IRIf,
     IRJump,
     IRLeave,
     IROperatorCallExpression,
     IRStatement,
+    IRSwitch,
 )
 from udon_decompiler.analysis.transform.pass_base import (
     BlockTransformContext,
@@ -123,6 +125,31 @@ class ConditionDetection(IBlockTransform):
                     )
                     target_block.statements.pop(0)
                     continue
+
+                if (
+                    isinstance(nested_true, IRBlock)
+                    and nested_true.statements
+                    and len(target_block.statements) > 1
+                    and self._contains_non_exit_statement(
+                        target_block.statements[1:]
+                    )
+                    and DetectExitPoints.compatible_exit_instruction(
+                        exit_inst,
+                        nested_true.statements[-1],
+                    )
+                    and self._has_unreachable_endpoint(target_block)
+                ):
+                    # ILSpy parity:
+                    # if (...) { if (nested) { true...; goto exit; } false...; }
+                    # goto exit;
+                    # -> if (...) { if (!nested) { false...; } true...; } goto exit;
+                    nested_if.condition = self._logic_not(nested_if.condition)
+                    nested_true.statements.pop()
+
+                    false_statements = target_block.statements[1:]
+                    target_block.statements = target_block.statements[:1]
+                    target_block.statements.extend(nested_true.statements)
+                    nested_true.statements = false_statements
                 break
 
             true_exit_inst = self._last_exit_statement(target_block)
@@ -284,20 +311,13 @@ class ConditionDetection(IBlockTransform):
         return True
 
     def _incoming_edge_count(self, block: IRBlock) -> int:
-        assert self.context is not None
-
-        try:
-            node = self.context.control_flow_graph.get_node(block)
-            return len(node.predecessors)
-        except KeyError:
-            return self._incoming_edge_count_fallback(block)
-
-    def _incoming_edge_count_fallback(self, block: IRBlock) -> int:
-        assert self.current_container is not None
-
+        function = self._current_function()
         count = 0
-        for source in self.current_container.blocks:
-            count += self._count_targets_in_statement_list(source.statements, block)
+        for source in function.body.blocks:
+            count += self._count_targets_in_statement_list(
+                source.statements,
+                block,
+            )
         return count
 
     def _count_targets_in_statement_list(
@@ -333,7 +353,35 @@ class ConditionDetection(IBlockTransform):
                 total += self._count_targets_in_statement_list(block.statements, target)
             return total
 
+        if isinstance(statement, IRSwitch):
+            total = 0
+            for case_target in statement.cases.values():
+                if case_target is target:
+                    total += 1
+            if statement.default_target is target:
+                total += 1
+            return total
+
         return 0
+
+    @staticmethod
+    def _has_unreachable_endpoint(block: IRBlock) -> bool:
+        if not block.statements:
+            return False
+        return isinstance(block.statements[-1], (IRJump, IRLeave))
+
+    def _contains_non_exit_statement(
+        self,
+        statements: list[IRStatement],
+    ) -> bool:
+        for statement in statements:
+            if not self._is_branch_or_leave(statement):
+                return True
+        return False
+
+    def _current_function(self) -> IRFunction:
+        assert self.context is not None
+        return self.context.function
 
     def _remove_block_from_current_container(self, block: IRBlock) -> None:
         if self.current_container is None:
