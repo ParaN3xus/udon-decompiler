@@ -98,20 +98,12 @@ public class ComplexControlFlow : UdonSharpBehaviour
                     __lcl_k_SystemInt32_0 = __lcl_k_SystemInt32_0 + 1;
                 }
                 __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
-                __intnl_SystemBoolean_0 = __lcl_i_SystemInt32_0 < limit;
-                if (!__intnl_SystemBoolean_0)
-                {
-                    break;
-                }
-                else
+                if (__lcl_i_SystemInt32_0 < limit)
                 {
                     continue;
                 }
             }
-            else
-            {
-                break;
-            }
+            break;
         }
         if (__lcl_sum_SystemInt32_0 > 0)
         {

@@ -168,6 +168,22 @@ class IRHighLevelSwitch(IRStatement):
 
 
 @dataclass
+class IRHighLevelWhile(IRStatement):
+    condition: Optional[IRExpression]
+    body: IRBlockContainer
+    continue_target: IRBlock
+    break_target: IRBlockContainer
+
+
+@dataclass
+class IRHighLevelDoWhile(IRStatement):
+    condition: IRExpression
+    body: IRBlockContainer
+    continue_target: IRBlock
+    break_target: IRBlockContainer
+
+
+@dataclass
 class IRFunction:
     function_name: str
     is_function_public: bool
