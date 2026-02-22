@@ -10,6 +10,8 @@ from udon_decompiler.analysis.ir.nodes import (
     IRHighLevelSwitch,
     IRHighLevelWhile,
     IRIf,
+    IRJump,
+    IRLeave,
     IRStatement,
 )
 from udon_decompiler.analysis.transform.pass_base import (
@@ -62,6 +64,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 IRBlockContainer,
                 self._rewrite_statement(statement.body),
             )
+            self._simplify_linear_if_goto_diamonds(statement.body)
             return statement
 
         if isinstance(statement, IRHighLevelDoWhile):
@@ -69,6 +72,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 IRBlockContainer,
                 self._rewrite_statement(statement.body),
             )
+            self._simplify_linear_if_goto_diamonds(statement.body)
             return statement
 
         if isinstance(statement, IRHighLevelSwitch):
@@ -81,3 +85,77 @@ class StructuredControlFlowCleanupTransform(IILTransform):
     @staticmethod
     def _is_truly_empty_branch(statement: IRStatement) -> bool:
         return isinstance(statement, IRBlock) and len(statement.statements) == 0
+
+    def _simplify_linear_if_goto_diamonds(
+        self,
+        body: IRBlockContainer,
+    ) -> None:
+        """
+        Simplify linear shape:
+            A: if (c) goto T; goto U;
+            T: ...; goto U;
+            U: ...
+        into:
+            A: if (c) { ... }
+            U: ...
+        """
+        changed = True
+        while changed:
+            changed = False
+            for block_index, block in enumerate(list(body.blocks)):
+                if block_index >= len(body.blocks):
+                    break
+                if len(block.statements) < 2:
+                    continue
+
+                if_stmt = block.statements[-2]
+                after_if = block.statements[-1]
+                if not isinstance(if_stmt, IRIf) or if_stmt.false_statement is not None:
+                    continue
+                if not isinstance(after_if, IRJump):
+                    continue
+
+                true_target = self._as_jump_target(if_stmt.true_statement)
+                if true_target is None:
+                    continue
+                false_target = after_if.target
+
+                # Require strict linearized diamond to keep semantics obvious.
+                if block_index + 2 >= len(body.blocks):
+                    continue
+                if body.blocks[block_index + 1] is not true_target:
+                    continue
+                if body.blocks[block_index + 2] is not false_target:
+                    continue
+
+                true_statements = list(true_target.statements)
+                if true_statements:
+                    last_true = true_statements[-1]
+                    if isinstance(last_true, IRJump):
+                        if last_true.target is not false_target:
+                            continue
+                        true_statements.pop()
+                    elif isinstance(last_true, (IRIf, IRLeave)):
+                        continue
+
+                if_stmt.true_statement = IRBlock(
+                    statements=true_statements,
+                    start_address=true_target.start_address,
+                )
+
+                block.statements.pop()  # remove goto U
+                if true_target in body.blocks:
+                    body.blocks.remove(true_target)
+
+                changed = True
+                break
+
+    @staticmethod
+    def _as_jump_target(statement: IRStatement) -> Optional[IRBlock]:
+        if isinstance(statement, IRJump):
+            return statement.target
+        if isinstance(statement, IRBlock) and len(statement.statements) == 1:
+            nested = statement.statements[0]
+            if isinstance(nested, IRJump):
+                return nested.target
+        return None
