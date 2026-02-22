@@ -52,15 +52,26 @@ CASES_ROOT = Path("tests/cases")
 CASE_PATHS = load_cases(CASES_ROOT)
 
 
-def _extract_dumped_json(case_path: Path) -> str:
+def _extract_case_source_and_dumped_json(case_path: Path) -> tuple[str, str]:
     text = case_path.read_text(encoding="utf-8")
     blocks = parse_markdown_cases(text, case_path)
+
+    source = blocks[0]["content"].strip()
+    if not source:
+        raise ValueError(f"{case_path}: source code block is empty")
+
     if len(blocks) < 2:
         raise ValueError(f"{case_path}: dumped.json block is missing")
     dumped = blocks[1]["content"].strip()
     if not dumped:
         raise ValueError(f"{case_path}: dumped.json block is empty")
-    return dumped + "\n"
+
+    return source + "\n", dumped + "\n"
+
+
+def _extract_dumped_json(case_path: Path) -> str:
+    _, dumped_json = _extract_case_source_and_dumped_json(case_path)
+    return dumped_json
 
 
 def _decompile_json_to_source(json_text: str) -> str:
