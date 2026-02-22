@@ -42,7 +42,7 @@ class LoopDetection(IBlockTransform):
         head = context.control_flow_node
         if head is None:
             return
-        if head.user_data is not block:
+        if head.block is not block:
             head = context.control_flow_graph.get_node(block)
 
         if block.statements and isinstance(block.statements[-1], IRSwitch):
@@ -128,7 +128,7 @@ class LoopDetection(IBlockTransform):
         block.statements[-1] = switch_container
         exit_target = cast(
             Optional[IRBlock],
-            exit_point.user_data if exit_point else None,
+            exit_point.block if exit_point else None,
         )
         if exit_target is not None:
             block.statements.append(IRJump(target=exit_target))
@@ -153,7 +153,9 @@ class LoopDetection(IBlockTransform):
     ) -> None:
         assert self.context is not None
 
-        block = cast(IRBlock, node.user_data)
+        block = node.block
+        if block is None:
+            return
         if not block.statements or not isinstance(
             block.statements[0], IRBlockContainer
         ):
@@ -261,14 +263,14 @@ class LoopDetection(IBlockTransform):
         nodes = cfg.cfg
 
         rev: list[ControlFlowNode] = [
-            ControlFlowNode(user_index=i, user_data=nodes[i].user_data)
+            ControlFlowNode(user_index=i, block=nodes[i].block)
             for i in range(len(nodes))
         ]
 
         node_treated_as_exit: Optional[ControlFlowNode] = None
         multiple_exit_nodes = False
 
-        exit_node = ControlFlowNode(user_index=-1, user_data=None)
+        exit_node = ControlFlowNode(user_index=-1, block=None)
         rev.append(exit_node)
 
         for i, node in enumerate(nodes):
@@ -337,7 +339,9 @@ class LoopDetection(IBlockTransform):
         def walk(node: ControlFlowNode) -> None:
             nonlocal best_node, best_start_address
 
-            block = cast(IRBlock, node.user_data)
+            block = node.block
+            if block is None:
+                return
             if (
                 block.start_address > best_start_address
                 and not cfg.has_reachable_exit(node)
@@ -430,10 +434,12 @@ class LoopDetection(IBlockTransform):
 
         assert self.current_container is not None
 
-        old_entry = cast(IRBlock, loop[0].user_data)
+        old_entry = loop[0].block
+        if old_entry is None:
+            return
         exit_target = cast(
             Optional[IRBlock],
-            exit_point.user_data if exit_point else None,
+            exit_point.block if exit_point else None,
         )
 
         loop_container = IRBlockContainer(
@@ -467,7 +473,9 @@ class LoopDetection(IBlockTransform):
         assert self.current_container is not None
 
         for node in nodes[1:]:
-            block = cast(IRBlock, node.user_data)
+            block = node.block
+            if block is None:
+                continue
             if block in self.current_container.blocks:
                 self.current_container.blocks.remove(block)
                 target_container.blocks.append(block)

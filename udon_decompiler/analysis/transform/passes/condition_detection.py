@@ -40,7 +40,7 @@ class ConditionDetection(IBlockTransform):
         cfg_node = context.control_flow_node
         if cfg_node is None:
             return
-        if cfg_node.user_data is not block:
+        if cfg_node.block is not block:
             try:
                 cfg_node = context.control_flow_graph.get_node(block)
             except KeyError:
@@ -232,6 +232,8 @@ class ConditionDetection(IBlockTransform):
             return
 
         target_block = last.target
+        if target_block is block:
+            return
         self._remove_block_from_current_container(target_block)
 
         block.statements.pop()
@@ -262,6 +264,8 @@ class ConditionDetection(IBlockTransform):
             return False
 
         target_block = potential_branch_instruction.target
+        if target_block is cfg_node.block:
+            return False
         if target_block not in self.current_container.blocks:
             return False
 

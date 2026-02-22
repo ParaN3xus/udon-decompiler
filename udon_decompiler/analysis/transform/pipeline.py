@@ -62,6 +62,9 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.const_to_literal import (
         ConstToLiteral,
     )
+    from udon_decompiler.analysis.transform.passes.control_flow_simplification import (
+        ControlFlowSimplification,
+    )
     from udon_decompiler.analysis.transform.passes.detect_exit_points import (
         DetectExitPoints,
     )
@@ -90,6 +93,7 @@ def build_default_pipeline() -> TransformPipeline:
 
     return TransformPipeline(
         il_transforms=[
+            ControlFlowSimplification(),
             ConstToLiteral(),
             TempVariableInline(),
             DetectExitPoints(can_introduce_exit_for_return=False),
