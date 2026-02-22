@@ -8,17 +8,15 @@ public class ComplexControlFlow : UdonSharpBehaviour
 
     public void _start()
     {
-        System.Int32 __lcl_i_SystemInt32_0;
-        System.Int32 __lcl_j_SystemInt32_0;
-        System.Int32 __lcl_sum_SystemInt32_0;
-        System.Boolean __lcl_flag_SystemBoolean_0;
-        System.Boolean __intnl_SystemBoolean_0;
-        System.Boolean __intnl_SystemBoolean_1;
-        System.Boolean __intnl_SystemBoolean_2;
-        System.Boolean __intnl_SystemBoolean_3;
-        System.Int32 __lcl_local_SystemInt32_0;
-        System.Boolean __intnl_SystemBoolean_4;
-        System.Int32 __lcl_k_SystemInt32_0;
+        System.Int32 __lcl_i_SystemInt32_0 = 0;
+        System.Int32 __lcl_j_SystemInt32_0 = 0;
+        System.Int32 __lcl_sum_SystemInt32_0 = 0;
+        System.Boolean __lcl_flag_SystemBoolean_0 = false;
+        System.Boolean __intnl_SystemBoolean_0 = false;
+        System.Boolean __intnl_SystemBoolean_1 = false;
+        System.Boolean __intnl_SystemBoolean_2 = false;
+        System.Int32 __lcl_local_SystemInt32_0 = 0;
+        System.Int32 __lcl_k_SystemInt32_0 = 0;
 
         __lcl_i_SystemInt32_0 = 0;
         __lcl_j_SystemInt32_0 = 0;
@@ -137,33 +135,30 @@ public class ComplexControlFlow : UdonSharpBehaviour
                 break;
             }
         }
-        __intnl_SystemBoolean_1 = __lcl_sum_SystemInt32_0 > 0;
-        if (!__intnl_SystemBoolean_1)
-        {
-            __intnl_SystemBoolean_2 = false;
-        }
-        else
+        if (__lcl_sum_SystemInt32_0 > 0)
         {
             __intnl_SystemBoolean_2 = true;
         }
-        if (!__intnl_SystemBoolean_2)
-        {
-            UnityEngine.Debug.Log("Non-positive sum");
-        }
         else
+        {
+            __intnl_SystemBoolean_2 = false;
+        }
+        if (__intnl_SystemBoolean_2)
         {
             UnityEngine.Debug.Log("Positive sum");
         }
-        __intnl_SystemBoolean_3 = __lcl_sum_SystemInt32_0 > 100;
-        if (!__intnl_SystemBoolean_3)
+        else
         {
-            UnityEngine.Debug.Log(__lcl_sum_SystemInt32_0);
-            return;
+            UnityEngine.Debug.Log("Non-positive sum");
+        }
+        if (__lcl_sum_SystemInt32_0 > 100)
+        {
+            UnityEngine.Debug.Log("Large sum");
         }
         else
         {
-            UnityEngine.Debug.Log("Large sum");
-            return;
+            UnityEngine.Debug.Log(__lcl_sum_SystemInt32_0);
         }
+        return;
     }
 }

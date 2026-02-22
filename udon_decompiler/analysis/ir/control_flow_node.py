@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
+
+if TYPE_CHECKING:
+    from udon_decompiler.analysis.ir.nodes import IRBlock
 
 
 @dataclass(eq=False)
@@ -9,7 +12,7 @@ class ControlFlowNode:
     """ILSpy-style control-flow node."""
 
     user_index: int
-    user_data: object
+    block: Optional["IRBlock"]
 
     visited: bool = False
     post_order_number: int = -1

@@ -351,7 +351,9 @@ class BlockILTransform(IILTransform):
         cfg_node: ControlFlowNode,
         context: BlockTransformContext,
     ) -> None:
-        block = cast(IRBlock, cfg_node.user_data)
+        block = cfg_node.block
+        if block is None:
+            raise RuntimeError("ControlFlowNode.block is None for non-sentinel node")
         context.block = block
         context.control_flow_node = cfg_node
         context.step_start_group(block.label)
