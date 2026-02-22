@@ -28,6 +28,9 @@ from udon_decompiler.analysis.transform.passes.loop_detection import (
 from udon_decompiler.analysis.transform.passes.promote_globals import (
     PromoteGlobals,
 )
+from udon_decompiler.analysis.transform.passes import (
+    structured_control_flow_cleanup_transform,
+)
 from udon_decompiler.analysis.transform.passes.temp_variable_inline import (
     TempVariableInline,
 )
@@ -41,7 +44,12 @@ __all__ = [
     "DetectExitPoints",
     "HighLevelLoopTransform",
     "HighLevelSwitchTransform",
+    "StructuredControlFlowCleanupTransform",
     "LoopDetection",
     "PromoteGlobals",
     "TempVariableInline",
 ]
+
+StructuredControlFlowCleanupTransform = (
+    structured_control_flow_cleanup_transform.StructuredControlFlowCleanupTransform
+)
