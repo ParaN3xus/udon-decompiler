@@ -53,8 +53,7 @@ namespace QvPen.UdonScript.UI
                 __lcl_i_SystemInt32_0 = 0;
                 while (__lcl_i_SystemInt32_0 < __lcl_s_SystemString_0.Length)
                 {
-                    __intnl_SystemBoolean_3 = System.Convert.ToInt32(__lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0)) < 128;
-                    if (__intnl_SystemBoolean_3)
+                    if (System.Convert.ToInt32(__lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0)) < 128)
                     {
                         __lcl_cnt_SystemInt32_0 = __lcl_cnt_SystemInt32_0 + 1;
                     }
@@ -62,28 +61,21 @@ namespace QvPen.UdonScript.UI
                     {
                         __lcl_cnt_SystemInt32_0 = __lcl_cnt_SystemInt32_0 + 2;
                     }
-                    __intnl_SystemBoolean_4 = __lcl_cnt_SystemInt32_0 < 12;
-                    if (!__intnl_SystemBoolean_4)
-                    {
-                        if (__lcl_i_SystemInt32_0 == __lcl_s_SystemString_0.Length - 1)
-                        {
-                            __lcl_displayName_SystemString_0 =
-                                System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
-                            break;
-                        }
-                        else
-                        {
-                            __lcl_displayName_SystemString_0 = __lcl_displayName_SystemString_0 + "...";
-                            break;
-                        }
-                    }
-                    else
+                    if (__lcl_cnt_SystemInt32_0 < 12)
                     {
                         __lcl_displayName_SystemString_0 =
                             System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
                         __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+                        continue;
                     }
-                    __intnl_SystemBoolean_2 = __lcl_i_SystemInt32_0 < __lcl_s_SystemString_0.Length;
+                    if (__lcl_i_SystemInt32_0 == __lcl_s_SystemString_0.Length - 1)
+                    {
+                        __lcl_displayName_SystemString_0 =
+                            System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
+                        break;
+                    }
+                    __lcl_displayName_SystemString_0 = __lcl_displayName_SystemString_0 + "...";
+                    break;
                 }
                 __lcl_messageString_SystemString_0 = System.String.Format("<size=8>[Only {0}]</size>", __lcl_displayName_SystemString_0);
                 if (message)
