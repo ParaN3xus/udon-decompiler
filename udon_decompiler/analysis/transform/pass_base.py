@@ -12,6 +12,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRFunction,
 )
 from udon_decompiler.analysis.transform.ir_utils import iter_block_containers
+from udon_decompiler.models.program import UdonProgramData
 
 
 class TransformStepper:
@@ -37,7 +38,7 @@ class ProgramTransformContext:
     whole-program state and construct per-function ILTransformContext instances.
     """
 
-    program: Any
+    program: UdonProgramData
     ir_class: Optional[IRClass] = None
     settings: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -64,7 +65,7 @@ class ILTransformContext:
         self.program_context = program_context
 
     @property
-    def program(self) -> Any:
+    def program(self) -> UdonProgramData:
         return self.program_context.program
 
     @property
@@ -243,8 +244,7 @@ class LoopingBlockTransform(IBlockTransform):
     def run(self, block: IRBlock, context: BlockTransformContext) -> None:
         if self._running:
             raise RuntimeError(
-                "LoopingBlockTransform already running. "
-                "Transforms are not re-entrant."
+                "LoopingBlockTransform already running. Transforms are not re-entrant."
             )
 
         self._running = True
