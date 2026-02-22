@@ -107,11 +107,14 @@ class IRBuilder:
     def _build_statements_from_instruction(
         self, block: BasicBlock, instruction: Instruction
     ) -> List[IRStatement]:
+        if self._is_switch_scaffold_instruction(block, instruction):
+            return []
+
         match instruction.opcode:
             case OpCode.COPY:
                 return self._build_copy_statements(instruction)
             case OpCode.EXTERN:
-                return self._build_extern_statements(instruction)
+                return self._build_extern_statements(block, instruction)
             case OpCode.JUMP:
                 return self._build_jump_statements(instruction)
             case OpCode.JUMP_IF_FALSE:
@@ -148,7 +151,9 @@ class IRBuilder:
             )
         ]
 
-    def _build_extern_statements(self, instruction: Instruction) -> List[IRStatement]:
+    def _build_extern_statements(
+        self, block: BasicBlock, instruction: Instruction
+    ) -> List[IRStatement]:
         if instruction.operand is None:
             raise Exception(f"EXTERN at 0x{instruction.address:08x} missing operand")
 
@@ -209,6 +214,18 @@ class IRBuilder:
                 value=call_expression,
             )
         ]
+
+    def _is_switch_scaffold_instruction(
+        self,
+        block: BasicBlock,
+        instruction: Instruction,
+    ) -> bool:
+        switch_info = block.switch_info
+        if switch_info is None:
+            return False
+        return (
+            instruction.address in switch_info.scaffold_instruction_addresses
+        )
 
     def _build_call_arguments(
         self, instruction: Instruction, parameter_count: int
