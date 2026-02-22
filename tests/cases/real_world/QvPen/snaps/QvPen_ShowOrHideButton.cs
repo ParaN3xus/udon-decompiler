@@ -5,10 +5,10 @@ namespace QvPen.UdonScript.UI
 {
     public class QvPen_ShowOrHideButton : UdonSharpBehaviour
     {
-        UnityEngine.GameObject displayObjectOff = null;
         UnityEngine.GameObject[] gameObjects = null /* [] */;
-        UnityEngine.GameObject displayObjectOn = null;
         System.Boolean isShown = true;
+        UnityEngine.GameObject displayObjectOn = null;
+        UnityEngine.GameObject displayObjectOff = null;
 
         public void _start()
         {
@@ -25,21 +25,24 @@ namespace QvPen.UdonScript.UI
 
         void function_0()
         {
-            System.Int32 __intnl_SystemInt32_1;
-            UnityEngine.GameObject __lcl_go_UnityEngineGameObject_0;
-            if ((UnityEngine.Object)displayObjectOn)
+            System.Int32 __intnl_SystemInt32_0 = 0;
+            System.Int32 __intnl_SystemInt32_1 = 0;
+            UnityEngine.GameObject __lcl_go_UnityEngineGameObject_0 = null;
+
+            if (displayObjectOn)
             {
                 displayObjectOn.SetActive(isShown);
             }
-            if ((UnityEngine.Object)displayObjectOff)
+            if (displayObjectOff)
             {
                 displayObjectOff.SetActive(!isShown);
             }
+            __intnl_SystemInt32_0 = gameObjects.Length;
             __intnl_SystemInt32_1 = 0;
-            while (__intnl_SystemInt32_1 < gameObjects.Length)
+            while (__intnl_SystemInt32_1 < __intnl_SystemInt32_0)
             {
                 __lcl_go_UnityEngineGameObject_0 = gameObjects.Get(__intnl_SystemInt32_1);
-                if ((UnityEngine.Object)__lcl_go_UnityEngineGameObject_0)
+                if (__lcl_go_UnityEngineGameObject_0)
                 {
                     __lcl_go_UnityEngineGameObject_0.SetActive(isShown);
                 }

@@ -5,24 +5,21 @@ namespace QvPen.UdonScript
 {
     public class QvPen_EraserManager : UdonSharpBehaviour
     {
-        System.Boolean _isNetworkSettled = false;
-        UnityEngine.Vector3[] __0_value__param = null;
-        UnityEngine.GameObject respawnButton = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"success": false, "byteCount": 0} */;
-        System.Int32 inkColliderLayer = 9;
-        UnityEngine.UI.Text textInUse = null;
-        UnityEngine.Vector3[] __0_data__param = null;
         VRC.Udon.UdonBehaviour eraser = null;
-        TMPro.TextMeshProUGUI textInUseTMPU = null;
-        VRC.SDKBase.VRCPlayerApi onPlayerJoinedPlayer = null;
-        TMPro.TextMeshPro textInUseTMP = null;
-        System.Boolean isInUseSyncBuffer = false;
-        VRC.SDKBase.VRCPlayerApi onPlayerLeftPlayer = null;
-        UnityEngine.Vector3[] __0_get_syncedData__ret = null;
+        UnityEngine.GameObject respawnButton = null;
         UnityEngine.GameObject inUseUI = null;
-        System.Boolean __0__TakeOwnership__ret = false;
+        UnityEngine.UI.Text textInUse = null;
+        TMPro.TextMeshPro textInUseTMP = null;
+        TMPro.TextMeshProUGUI textInUseTMPU = null;
+        System.Boolean _isNetworkSettled = false;
         UnityEngine.Vector3[] _syncedData = null;
+        System.Boolean isInUseSyncBuffer = false;
+        System.Boolean __0__TakeOwnership__ret = false;
         System.Boolean __0_get_isNetworkSettled__ret = false;
+        UnityEngine.Vector3[] __0_get_syncedData__ret = null;
+        UnityEngine.Vector3[] __0_value__param = null;
+        UnityEngine.Vector3[] __0_data__param = null;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"success": false, "byteCount": 0} */;
 
         public void _start()
         {
@@ -33,10 +30,13 @@ namespace QvPen.UdonScript
 
         public void _onPlayerJoined()
         {
-            System.Boolean __intnl_SystemBoolean_0;
+            System.Boolean __intnl_SystemBoolean_0 = false;
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_0 = null;
+
             __intnl_SystemBoolean_0 = VRC.SDKBase.Networking.LocalPlayer.IsOwner(eraser.gameObject);
             if (__intnl_SystemBoolean_0)
             {
+                __intnl_VRCUdonUdonBehaviour_0 = eraser;
                 eraser.SendCustomEvent("get_IsUser");
                 __intnl_SystemBoolean_0 = eraser.GetProgramVariable("__0_get_IsUser__ret");
             }
@@ -49,15 +49,20 @@ namespace QvPen.UdonScript
 
         public void _onPlayerLeft()
         {
-            System.Boolean __intnl_SystemBoolean_2;
+            System.Boolean __intnl_SystemBoolean_2 = false;
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_1 = null;
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_2 = null;
+
             __intnl_SystemBoolean_2 = VRC.SDKBase.Networking.IsOwner(eraser.gameObject);
             if (__intnl_SystemBoolean_2)
             {
+                __intnl_VRCUdonUdonBehaviour_1 = eraser;
                 eraser.SendCustomEvent("get_IsUser");
                 __intnl_SystemBoolean_2 = !eraser.GetProgramVariable("__0_get_IsUser__ret");
             }
             if (__intnl_SystemBoolean_2)
             {
+                __intnl_VRCUdonUdonBehaviour_2 = eraser;
                 eraser.SendCustomEvent("_onDrop");
             }
             return;
@@ -65,8 +70,9 @@ namespace QvPen.UdonScript
 
         public void StartUsing()
         {
-            System.String __lcl_text_SystemString_0;
-            VRC.SDKBase.VRCPlayerApi __lcl_owner_VRCSDKBaseVRCPlayerApi_0;
+            VRC.SDKBase.VRCPlayerApi __lcl_owner_VRCSDKBaseVRCPlayerApi_0 = null;
+            System.String __lcl_text_SystemString_0 = null;
+
             eraser.SetProgramVariable("isPickedUp", true);
             respawnButton.SetActive(false);
             inUseUI.SetActive(true);
@@ -116,12 +122,18 @@ namespace QvPen.UdonScript
 
         public void ResetEraser()
         {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_3 = null;
+
+            __intnl_VRCUdonUdonBehaviour_3 = eraser;
             eraser.SendCustomEvent("_Respawn");
             return;
         }
 
         public void Respawn()
         {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_4 = null;
+
+            __intnl_VRCUdonUdonBehaviour_4 = eraser;
             eraser.SendCustomEvent("_Respawn");
             return;
         }
@@ -132,19 +144,19 @@ namespace QvPen.UdonScript
             {
                 _ClearSyncBuffer();
                 __0__TakeOwnership__ret = true;
-                return;
             }
             else
             {
                 VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer, this.gameObject);
                 __0__TakeOwnership__ret = VRC.SDKBase.Networking.IsOwner(this.gameObject);
-                return;
             }
+            return;
         }
 
         void get_isNetworkSettled()
         {
-            System.Boolean __intnl_SystemBoolean_12;
+            System.Boolean __intnl_SystemBoolean_12 = false;
+
             __intnl_SystemBoolean_12 = _isNetworkSettled;
             if (!__intnl_SystemBoolean_12)
             {
@@ -163,25 +175,25 @@ namespace QvPen.UdonScript
 
         void function_0()
         {
+            UnityEngine.Vector3[] __intnl_UnityEngineVector3Array_0 = null;
+
             get_isNetworkSettled();
             if (__0_get_isNetworkSettled__ret)
             {
                 _syncedData = __0_value__param;
                 function_1();
+                __intnl_UnityEngineVector3Array_0 = _syncedData;
                 eraser.SetProgramVariable("__4_data__param", _syncedData);
                 eraser.SendCustomEvent("__0__UnpackData");
-                return;
             }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         void function_1()
         {
-            System.Boolean __intnl_SystemBoolean_13;
-            System.Boolean __intnl_SystemBoolean_14;
+            System.Boolean __intnl_SystemBoolean_13 = false;
+            System.Boolean __intnl_SystemBoolean_14 = false;
+
             __intnl_SystemBoolean_14 = VRC.SDKBase.VRCPlayerApi.GetPlayerCount() > 1;
             if (__intnl_SystemBoolean_14)
             {
@@ -226,9 +238,12 @@ namespace QvPen.UdonScript
 
         public void _onPostSerialization()
         {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_5 = null;
+
             isInUseSyncBuffer = false;
             if (onPostSerializationResult.success)
             {
+                __intnl_VRCUdonUdonBehaviour_5 = eraser;
                 eraser.SendCustomEvent("ExecuteEraseInk");
             }
             return;
