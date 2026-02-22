@@ -9,13 +9,18 @@ namespace QvPen.UdonScript.UI
 
         public void _interact()
         {
-            VRC.Udon.UdonBehaviour __lcl_penManager_VRCUdonUdonBehaviour_0;
-            System.Int32 __intnl_SystemInt32_1;
+            UnityEngine.Component[] __intnl_UnityEngineComponentArray_0 = null;
+            System.Int32 __intnl_SystemInt32_0 = 0;
+            System.Int32 __intnl_SystemInt32_1 = 0;
+            VRC.Udon.UdonBehaviour __lcl_penManager_VRCUdonUdonBehaviour_0 = null;
+
+            __intnl_UnityEngineComponentArray_0 = settings.GetProgramVariable("penManagers");
+            __intnl_SystemInt32_0 = __intnl_UnityEngineComponentArray_0.Length;
             __intnl_SystemInt32_1 = 0;
-            while (__intnl_SystemInt32_1 < settings.GetProgramVariable("penManagers").Length)
+            while (__intnl_SystemInt32_1 < __intnl_SystemInt32_0)
             {
-                __lcl_penManager_VRCUdonUdonBehaviour_0 = settings.GetProgramVariable("penManagers").Get(__intnl_SystemInt32_1);
-                if ((UnityEngine.Object)__lcl_penManager_VRCUdonUdonBehaviour_0)
+                __lcl_penManager_VRCUdonUdonBehaviour_0 = __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_1);
+                if (__lcl_penManager_VRCUdonUdonBehaviour_0)
                 {
                     __lcl_penManager_VRCUdonUdonBehaviour_0.SendCustomEvent("Clear");
                 }

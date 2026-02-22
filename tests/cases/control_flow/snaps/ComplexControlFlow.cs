@@ -25,7 +25,8 @@ public class ComplexControlFlow : UdonSharpBehaviour
         while (true)
         {
             __lcl_local_SystemInt32_0 = __lcl_i_SystemInt32_0 * seed;
-            if (__lcl_local_SystemInt32_0 % 2 == 0)
+            __intnl_SystemBoolean_0 = __lcl_local_SystemInt32_0 % 2 == 0;
+            if (__intnl_SystemBoolean_0)
             {
                 __intnl_SystemBoolean_0 = __lcl_i_SystemInt32_0 < limit;
             }
@@ -35,7 +36,8 @@ public class ComplexControlFlow : UdonSharpBehaviour
             }
             else
             {
-                if (!(__lcl_local_SystemInt32_0 % 3 == 0))
+                __intnl_SystemBoolean_1 = __lcl_local_SystemInt32_0 % 3 == 0;
+                if (!__intnl_SystemBoolean_1)
                 {
                     __intnl_SystemBoolean_1 = __lcl_i_SystemInt32_0 == 0;
                 }
