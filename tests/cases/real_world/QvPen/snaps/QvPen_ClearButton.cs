@@ -5,24 +5,22 @@ namespace QvPen.Udon.UI
 {
     public class QvPen_ClearButton : UdonSharpBehaviour
     {
-        System.Single targetTime2 = 0.0f;
-        System.Single targetTime1 = 0.0f;
-        VRC.Udon.Common.UdonInputEventArgs inputUseArgs = null /* {"eventType": 0, "boolValue": false, "floatValue": 0.0, "handType": 0} */;
-        System.Int64[] __refl_typeids = null /* [3142330649835999805, -5351660574498133152] */;
-        UnityEngine.UI.Image allTextImage = null;
-        System.Boolean isPickedUp = false;
-        UnityEngine.UI.Image allIndicator = null;
-        System.Boolean isIn_LoopTextImageActive = false;
-        UnityEngine.UI.Image ownIndicator = null;
-        System.Boolean __1_isActive__param = false;
-        System.Single __0_ownIndicatorValue__param = 0.0f;
-        System.Boolean __0_isActive__param = false;
-        System.Single targetTime_TextImage = 0.0f;
-        System.Boolean inputUseBoolValue = false;
-        System.Single __0_allIndicatorValue__param = 0.0f;
-        System.Boolean isInInteract = false;
-        UnityEngine.UI.Image ownTextImage = null;
         VRC.Udon.UdonBehaviour penManager = null;
+        UnityEngine.UI.Image ownTextImage = null;
+        UnityEngine.UI.Image ownIndicator = null;
+        UnityEngine.UI.Image allTextImage = null;
+        UnityEngine.UI.Image allIndicator = null;
+        System.Single targetTime1 = 0.0f;
+        System.Single targetTime2 = 0.0f;
+        System.Boolean isInInteract = false;
+        System.Boolean isPickedUp = false;
+        System.Single targetTime_TextImage = 0.0f;
+        System.Boolean isIn_LoopTextImageActive = false;
+        System.Boolean __0_isActive__param = false;
+        System.Boolean __1_isActive__param = false;
+        System.Boolean inputUseBoolValue = false;
+        System.Single __0_ownIndicatorValue__param = 0.0f;
+        System.Single __0_allIndicatorValue__param = 0.0f;
 
         public void OnPenPickup()
         {
@@ -52,12 +50,9 @@ namespace QvPen.Udon.UI
 
         public void _inputUse()
         {
-            System.Boolean __intnl_SystemBoolean_0;
-            if (inputUseBoolValue)
-            {
-                return;
-            }
-            else
+            System.Boolean __intnl_SystemBoolean_0 = false;
+
+            if (!inputUseBoolValue)
             {
                 __intnl_SystemBoolean_0 = isInInteract;
                 if (__intnl_SystemBoolean_0)
@@ -71,8 +66,8 @@ namespace QvPen.Udon.UI
                 isInInteract = false;
                 __0_isActive__param = false;
                 function_0();
-                return;
             }
+            return;
         }
 
         public void _interact()
@@ -90,17 +85,14 @@ namespace QvPen.Udon.UI
 
         void function_0()
         {
-            UnityEngine.GameObject __intnl_UnityEngineGameObject_0;
             if (VRC.SDKBase.Utilities.IsValid(ownIndicator))
             {
-                __intnl_UnityEngineGameObject_0 = ownIndicator.gameObject;
-                __intnl_UnityEngineGameObject_0.SetActive(__0_isActive__param);
+                ownIndicator.gameObject.SetActive(__0_isActive__param);
                 ownIndicator.fillAmount = 0.0f;
             }
             if (VRC.SDKBase.Utilities.IsValid(allIndicator))
             {
-                __intnl_UnityEngineGameObject_0 = allIndicator.gameObject;
-                __intnl_UnityEngineGameObject_0.SetActive(__0_isActive__param);
+                allIndicator.gameObject.SetActive(__0_isActive__param);
                 allIndicator.fillAmount = 0.0f;
             }
             return;
@@ -134,11 +126,12 @@ namespace QvPen.Udon.UI
 
         public void _LoopIndicator1()
         {
-            System.Single __intnl_SystemSingle_8;
-            System.Single __intnl_SystemSingle_7;
-            System.Single __lcl_leaveTime2_SystemSingle_0;
-            System.Single __lcl_leaveTime1_SystemSingle_0;
-            System.Single __lcl_time_SystemSingle_0;
+            System.Single __lcl_time_SystemSingle_0 = 0.0f;
+            System.Single __lcl_leaveTime1_SystemSingle_0 = 0.0f;
+            System.Single __lcl_leaveTime2_SystemSingle_0 = 0.0f;
+            System.Single __intnl_SystemSingle_8 = 0.0f;
+            System.Single __intnl_SystemSingle_10 = 0.0f;
+
             if (isInInteract)
             {
                 __lcl_time_SystemSingle_0 = UnityEngine.Time.time;
@@ -147,34 +140,30 @@ namespace QvPen.Udon.UI
                 if (__lcl_leaveTime1_SystemSingle_0 <= 0.0f)
                 {
                     function_5();
-                    __intnl_SystemSingle_7 = __lcl_leaveTime2_SystemSingle_0 / 2.0f;
-                    __intnl_SystemSingle_8 = 1.0f - __intnl_SystemSingle_7;
+                    __intnl_SystemSingle_8 = 1.0f - __lcl_leaveTime2_SystemSingle_0 / 2.0f;
                     __0_ownIndicatorValue__param = 1.0f;
                     __0_allIndicatorValue__param = __intnl_SystemSingle_8;
                     function_2();
                     this.SendCustomEventDelayedFrames("_LoopIndicator2", 0, null /* 0 */);
-                    return;
                 }
                 else
                 {
-                    __intnl_SystemSingle_7 = __lcl_leaveTime1_SystemSingle_0 / 0.31f;
-                    __intnl_SystemSingle_8 = 1.0f - __intnl_SystemSingle_7;
+                    __intnl_SystemSingle_8 = 1.0f - __lcl_leaveTime1_SystemSingle_0 / 0.31f;
+                    __intnl_SystemSingle_10 = 1.0f - __lcl_leaveTime2_SystemSingle_0 / 2.0f;
                     __0_ownIndicatorValue__param = __intnl_SystemSingle_8;
-                    __0_allIndicatorValue__param = 1.0f - __lcl_leaveTime2_SystemSingle_0 / 2.0f;
+                    __0_allIndicatorValue__param = __intnl_SystemSingle_10;
                     function_2();
                     this.SendCustomEventDelayedFrames("_LoopIndicator1", 0, null /* 0 */);
-                    return;
                 }
             }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         public void _LoopIndicator2()
         {
-            System.Single __lcl_leaveTime2_SystemSingle_1;
+            System.Single __lcl_leaveTime2_SystemSingle_1 = 0.0f;
+            System.Single __intnl_SystemSingle_13 = 0.0f;
+
             if (isInInteract)
             {
                 __lcl_leaveTime2_SystemSingle_1 = targetTime2 - UnityEngine.Time.time;
@@ -184,45 +173,36 @@ namespace QvPen.Udon.UI
                     __0_ownIndicatorValue__param = 0.0f;
                     __0_allIndicatorValue__param = 0.0f;
                     function_2();
-                    return;
                 }
                 else
                 {
+                    __intnl_SystemSingle_13 = 1.0f - __lcl_leaveTime2_SystemSingle_1 / 2.0f;
                     __0_ownIndicatorValue__param = 0.0f;
-                    __0_allIndicatorValue__param = 1.0f - __lcl_leaveTime2_SystemSingle_1 / 2.0f;
+                    __0_allIndicatorValue__param = __intnl_SystemSingle_13;
                     function_2();
                     this.SendCustomEventDelayedFrames("_LoopIndicator2", 0, null /* 0 */);
-                    return;
                 }
             }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         void function_3()
         {
-            if (isIn_LoopTextImageActive)
-            {
-                return;
-            }
-            else
+            if (!isIn_LoopTextImageActive)
             {
                 isIn_LoopTextImageActive = true;
                 if (isPickedUp)
                 {
                     function_4();
-                    return;
                 }
                 else
                 {
                     __1_isActive__param = true;
                     function_1();
                     _LoopTextImageActive();
-                    return;
                 }
             }
+            return;
         }
 
         void function_4()
@@ -232,24 +212,20 @@ namespace QvPen.Udon.UI
                 isIn_LoopTextImageActive = false;
                 __1_isActive__param = false;
                 function_1();
-                return;
             }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         public void _LoopTextImageActive()
         {
-            System.Single __lcl_leaveTime_TextImage_SystemSingle_0;
-            System.Single __lcl_time_SystemSingle_1;
+            System.Single __lcl_time_SystemSingle_1 = 0.0f;
+            System.Single __lcl_leaveTime_TextImage_SystemSingle_0 = 0.0f;
+
             if (isIn_LoopTextImageActive)
             {
                 if (isPickedUp)
                 {
                     function_4();
-                    return;
                 }
                 else
                 {
@@ -258,25 +234,23 @@ namespace QvPen.Udon.UI
                     if (__lcl_leaveTime_TextImage_SystemSingle_0 <= 0.0f)
                     {
                         function_4();
-                        return;
                     }
                     else
                     {
                         this.SendCustomEventDelayedSeconds("_LoopTextImageActive", __lcl_leaveTime_TextImage_SystemSingle_0 / 2.0f, null /* 0 */);
-                        return;
                     }
                 }
             }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         void function_5()
         {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_1 = null;
+
             if (VRC.SDKBase.Utilities.IsValid(penManager))
             {
+                __intnl_VRCUdonUdonBehaviour_1 = penManager;
                 penManager.SendCustomEvent("EraseOwnInk");
             }
             return;
@@ -284,8 +258,11 @@ namespace QvPen.Udon.UI
 
         void function_6()
         {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_2 = null;
+
             if (VRC.SDKBase.Utilities.IsValid(penManager))
             {
+                __intnl_VRCUdonUdonBehaviour_2 = penManager;
                 penManager.SendCustomEvent("UndoDraw");
             }
             return;
