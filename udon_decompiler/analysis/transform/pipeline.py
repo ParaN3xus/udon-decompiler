@@ -65,6 +65,9 @@ def build_default_pipeline() -> TransformPipeline:
     from udon_decompiler.analysis.transform.passes.high_level_loop_transform import (
         HighLevelLoopTransform,
     )
+    from udon_decompiler.analysis.transform.passes.high_level_switch_transform import (
+        HighLevelSwitchTransform,
+    )
     from udon_decompiler.analysis.transform.passes.loop_detection import LoopDetection
     from udon_decompiler.analysis.transform.passes.promote_globals import (
         PromoteGlobals,
@@ -88,6 +91,7 @@ def build_default_pipeline() -> TransformPipeline:
             DetectExitPoints(can_introduce_exit_for_return=True),
             block_condition_transform,
             HighLevelLoopTransform(),
+            HighLevelSwitchTransform(),
             CollectVariables(),
         ],
         program_transforms=[
