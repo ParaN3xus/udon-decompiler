@@ -336,6 +336,8 @@ class CSharpCodeGenerator:
                 return [f"goto {self._label_for_block(statement)};"]
 
             lines: list[str] = []
+            if statement.should_emit_label:
+                lines.append(f"{self._label_for_block(statement)}:")
             for nested in statement.statements:
                 lines.extend(
                     self._generate_statement(
