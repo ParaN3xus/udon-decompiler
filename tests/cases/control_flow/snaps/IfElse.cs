@@ -5,8 +5,8 @@ public class IfElse : UdonSharpBehaviour
 {
     public void _start()
     {
-        System.Int32 __lcl_score_SystemInt32_0;
-        System.String __lcl_result_SystemString_0;
+        System.Int32 __lcl_score_SystemInt32_0 = 0;
+        System.String __lcl_result_SystemString_0 = null;
 
         __lcl_score_SystemInt32_0 = 75;
         if (__lcl_score_SystemInt32_0 >= 60)

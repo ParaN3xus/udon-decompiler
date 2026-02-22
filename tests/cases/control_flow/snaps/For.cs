@@ -5,9 +5,9 @@ public class For : UdonSharpBehaviour
 {
     public void _start()
     {
-        System.Int32[] __lcl_numbers_SystemInt32Array_0;
-        System.Int32 __lcl_total_SystemInt32_0;
-        System.Int32 __lcl_i_SystemInt32_0;
+        System.Int32[] __lcl_numbers_SystemInt32Array_0 = null;
+        System.Int32 __lcl_total_SystemInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_0 = 0;
 
         __lcl_numbers_SystemInt32Array_0 = new System.Int32[](5);
         __lcl_numbers_SystemInt32Array_0.Set(0, 1);
