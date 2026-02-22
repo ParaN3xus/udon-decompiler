@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Optional, cast
 
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
@@ -8,6 +8,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRFunction,
     IRHighLevelDoWhile,
     IRHighLevelSwitch,
+    IRHighLevelSwitchSection,
     IRHighLevelWhile,
     IRIf,
     IRJump,
@@ -37,6 +38,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
             block.statements = [
                 self._rewrite_statement(stmt) for stmt in block.statements
             ]
+        self._hoist_shared_switch_default_tails(container)
 
     def _rewrite_statement(self, statement: IRStatement) -> IRStatement:
         if isinstance(statement, IRIf):
@@ -150,6 +152,77 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 changed = True
                 break
 
+    def _hoist_shared_switch_default_tails(
+        self,
+        container: IRBlockContainer,
+    ) -> None:
+        """
+        Deduplicate lowered range-guarded switch tails.
+
+        Pattern:
+            ...;
+            if (guard) { switch (...) { default: <tail>; } }
+            <tail>;
+
+        where `default` body equals the trailing statements in the same block.
+        Rewrite into:
+            ...;
+            if (guard) { switch (...) { default: goto <tail_block>; } }
+            <tail_block>: <tail>;
+        """
+        changed = True
+        while changed:
+            changed = False
+            for block in list(container.blocks):
+                for stmt_index, statement in enumerate(block.statements):
+                    if not isinstance(statement, IRIf):
+                        continue
+                    if statement.false_statement is not None:
+                        continue
+
+                    switch_stmt = self._extract_single_switch(statement.true_statement)
+                    if switch_stmt is None:
+                        continue
+
+                    default_section = self._find_default_section(switch_stmt)
+                    if default_section is None:
+                        continue
+
+                    tail = block.statements[stmt_index + 1 :]
+                    if not tail:
+                        continue
+                    if not self._statement_list_equal(
+                        default_section.body.statements,
+                        tail,
+                    ):
+                        continue
+
+                    existing = self._find_block_by_start_address(
+                        container,
+                        default_section.body.start_address,
+                    )
+                    if existing is not None and existing is not block:
+                        continue
+
+                    shared_block = IRBlock(
+                        statements=tail,
+                        start_address=default_section.body.start_address,
+                    )
+                    block.statements = block.statements[: stmt_index + 1]
+
+                    insert_at = container.blocks.index(block) + 1
+                    container.blocks.insert(insert_at, shared_block)
+
+                    default_section.body = IRBlock(
+                        statements=[IRJump(target=shared_block)],
+                        start_address=default_section.body.start_address,
+                    )
+
+                    changed = True
+                    break
+                if changed:
+                    break
+
     @staticmethod
     def _as_jump_target(statement: IRStatement) -> Optional[IRBlock]:
         if isinstance(statement, IRJump):
@@ -158,4 +231,43 @@ class StructuredControlFlowCleanupTransform(IILTransform):
             nested = statement.statements[0]
             if isinstance(nested, IRJump):
                 return nested.target
+        return None
+
+    @staticmethod
+    def _extract_single_switch(statement: IRStatement) -> Optional[IRHighLevelSwitch]:
+        if not isinstance(statement, IRBlock):
+            return None
+        if len(statement.statements) != 1:
+            return None
+        only_statement = statement.statements[0]
+        if not isinstance(only_statement, IRHighLevelSwitch):
+            return None
+        return only_statement
+
+    @staticmethod
+    def _find_default_section(
+        switch_stmt: IRHighLevelSwitch,
+    ) -> Optional[IRHighLevelSwitchSection]:
+        for section in switch_stmt.sections:
+            if section.is_default:
+                return section
+        return None
+
+    @staticmethod
+    def _statement_list_equal(
+        left: list[IRStatement],
+        right: list[IRStatement],
+    ) -> bool:
+        if len(left) != len(right):
+            return False
+        return all(l_stmt == r_stmt for l_stmt, r_stmt in zip(left, right))
+
+    @staticmethod
+    def _find_block_by_start_address(
+        container: IRBlockContainer,
+        start_address: int,
+    ) -> Optional[IRBlock]:
+        for block in container.blocks:
+            if block.start_address == start_address:
+                return block
         return None
