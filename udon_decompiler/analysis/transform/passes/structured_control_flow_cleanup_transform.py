@@ -6,7 +6,9 @@ from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
     IRBlockContainer,
     IRFunction,
+    IRHighLevelDoWhile,
     IRHighLevelSwitch,
+    IRHighLevelWhile,
     IRIf,
     IRStatement,
 )
@@ -53,6 +55,20 @@ class StructuredControlFlowCleanupTransform(IILTransform):
 
         if isinstance(statement, IRBlockContainer):
             self._rewrite_container(statement)
+            return statement
+
+        if isinstance(statement, IRHighLevelWhile):
+            statement.body = cast(
+                IRBlockContainer,
+                self._rewrite_statement(statement.body),
+            )
+            return statement
+
+        if isinstance(statement, IRHighLevelDoWhile):
+            statement.body = cast(
+                IRBlockContainer,
+                self._rewrite_statement(statement.body),
+            )
             return statement
 
         if isinstance(statement, IRHighLevelSwitch):
