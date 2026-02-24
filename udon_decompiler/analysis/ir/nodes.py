@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
 
-from udon_decompiler.analysis.expression_builder import Operator
+from udon_decompiler.analysis.operator import Operator
 from udon_decompiler.analysis.variable_identifier import Variable
 from udon_decompiler.models.module_info import ExternFunctionInfo
 from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
