@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
     IRBlockContainer,
@@ -18,6 +17,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRStatement,
     IRSwitch,
 )
+from udon_decompiler.analysis.operator import Operator
 from udon_decompiler.analysis.transform.ir_utils import iter_block_containers
 from udon_decompiler.analysis.transform.pass_base import (
     IILTransform,
@@ -118,14 +118,10 @@ class HighLevelLoopTransform(IILTransform):
         nested = loop_body.statements[-2]
 
         if not (
-            isinstance(leave_inst, IRLeave)
-            and leave_inst.target_container is loop
+            isinstance(leave_inst, IRLeave) and leave_inst.target_container is loop
         ):
             return False
-        if not (
-            isinstance(nested, IRIf)
-            and nested.false_statement is None
-        ):
+        if not (isinstance(nested, IRIf) and nested.false_statement is None):
             return False
 
         if isinstance(nested.true_statement, IRBlock):
@@ -183,9 +179,7 @@ class HighLevelLoopTransform(IILTransform):
                 start_address=self._next_synthetic_block_address(),
             )
             loop.blocks.append(new_condition_block)
-            match.condition_block.statements.append(
-                IRJump(target=new_condition_block)
-            )
+            match.condition_block.statements.append(IRJump(target=new_condition_block))
             condition_block = new_condition_block
         else:
             if match.condition_block in loop.blocks:
@@ -292,10 +286,7 @@ class HighLevelLoopTransform(IILTransform):
 
         last = block.statements[-1]
         maybe_if = block.statements[-2]
-        if not (
-            isinstance(maybe_if, IRIf)
-            and maybe_if.false_statement is None
-        ):
+        if not (isinstance(maybe_if, IRIf) and maybe_if.false_statement is None):
             return None
 
         condition_block = block
@@ -313,10 +304,7 @@ class HighLevelLoopTransform(IILTransform):
                 return None
             nested_last = nested.statements[-1]
             nested_if = nested.statements[-2]
-            if not (
-                isinstance(nested_if, IRIf)
-                and nested_if.false_statement is None
-            ):
+            if not (isinstance(nested_if, IRIf) and nested_if.false_statement is None):
                 return None
             unwrap = True
             unwrap_return_if = maybe_if
@@ -408,10 +396,7 @@ class HighLevelLoopTransform(IILTransform):
 
         if isinstance(statement, IRBlock) and len(statement.statements) == 1:
             nested = statement.statements[0]
-            return (
-                isinstance(nested, IRLeave)
-                and nested.target_container is container
-            )
+            return isinstance(nested, IRLeave) and nested.target_container is container
 
         return False
 

@@ -4,7 +4,6 @@ from udon_decompiler.analysis.basic_block import (
     BasicBlock,
     BasicBlockType,
 )
-from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
     IRBlock,
@@ -26,6 +25,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRSwitch,
     IRVariableExpression,
 )
+from udon_decompiler.analysis.operator import Operator
 from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
     StackSimulator,
@@ -223,9 +223,7 @@ class IRBuilder:
         switch_info = block.switch_info
         if switch_info is None:
             return False
-        return (
-            instruction.address in switch_info.scaffold_instruction_addresses
-        )
+        return instruction.address in switch_info.scaffold_instruction_addresses
 
     def _build_call_arguments(
         self, instruction: Instruction, parameter_count: int

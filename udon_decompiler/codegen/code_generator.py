@@ -5,7 +5,6 @@ from typing import Optional
 
 from clang_format import get_executable
 
-from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
     IRAssignmentStatement,
     IRBlock,
@@ -33,6 +32,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRVariableDeclearationStatement,
     IRVariableExpression,
 )
+from udon_decompiler.analysis.operator import Operator
 from udon_decompiler.models.module_info import ParameterType
 from udon_decompiler.utils.logger import logger
 
