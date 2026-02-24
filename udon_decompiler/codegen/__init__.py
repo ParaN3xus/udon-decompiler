@@ -1,11 +1,9 @@
 from udon_decompiler.codegen.code_generator import (
-    ClassIR,
     CSharpCodeGenerator,
-    GlobalVariableIR,
+    IRClass,
 )
 
 __all__ = [
-    "ClassIR",
+    "IRClass",
     "CSharpCodeGenerator",
-    "GlobalVariableIR",
 ]

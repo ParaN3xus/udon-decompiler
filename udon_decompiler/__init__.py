@@ -1,47 +1,39 @@
 from typing import Optional
 
 from udon_decompiler.analysis import (
-    AssignmentStatement,
     BasicBlock,
     BasicBlockIdentifier,
     BasicBlockType,
-    BlockIR,
     CFGBuilder,
-    ConditionalTerminator,
-    ConstructorCallExpression,
     ControlFlowGraph,
     DataFlowAnalyzer,
-    EndTerminator,
     Expression,
     ExpressionBuilder,
-    ExpressionStatement,
     ExpressionType,
-    ExternalCallExpression,
     FunctionDataFlowAnalyzer,
-    FunctionIR,
-    GotoTerminator,
-    InternalCallExpression,
+    IRAssignmentStatement,
     IRBuilder,
+    IRConstructorCallExpression,
     IRExpression,
+    IRExpressionStatement,
+    IRExternalCallExpression,
+    IRFunction,
+    IRInternalCallExpression,
+    IRLiteralExpression,
+    IROperatorCallExpression,
+    IRPropertyAccessExpression,
     IRStatement,
-    IRTerminator,
-    LiteralExpression,
-    OperatorCallExpression,
-    PropertyAccessExpression,
-    ReturnTerminator,
+    IRVariableExpression,
     StackFrame,
     StackSimulator,
     StackValue,
-    SwitchTerminator,
     Variable,
-    VariableExpression,
     VariableIdentifier,
     VariableScope,
 )
 from udon_decompiler.codegen import (
-    ClassIR,
     CSharpCodeGenerator,
-    GlobalVariableIR,
+    IRClass,
 )
 from udon_decompiler.codegen.program_code_generator import ProgramCodeGenerator
 from udon_decompiler.loaders import ModuleInfoLoader, ProgramLoader
@@ -68,11 +60,9 @@ def decompile_program_to_source(program: UdonProgramData) -> tuple[Optional[str]
     logger.debug(f"ASM: {instructions}")
 
     analyzer = DataFlowAnalyzer(program, instructions)
-    function_analyzers = analyzer.analyze()
+    ir_class = analyzer.analyze()
 
-    class_name, code = ProgramCodeGenerator.generate_program(
-        program, function_analyzers
-    )
+    class_name, code = ProgramCodeGenerator.generate_program(ir_class)
     return class_name, code
 
 
@@ -90,32 +80,24 @@ __all__ = [
     "StackFrame",
     "IRBuilder",
     "IRExpression",
-    "LiteralExpression",
-    "VariableExpression",
-    "InternalCallExpression",
-    "ExternalCallExpression",
-    "PropertyAccessExpression",
-    "ConstructorCallExpression",
-    "OperatorCallExpression",
+    "IRLiteralExpression",
+    "IRVariableExpression",
+    "IRInternalCallExpression",
+    "IRExternalCallExpression",
+    "IRPropertyAccessExpression",
+    "IRConstructorCallExpression",
+    "IROperatorCallExpression",
     "IRStatement",
-    "AssignmentStatement",
-    "ExpressionStatement",
-    "IRTerminator",
-    "GotoTerminator",
-    "ConditionalTerminator",
-    "SwitchTerminator",
-    "ReturnTerminator",
-    "EndTerminator",
-    "BlockIR",
-    "FunctionIR",
+    "IRAssignmentStatement",
+    "IRExpressionStatement",
+    "IRFunction",
     "StackSimulator",
     "StackValue",
     "Variable",
     "VariableIdentifier",
     "VariableScope",
-    "ClassIR",
+    "IRClass",
     "CSharpCodeGenerator",
-    "GlobalVariableIR",
     "ProgramCodeGenerator",
     "ModuleInfoLoader",
     "ProgramLoader",
