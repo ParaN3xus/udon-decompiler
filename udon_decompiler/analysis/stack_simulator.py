@@ -114,6 +114,24 @@ class HeapSimulator:
             return
         self.set_known(target_address, source_value.value)
 
+    def copy(self) -> "HeapSimulator":
+        cloned = HeapSimulator(self.program)
+        cloned._values = {
+            address: HeapValue(kind=value.kind, value=value.value)
+            for address, value in self._values.items()
+        }
+        return cloned
+
+    def known_literal_signature(self) -> tuple[tuple[int, int], ...]:
+        res: list[tuple[int, int]] = []
+        for address, value in self._values.items():
+            if value.kind == HeapValueKind.UNKNOWN:
+                continue
+            if isinstance(value.value, int):
+                res.append((address, value.value))
+        res.sort()
+        return tuple(res)
+
 
 class _StackSemantics:
     def __init__(self, program: UdonProgramData):
