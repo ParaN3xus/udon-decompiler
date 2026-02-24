@@ -50,16 +50,12 @@ pub(crate) fn disassemble_program_to_text_with_indent(
     lines.push("; syntax".to_string());
     lines.push(format!("; {}entry: [+/-] <entry_name> @ <label>", indent));
     lines.push(format!(
-        "; {}heap:  [+/ - /~] <symbol>: {{ <type_name> }} = <init_literal>",
+        "; {}heap:  [+/-/~] <symbol>: {{ <type_name> }} = <init_literal>",
         indent
     ));
     lines.push(format!("; {}bind:  bind <symbol> -> <label>", indent));
     lines.push(format!(
         "; {}bind-table: bind-table <symbol> -> [<label>, ...]",
-        indent
-    ));
-    lines.push(format!(
-        "; {}unsupported heap init literal: {{ unserializable }}",
         indent
     ));
     lines.push(String::new());
