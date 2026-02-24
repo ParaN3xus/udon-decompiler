@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, cast
 
-from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.control_flow_node import ControlFlowNode
 from udon_decompiler.analysis.ir.nodes import (
     IRBlock,
@@ -19,6 +18,7 @@ from udon_decompiler.analysis.ir.nodes import (
     IRStatement,
     IRSwitch,
 )
+from udon_decompiler.analysis.operator import Operator
 from udon_decompiler.analysis.transform.pass_base import (
     BlockTransformContext,
     IBlockTransform,
@@ -133,9 +133,7 @@ class ConditionDetection(IBlockTransform):
                     isinstance(nested_true, IRBlock)
                     and nested_true.statements
                     and len(target_block.statements) > 1
-                    and self._contains_non_exit_statement(
-                        target_block.statements[1:]
-                    )
+                    and self._contains_non_exit_statement(target_block.statements[1:])
                     and DetectExitPoints.compatible_exit_instruction(
                         exit_inst,
                         nested_true.statements[-1],
@@ -244,11 +242,9 @@ class ConditionDetection(IBlockTransform):
                     nested_if.condition,
                 )
                 if_inst.true_statement = nested_if.true_statement
-        elif (
-            if_inst.false_statement is not None
-            and self._statement_start(if_inst.false_statement)
-            < self._statement_start(if_inst.true_statement)
-        ):
+        elif if_inst.false_statement is not None and self._statement_start(
+            if_inst.false_statement
+        ) < self._statement_start(if_inst.true_statement):
             old_true = if_inst.true_statement
             if_inst.true_statement = if_inst.false_statement
             if_inst.false_statement = old_true
