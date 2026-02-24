@@ -8,6 +8,7 @@ public class ThisReference : UdonSharpBehaviour
         VRC.Udon.UdonBehaviour __lcl_currentBehaviour_VRCUdonUdonBehaviour_0;
         UnityEngine.GameObject __lcl_currentGo_UnityEngineGameObject_0;
         UnityEngine.Transform __lcl_currentTrans_UnityEngineTransform_0;
+
         __lcl_currentBehaviour_VRCUdonUdonBehaviour_0 = this;
         UnityEngine.Debug.Log("Behaviour: " + __lcl_currentBehaviour_VRCUdonUdonBehaviour_0.name);
         __lcl_currentGo_UnityEngineGameObject_0 = this.gameObject;

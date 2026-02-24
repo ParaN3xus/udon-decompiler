@@ -13,6 +13,7 @@ public class ShortCircuit : UdonSharpBehaviour
         System.Boolean __intnl_SystemBoolean_1;
         System.Boolean __intnl_SystemBoolean_2;
         System.Boolean __intnl_SystemBoolean_3;
+
         __intnl_SystemBoolean_0 = a > 0;
         if (__intnl_SystemBoolean_0)
         {

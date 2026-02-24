@@ -17,6 +17,7 @@ public class ExpressionInline : UdonSharpBehaviour
         System.Boolean __intnl_SystemBoolean_0;
         System.Boolean __intnl_SystemBoolean_1;
         System.String __lcl_n_SystemString_0;
+
         __lcl_a_SystemInt32_0 = 10;
         __lcl_b_SystemInt32_0 = 20;
         __lcl_f_SystemSingle_0 = 2.5f;
