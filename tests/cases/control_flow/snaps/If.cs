@@ -6,6 +6,7 @@ public class If : UdonSharpBehaviour
     public void _start()
     {
         System.Int32 __lcl_a_SystemInt32_0;
+
         __lcl_a_SystemInt32_0 = 10;
         if (__lcl_a_SystemInt32_0 > 5)
         {

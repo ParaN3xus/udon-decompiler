@@ -6,6 +6,7 @@ public class DoWhile : UdonSharpBehaviour
     public void _start()
     {
         System.Int32 __lcl_i_SystemInt32_0;
+
         __lcl_i_SystemInt32_0 = 0;
         do
         {
