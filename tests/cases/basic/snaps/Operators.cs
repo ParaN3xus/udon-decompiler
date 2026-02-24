@@ -27,6 +27,7 @@ public class Operators : UdonSharpBehaviour
         System.Boolean __lcl_gte_SystemBoolean_0;
         System.Boolean __lcl_lt_SystemBoolean_0;
         System.Boolean __lcl_lte_SystemBoolean_0;
+
         __lcl_a_SystemInt32_0 = 10;
         __lcl_b_SystemInt32_0 = 3;
         __lcl_add_SystemInt32_0 = __lcl_a_SystemInt32_0 + __lcl_b_SystemInt32_0;

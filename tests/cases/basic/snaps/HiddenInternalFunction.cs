@@ -17,6 +17,7 @@ public class HiddenInternalFunction : UdonSharpBehaviour
     void fibonacci()
     {
         System.Int32 __intnl_SystemInt32_2;
+
         if (__0_n__param <= 2)
         {
             __0___0_fibonacci__ret = 1;
