@@ -50,10 +50,10 @@ pub(crate) fn build_label_map(
 ) -> BTreeMap<u32, String> {
     let mut addresses = HashSet::<u32>::new();
     for inst in decoded {
-        if inst.opcode.is_direct_jump() {
-            if let Some(op) = inst.operand {
-                addresses.insert(op);
-            }
+        if inst.opcode.is_direct_jump()
+            && let Some(op) = inst.operand
+        {
+            addresses.insert(op);
         }
     }
     for address in entry_address_to_name.keys() {
