@@ -1,16 +1,19 @@
 #import "/docs/book.typ": book-page
 #import "@preview/shiroa:0.3.1": shiroa-sys-target
-#import "../../_utils/common.typ": cross-link-heading, numba-scfg
 
 #show: book-page.with(title: "概览")
 
-本节介绍本项目概况, 代码仓库的文件结构, 大致工作流程, 以便读者快速了解项目.
+本节介绍本项目概况, 代码仓库的文件结构和当前工作流程, 以便读者快速了解项目.
 
 = 项目概况
 
-本项目主要包括反编译器本体和一些与反编译器本体配合使用的 Unity Editor Script. Editor Script 部分将会在接下来介绍.
+本项目主要包括反编译器本体和一些与反编译器本体配合使用的 Unity Editor Script.
 
-关于反编译器本体, 它基本上是一个从 0 开始使用 Python 编写的一般反编译器. 我们没有使用现成的反编译器框架等. 除了 CFG 部分使用了 `networkx` 以及控制流识别部分使用了 #numba-scfg 外, 也基本没有使用其他第三方包来进行功能实现.
+关于反编译器本体, 它是一个从 0 开始使用 Python 编写的反编译器. 我们没有使用现成反编译框架. 当前主要依赖如下:
+
+- `networkx`: 构建函数级 CFG
+- `pydot`: 导出 CFG 图
+- `clang-format`: 格式化反编译结果
 
 = 代码仓库
 ```shell-unix-generic
@@ -20,8 +23,10 @@ $ tree -L 2 --gitignore
 │   ├── about
 │   ├── book.typ
 │   ├── dev
+│   ├── for-llm
 │   ├── introduction.typ
 │   ├── user
+│   ├── user-en
 │   └── _utils
 ├── Editor                                    # 编辑器脚本
 │   ├── UdonModuleInfoExtractor.cs
@@ -37,6 +42,7 @@ $ tree -L 2 --gitignore
 │   ├── cases
 │   ├── ci
 │   ├── __init__.py
+│   ├── decompile_case.py
 │   └── test_snapshots.py
 ├── udon_decompiler                           # 反编译器源代码
 │   ├── analysis
@@ -58,25 +64,22 @@ $ tree -L 2 --gitignore
 
 == 反编译
 
-这部分内容的入口点在 `decompile_program_to_source` 函数中. 按照嵌套层次, 可以分为如下步骤
+这部分内容的入口在 `decompile_program_to_source` 函数中. 按调用顺序可分为如下步骤:
+
 - 反汇编: `BytecodeParser`
 - 数据流分析: `DataFlowAnalyzer`
   - 构建 CFG: `CFGBuilder`
-    - 识别入口点并划分基本块: `._identify_entry_points()` 和 `._identify_hidden_entry_points()`
-    - 构建边: `._build_edges()`
-    - 构建每个函数的 CFG: `._build_function_cfgs()`
-      - 识别函数的所有基本块: `._find_function_blocks()`
-      - 识别函数名: `_identify_function_name()`
-      - 根据 `._build_edges()` 的结果构建实际的函数 CFG
-  - 函数数据流分析: `FunctionDataFlowAnalyzer`
-    - 栈模拟: `._simulate_stack()` 和 `StackSimulator`
+    - 识别基本块: `BasicBlockIdentifier`
+    - 构建控制流边并发现隐藏函数入口: `._build_edges()`
+    - 构建每个函数的 CFG 并识别函数名: `._build_function_cfgs()`
+  - 函数级分析: `FunctionDataFlowAnalyzer`
+    - 栈模拟: `StackSimulator`
     - 识别变量: `VariableIdentifier`
-    - 构建表达式: `ExpressionBuilder`
+    - 构建原始 IR: `IRBuilder`
+  - IR 变换: `TransformPipeline`
+    - 函数级 transforms: 控制流化简、循环/条件识别、`while/do-while/switch` 抬升、变量收集等
+    - 程序级 transforms: `IRClassConstructionTransform` 和 `PromoteGlobals`
 - 代码生成: `ProgramCodeGenerator`
-  - 构建每个函数的 AST: `ASTBuilder`
-    - 识别控制结构: `ControlFlowStructureIdentifier`
-    - 添加变量定义: `._add_variable_declarations()`
-    - 递归地生成代码: `._build_block_statements()`
-  - 添加全局变量定义: `._collect_and_generate_global_variables()`
-  - 生成代码: `CSharpCodeGenerator.generate()`
+  - `CSharpCodeGenerator.generate()`: 从 IR 生成伪 C\# 代码
+  - 运行 `clang-format` 进行格式化
 
