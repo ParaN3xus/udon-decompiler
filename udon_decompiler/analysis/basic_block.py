@@ -131,8 +131,6 @@ class BasicBlockIdentifier:
 
                     next_addr = inst.next_address
                     if self._address_to_instruction.get(next_addr):
-                        if inst.opcode == OpCode.JUMP and target in self.entry_points:
-                            continue
                         block_starts.add(next_addr)
 
                 case OpCode.JUMP_INDIRECT:
@@ -246,13 +244,10 @@ class BasicBlockIdentifier:
 
             end_addr = block_instructions[-1].address
 
-            block_type = self._determine_block_type(block_instructions)
-
             block = BasicBlock(
                 start_address=start_addr,
                 end_address=end_addr,
                 instructions=block_instructions,
-                block_type=block_type,
                 is_entry=start_addr in self.entry_points,
             )
 
@@ -285,26 +280,6 @@ class BasicBlockIdentifier:
             current_addr = inst.next_address
 
         return instructions
-
-    def _determine_block_type(self, instructions: List[Instruction]) -> BasicBlockType:
-        if not instructions:
-            return BasicBlockType.NORMAL
-
-        last_inst = instructions[-1]
-
-        if last_inst.address in self.return_jumps:
-            return BasicBlockType.RETURN
-        if last_inst.is_conditional_jump():
-            return BasicBlockType.CONDITIONAL
-        elif last_inst.is_unconditional_jump():
-            if last_inst.get_jump_target() in self.entry_points:
-                # internal call
-                return BasicBlockType.NORMAL
-            return BasicBlockType.JUMP
-        elif last_inst.opcode == OpCode.JUMP_INDIRECT:
-            return BasicBlockType.JUMP
-
-        return BasicBlockType.NORMAL
 
     def _build_address_mapping(self) -> None:
         for block in self._basic_blocks:

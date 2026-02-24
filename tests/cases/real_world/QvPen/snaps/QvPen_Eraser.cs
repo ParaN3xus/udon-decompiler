@@ -23,8 +23,6 @@ namespace QvPen.UdonScript
         UnityEngine.Collider[] results4 = null /* [null, null, null, null] */;
         UnityEngine.Vector3[] tmpErasedData = null;
         System.Boolean isPickedUp = false;
-        UnityEngine.Color logColor = null /* "RGBA(0.949, 0.490, 0.290, 1.000)" */;
-        System.String _logPrefix = null;
         UnityEngine.Renderer __0_get_renderer__ret = null;
         UnityEngine.SphereCollider __0_get_sphereCollider__ret = null;
         VRC.SDK3.Components.VRCPickup __0_get_pickup__ret = null;
@@ -60,12 +58,6 @@ namespace QvPen.UdonScript
         System.Int32 __18__intnlparam = 0;
         System.Int32 __19__intnlparam = 0;
         UnityEngine.Vector3 __20__intnlparam = null /* "(0.00, 0.00, 0.00)" */;
-        System.String __0_get_logPrefix__ret = null;
-        System.String __0___0_ColorBeginTag__ret = null;
-        UnityEngine.Color __0_c__param = null /* "RGBA(0.000, 0.000, 0.000, 0.000)" */;
-        System.String __21__intnlparam = null;
-        UnityEngine.Color __22__intnlparam = null /* "RGBA(0.000, 0.000, 0.000, 0.000)" */;
-        System.Object[] __gintnl_SystemObjectArray_0 = null /* [null, null, null, null, null] */;
         UnityEngine.Vector3 __const_UnityEngineVector3_0 = null /* "(0.00, 0.00, 0.00)" */;
         UnityEngine.Quaternion __const_UnityEngineQuaternion_0 = null /* "(0.00000, 0.00000, 0.00000, 1.00000)" */;
         UnityEngine.Vector3 __const_UnityEngineVector3_1 = null /* "(1.00, 1.00, 1.00)" */;
@@ -203,12 +195,12 @@ namespace QvPen.UdonScript
                 __intnl_UnityEngineTransform_0 = null;
                 __0__intnlparam = inkPoolRoot;
                 __1__intnlparam = __intnl_UnityEngineTransform_0;
-                function_2();
+                function_1();
                 inkPoolRoot.SetAsFirstSibling();
                 inkPoolRoot.gameObject.SetActive(true);
             }
             __3__intnlparam = inkPoolRoot.transform;
-            function_3();
+            function_2();
             manager = __2__intnlparam;
             if (!VRC.SDKBase.Utilities.IsValid(erasing))
             {
@@ -389,7 +381,7 @@ namespace QvPen.UdonScript
                             __6__intnlparam = __lcl_penIdVector_UnityEngineVector3_0;
                             __7__intnlparam = __lcl_inkIdVector_UnityEngineVector3_0;
                             __8__intnlparam = __lcl__discard_UnityEngineVector3_0;
-                            function_4();
+                            function_3();
                             __lcl_penIdVector_UnityEngineVector3_0 = __6__intnlparam;
                             __lcl_inkIdVector_UnityEngineVector3_0 = __7__intnlparam;
                             __lcl__discard_UnityEngineVector3_0 = __8__intnlparam;
@@ -398,25 +390,25 @@ namespace QvPen.UdonScript
                         if (__intnl_SystemBoolean_15)
                         {
                             __10__intnlparam = 3;
-                            function_5();
+                            function_4();
                             __lcl_data_UnityEngineVector3Array_0 = new UnityEngine.Vector3[](__9__intnlparam);
                             get_localPlayerId();
                             __intnl_SystemSingle_5 = System.Convert.ToSingle(__0_get_localPlayerId__ret);
                             __10__intnlparam = 3;
-                            function_5();
+                            function_4();
                             __intnl_UnityEngineVector3_1 = new UnityEngine.Vector3(__intnl_SystemSingle_5, 3.0f, System.Convert.ToSingle(__9__intnlparam));
                             __11__intnlparam = __lcl_data_UnityEngineVector3Array_0;
                             __12__intnlparam = 0;
                             __13__intnlparam = __intnl_UnityEngineVector3_1;
-                            function_6();
+                            function_5();
                             __11__intnlparam = __lcl_data_UnityEngineVector3Array_0;
                             __12__intnlparam = 1;
                             __13__intnlparam = __lcl_penIdVector_UnityEngineVector3_0;
-                            function_6();
+                            function_5();
                             __11__intnlparam = __lcl_data_UnityEngineVector3Array_0;
                             __12__intnlparam = 2;
                             __13__intnlparam = __lcl_inkIdVector_UnityEngineVector3_0;
-                            function_6();
+                            function_5();
                             __3_data__param = __lcl_data_UnityEngineVector3Array_0;
                             __0__SendData();
                         }
@@ -434,7 +426,7 @@ namespace QvPen.UdonScript
             System.Boolean __intnl_SystemBoolean_18 = false;
 
             __15__intnlparam = __4_data__param;
-            function_7();
+            function_6();
             __lcl_mode_SystemInt32_0 = __14__intnlparam;
             if (__lcl_mode_SystemInt32_0 == 3)
             {
@@ -484,24 +476,24 @@ namespace QvPen.UdonScript
                 __intnl_SystemInt32_3 = __5_data__param.Length;
                 __10__intnlparam = 3;
                 __intnl_UnityEngineVector3Array_1 = __5_data__param;
-                function_5();
+                function_4();
                 __intnl_SystemBoolean_20 = __intnl_SystemInt32_3 < __9__intnlparam;
             }
             if (!__intnl_SystemBoolean_20)
             {
                 __17__intnlparam = __5_data__param;
                 __18__intnlparam = 1;
-                function_8();
+                function_7();
                 __lcl_penIdVector_UnityEngineVector3_1 = __16__intnlparam;
                 __17__intnlparam = __5_data__param;
                 __18__intnlparam = 2;
-                function_8();
+                function_7();
                 __lcl_inkIdVector_UnityEngineVector3_1 = __16__intnlparam;
                 __20__intnlparam = __lcl_penIdVector_UnityEngineVector3_1;
-                function_9();
+                function_8();
                 __lcl_penId_SystemInt32_0 = __19__intnlparam;
                 __20__intnlparam = __lcl_inkIdVector_UnityEngineVector3_1;
-                function_9();
+                function_8();
                 __lcl_inkId_SystemInt32_0 = __19__intnlparam;
                 manager.SetProgramVariable("__3_penId__param", __lcl_penId_SystemInt32_0);
                 manager.SetProgramVariable("__2_inkId__param", __lcl_inkId_SystemInt32_0);
@@ -531,35 +523,6 @@ namespace QvPen.UdonScript
 
         void function_1()
         {
-            __22__intnlparam = __0_c__param;
-            function_10();
-            __0___0_ColorBeginTag__ret = System.String.Format("<color=\"#{0}\">", __21__intnlparam);
-            return;
-        }
-
-        void get_logPrefix()
-        {
-            if (!System.String.IsNullOrEmpty(_logPrefix))
-            {
-                __0_get_logPrefix__ret = _logPrefix;
-            }
-            else
-            {
-                __0_c__param = logColor;
-                function_1();
-                __gintnl_SystemObjectArray_0.Set(0, __0___0_ColorBeginTag__ret);
-                __gintnl_SystemObjectArray_0.Set(1, "QvPen");
-                __gintnl_SystemObjectArray_0.Set(2, "Udon");
-                __gintnl_SystemObjectArray_0.Set(3, "QvPen_Eraser");
-                __gintnl_SystemObjectArray_0.Set(4, "</color>");
-                _logPrefix = System.String.Format("[{0}{1}.{2}.{3}{4}] ", __gintnl_SystemObjectArray_0);
-                __0_get_logPrefix__ret = _logPrefix;
-            }
-            return;
-        }
-
-        void function_2()
-        {
             if (VRC.SDKBase.Utilities.IsValid(__0__intnlparam))
             {
                 __0__intnlparam.SetParent(__1__intnlparam);
@@ -569,7 +532,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_3()
+        void function_2()
         {
             UnityEngine.Component[] __lcl_udonBehaviours_UnityEngineComponentArray_0 = null;
             System.Int64 __lcl_targetID_SystemInt64_0 = 0;
@@ -607,7 +570,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_4()
+        void function_3()
         {
             UnityEngine.Transform __lcl_idHolder_UnityEngineTransform_0 = null;
 
@@ -649,7 +612,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_5()
+        void function_4()
         {
             if (__10__intnlparam == 2)
             {
@@ -676,7 +639,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_6()
+        void function_5()
         {
             System.Boolean __intnl_SystemBoolean_35 = false;
 
@@ -692,7 +655,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_7()
+        void function_6()
         {
             System.Boolean __intnl_SystemBoolean_36 = false;
 
@@ -705,7 +668,7 @@ namespace QvPen.UdonScript
             {
                 __17__intnlparam = __15__intnlparam;
                 __18__intnlparam = 0;
-                function_8();
+                function_7();
                 __14__intnlparam = System.Convert.ToInt32(System.Math.Truncate(System.Convert.ToDouble(__16__intnlparam.y)));
             }
             else
@@ -715,7 +678,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_8()
+        void function_7()
         {
             System.Boolean __intnl_SystemBoolean_37 = false;
 
@@ -735,19 +698,11 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_9()
+        void function_8()
         {
             __19__intnlparam = (System.Convert.ToInt32(System.Math.Truncate(System.Convert.ToDouble(__20__intnlparam.x))) && 255) << 24 ||
                                (System.Convert.ToInt32(System.Math.Truncate(System.Convert.ToDouble(__20__intnlparam.y))) && 4095) << 12 ||
                                System.Convert.ToInt32(System.Math.Truncate(System.Convert.ToDouble(__20__intnlparam.z))) && 4095;
-            return;
-        }
-
-        void function_10()
-        {
-            __22__intnlparam = __22__intnlparam * 255.0f;
-            __21__intnlparam = System.String.Format("{0:x2}{1:x2}{2:x2}", UnityEngine.Mathf.RoundToInt(__22__intnlparam.r),
-                                                    UnityEngine.Mathf.RoundToInt(__22__intnlparam.g), UnityEngine.Mathf.RoundToInt(__22__intnlparam.b));
             return;
         }
     }
