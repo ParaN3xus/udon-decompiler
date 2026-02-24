@@ -285,10 +285,12 @@ class BasicBlockIdentifier:
 
         if last_inst.address in self.return_jumps:
             return BasicBlockType.RETURN
-
         if last_inst.is_conditional_jump():
             return BasicBlockType.CONDITIONAL
         elif last_inst.is_unconditional_jump():
+            if last_inst.get_jump_target() in self.entry_points:
+                # internal call
+                return BasicBlockType.NORMAL
             return BasicBlockType.JUMP
         elif last_inst.opcode == OpCode.JUMP_INDIRECT:
             return BasicBlockType.JUMP
