@@ -1,13 +1,20 @@
 from typing import Dict, List, Optional
 
 from udon_decompiler.analysis.cfg import CFGBuilder, ControlFlowGraph
-from udon_decompiler.analysis.ir import FunctionIR, IRBuilder
+from udon_decompiler.analysis.ir import IRBuilder, IRClass, IRFunction
 from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
     StackSimulator,
     StackValue,
 )
-from udon_decompiler.analysis.variable_identifier import Variable, VariableIdentifier
+from udon_decompiler.analysis.transform import (
+    TransformContext,
+    build_default_pipeline,
+)
+from udon_decompiler.analysis.variable_identifier import (
+    Variable,
+    VariableIdentifier,
+)
 from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.module_info import UdonModuleInfo
 from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
@@ -31,7 +38,7 @@ class DataFlowAnalyzer:
 
         self.function_analyzers: Dict[str, FunctionDataFlowAnalyzer] = {}
 
-    def analyze(self) -> Dict[str, "FunctionDataFlowAnalyzer"]:
+    def analyze(self) -> "IRClass":
         logger.debug("Starting dataflow analysis for all functions...")
 
         for func_name, cfg in self.cfgs.items():
@@ -45,9 +52,19 @@ class DataFlowAnalyzer:
             analyzer.analyze()
             self.function_analyzers[func_name] = analyzer
 
+        # Run transform pipeline on all functions
+        all_functions = [a.get_ir() for a in self.function_analyzers.values()]
+        ctx = TransformContext(program=self.program)
+        pipeline = build_default_pipeline()
+        pipeline.run(all_functions, ctx)
+
         logger.info(f"Completed dataflow analysis for {len(self.cfgs)} functions")
 
-        return self.function_analyzers
+        if ctx.ir_class is None:
+            # Should be created by IRClassConstructionPass
+            raise RuntimeError("IRClass was not constructed by the pipeline.")
+
+        return ctx.ir_class
 
     def get_function_analyzer(
         self, function_name: str
@@ -70,7 +87,7 @@ class FunctionDataFlowAnalyzer:
 
         # res
         self.variables: Dict[int, Variable] = {}
-        self.ir: Optional[FunctionIR] = None
+        self.ir: Optional[IRFunction] = None
 
     def analyze(self) -> None:
         logger.debug(f"Analyzing dataflow for {self.cfg.function_name}...")
@@ -79,12 +96,7 @@ class FunctionDataFlowAnalyzer:
         self._identify_variables()
         self._build_ir()
 
-        logger.debug(
-            f"Dataflow analysis complete for {self.cfg.function_name}: "
-            f"{len(self.variables)} variables, "
-            f"{0 if self.ir is None else len(self.ir.blocks)} "
-            "ir blocks"
-        )
+        logger.debug(f"Dataflow analysis complete for {self.cfg.function_name}.")
 
     def _simulate_stack(self) -> None:
         logger.debug(f"Simulating stack for {self.cfg.function_name}...")
@@ -150,24 +162,23 @@ class FunctionDataFlowAnalyzer:
 
     def _build_ir(self) -> None:
         logger.debug(f"Building IR for {self.cfg.function_name}...")
-
+        assert self.cfg.function_name is not None
         builder = IRBuilder(
             program=self.program,
-            cfg=self.cfg,
+            function_name=self.cfg.function_name,
+            is_function_public=self.cfg.is_function_public,
+            raw_blocks=sorted(self.cfg.graph.nodes),
             stack_simulator=self.stack_simulator,
             variable_identifier=self.variable_identifier,
         )
         self.ir = builder.build()
 
-        logger.debug(
-            f"IR complete for {self.cfg.function_name}: "
-            f"{len(self.ir.blocks)} blocks"
-        )
+        logger.debug(f"IR complete for {self.cfg.function_name} blocks")
 
     def get_variable(self, address: int) -> Optional[Variable]:
         return self.variables.get(address)
 
-    def get_ir(self) -> FunctionIR:
+    def get_ir(self) -> IRFunction:
         if self.ir is None:
             raise Exception(f"IR not built for {self.cfg.function_name}")
         return self.ir
