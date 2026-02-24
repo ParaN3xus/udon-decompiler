@@ -1,4 +1,4 @@
-use super::text::normalize_type_name;
+use super::text::type_name_head;
 use super::types::{
     AsmDirectives, AsmError, AsmInstruction, BindDirective, BindTableDirective, DirectiveSection,
     EntryDirective, HeapDirective, HeapExportMark, HeapInitDirective, OpCode, OperandToken,
@@ -415,9 +415,9 @@ fn parse_typed_heap_init(
     if trimmed.eq_ignore_ascii_case("null") {
         return Ok(HeapInitDirective::Null);
     }
-    let normalized = normalize_type_name(type_name);
-    match normalized.as_str() {
-        "system.boolean" => match trimmed {
+    let head = type_name_head(type_name);
+    match head {
+        "System.Boolean" => match trimmed {
             "true" => Ok(HeapInitDirective::Bool(true)),
             "false" => Ok(HeapInitDirective::Bool(false)),
             _ => Err(AsmError::new(format!(
@@ -425,7 +425,7 @@ fn parse_typed_heap_init(
                 line_num, trimmed
             ))),
         },
-        "system.sbyte" => trimmed
+        "System.SByte" => trimmed
             .parse::<i8>()
             .map(HeapInitDirective::I8)
             .map_err(|e| {
@@ -434,7 +434,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.byte" => trimmed
+        "System.Byte" => trimmed
             .parse::<u8>()
             .map(HeapInitDirective::U8)
             .map_err(|e| {
@@ -443,7 +443,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.int16" => trimmed
+        "System.Int16" => trimmed
             .parse::<i16>()
             .map(HeapInitDirective::I16)
             .map_err(|e| {
@@ -452,7 +452,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.uint16" => trimmed
+        "System.UInt16" => trimmed
             .parse::<u16>()
             .map(HeapInitDirective::U16)
             .map_err(|e| {
@@ -461,7 +461,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.int32" => trimmed
+        "System.Int32" => trimmed
             .parse::<i32>()
             .map(HeapInitDirective::I32)
             .map_err(|e| {
@@ -470,7 +470,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.uint32" => trimmed
+        "System.UInt32" => trimmed
             .parse::<u32>()
             .map(HeapInitDirective::U32)
             .map_err(|e| {
@@ -479,7 +479,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.int64" => trimmed
+        "System.Int64" => trimmed
             .parse::<i64>()
             .map(HeapInitDirective::I64)
             .map_err(|e| {
@@ -488,7 +488,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.uint64" => trimmed
+        "System.UInt64" => trimmed
             .parse::<u64>()
             .map(HeapInitDirective::U64)
             .map_err(|e| {
@@ -497,7 +497,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.single" => trimmed
+        "System.Single" => trimmed
             .parse::<f32>()
             .map(HeapInitDirective::F32)
             .map_err(|e| {
@@ -506,7 +506,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.double" => trimmed
+        "System.Double" => trimmed
             .parse::<f64>()
             .map(HeapInitDirective::F64)
             .map_err(|e| {
@@ -515,7 +515,7 @@ fn parse_typed_heap_init(
                     line_num, trimmed, e
                 ))
             }),
-        "system.string" => Ok(HeapInitDirective::String(parse_quoted_string(
+        "System.String" => Ok(HeapInitDirective::String(parse_quoted_string(
             trimmed, line_num,
         )?)),
         _ => Err(AsmError::new(format!(
