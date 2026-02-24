@@ -21,15 +21,15 @@ pub(crate) fn generated_heap_symbol(address: u32) -> String {
 }
 
 pub(crate) fn parse_generated_heap_symbol(symbol: &str) -> Option<u32> {
-    if let Some(hex) = symbol.strip_prefix("heap_0x") {
-        if hex.len() == 8 {
-            return u32::from_str_radix(hex, 16).ok();
-        }
+    if let Some(hex) = symbol.strip_prefix("heap_0x")
+        && hex.len() == 8
+    {
+        return u32::from_str_radix(hex, 16).ok();
     }
-    if let Some(hex) = symbol.strip_prefix("heap_") {
-        if hex.len() == 8 {
-            return u32::from_str_radix(hex, 16).ok();
-        }
+    if let Some(hex) = symbol.strip_prefix("heap_")
+        && hex.len() == 8
+    {
+        return u32::from_str_radix(hex, 16).ok();
     }
     None
 }
