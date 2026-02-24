@@ -49,14 +49,25 @@ impl OdinDocument {
         }
     }
 
+    pub fn set_primitive_resolved(
+        &mut self,
+        node_id: NodeId,
+        new_value: PrimitiveValue,
+    ) -> Result<()> {
+        let resolved = self.resolve_node_payload(node_id).ok_or_else(|| {
+            OdinError::new(format!("Unable to resolve node {} payload.", node_id))
+        })?;
+        self.set_primitive(resolved, new_value)
+    }
+
     pub fn set_primitive(&mut self, node_id: NodeId, new_value: PrimitiveValue) -> Result<()> {
-        let (token_index, expected_kind) = {
+        let (token_index, expected_kind, old_value) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match &node.kind {
-                NodeKind::Primitive(current) => (node.token_index, current.kind()),
+                NodeKind::Primitive(current) => (node.token_index, current.kind(), current.clone()),
                 _ => {
                     return Err(OdinError::new(format!(
                         "Node {} is not a primitive node.",
@@ -65,6 +76,9 @@ impl OdinDocument {
                 }
             }
         };
+        if old_value == new_value {
+            return Ok(());
+        }
         if expected_kind != new_value.kind() {
             return Err(OdinError::new(format!(
                 "Primitive kind mismatch on node {}: cannot replace {:?} with {:?}.",
@@ -95,16 +109,19 @@ impl OdinDocument {
     }
 
     pub fn set_array_length(&mut self, node_id: NodeId, declared_len: i64) -> Result<()> {
-        let token_index = {
+        let (token_index, old_len) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match node.kind {
-                NodeKind::Array { .. } => node.token_index,
+                NodeKind::Array { declared_len } => (node.token_index, declared_len),
                 _ => return Err(OdinError::new(format!("Node {} is not an array.", node_id))),
             }
         };
+        if old_len == declared_len {
+            return Ok(());
+        }
         match &mut self.tokens[token_index].payload {
             TokenPayload::StartArray { declared_len: v } => *v = declared_len,
             _ => return Err(OdinError::new("Token payload mismatch for array node.")),
@@ -115,13 +132,16 @@ impl OdinDocument {
     }
 
     pub fn set_reference_node_id(&mut self, node_id: NodeId, reference_id: i32) -> Result<()> {
-        let token_index = {
+        let (token_index, old_reference_id) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match node.kind {
-                NodeKind::ReferenceNode { .. } => node.token_index,
+                NodeKind::ReferenceNode {
+                    reference_id: old_reference_id,
+                    ..
+                } => (node.token_index, old_reference_id),
                 _ => {
                     return Err(OdinError::new(format!(
                         "Node {} is not a reference node.",
@@ -130,6 +150,9 @@ impl OdinDocument {
                 }
             }
         };
+        if old_reference_id == reference_id {
+            return Ok(());
+        }
         match &mut self.tokens[token_index].payload {
             TokenPayload::StartReferenceNode {
                 reference_id: id, ..
@@ -149,13 +172,13 @@ impl OdinDocument {
     }
 
     pub fn set_internal_reference(&mut self, node_id: NodeId, value: i32) -> Result<()> {
-        let token_index = {
+        let (token_index, old_value) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match node.kind {
-                NodeKind::InternalReference(_) => node.token_index,
+                NodeKind::InternalReference(old_value) => (node.token_index, old_value),
                 _ => {
                     return Err(OdinError::new(format!(
                         "Node {} is not an internal reference node.",
@@ -164,6 +187,9 @@ impl OdinDocument {
                 }
             }
         };
+        if old_value == value {
+            return Ok(());
+        }
         match &mut self.tokens[token_index].payload {
             TokenPayload::InternalReference { value: v, .. } => *v = value,
             _ => {
@@ -178,13 +204,13 @@ impl OdinDocument {
     }
 
     pub fn set_external_reference_by_index(&mut self, node_id: NodeId, value: i32) -> Result<()> {
-        let token_index = {
+        let (token_index, old_value) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match node.kind {
-                NodeKind::ExternalReferenceByIndex(_) => node.token_index,
+                NodeKind::ExternalReferenceByIndex(old_value) => (node.token_index, old_value),
                 _ => {
                     return Err(OdinError::new(format!(
                         "Node {} is not an external-index reference node.",
@@ -193,6 +219,9 @@ impl OdinDocument {
                 }
             }
         };
+        if old_value == value {
+            return Ok(());
+        }
         match &mut self.tokens[token_index].payload {
             TokenPayload::ExternalReferenceByIndex { value: v, .. } => *v = value,
             _ => {
@@ -211,13 +240,13 @@ impl OdinDocument {
         node_id: NodeId,
         value: OdinGuid,
     ) -> Result<()> {
-        let token_index = {
+        let (token_index, old_value) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match node.kind {
-                NodeKind::ExternalReferenceByGuid(_) => node.token_index,
+                NodeKind::ExternalReferenceByGuid(old_value) => (node.token_index, old_value),
                 _ => {
                     return Err(OdinError::new(format!(
                         "Node {} is not an external-guid reference node.",
@@ -226,6 +255,9 @@ impl OdinDocument {
                 }
             }
         };
+        if old_value == value {
+            return Ok(());
+        }
         match &mut self.tokens[token_index].payload {
             TokenPayload::ExternalReferenceByGuid { value: v, .. } => *v = value,
             _ => {
@@ -244,13 +276,15 @@ impl OdinDocument {
         node_id: NodeId,
         value: OdinString,
     ) -> Result<()> {
-        let token_index = {
+        let (token_index, old_value) = {
             let node = self
                 .nodes
                 .get(node_id)
                 .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
             match node.kind {
-                NodeKind::ExternalReferenceByString(_) => node.token_index,
+                NodeKind::ExternalReferenceByString(ref old_value) => {
+                    (node.token_index, old_value.clone())
+                }
                 _ => {
                     return Err(OdinError::new(format!(
                         "Node {} is not an external-string reference node.",
@@ -259,6 +293,9 @@ impl OdinDocument {
                 }
             }
         };
+        if old_value == value {
+            return Ok(());
+        }
         match &mut self.tokens[token_index].payload {
             TokenPayload::ExternalReferenceByString { value: v, .. } => *v = value.clone(),
             _ => {
@@ -320,7 +357,12 @@ impl OdinDocument {
         let start = element_index * bytes_per_element_usize;
         let end = start + bytes_per_element_usize;
         match &mut self.tokens[token_index].payload {
-            TokenPayload::PrimitiveArray { raw, .. } => raw[start..end].copy_from_slice(new_bytes),
+            TokenPayload::PrimitiveArray { raw, .. } => {
+                if &raw[start..end] == new_bytes {
+                    return Ok(());
+                }
+                raw[start..end].copy_from_slice(new_bytes)
+            }
             _ => {
                 return Err(OdinError::new(
                     "Token payload mismatch for primitive array node.",
@@ -371,6 +413,9 @@ impl OdinDocument {
                 raw,
                 ..
             } => {
+                if *c == element_count && raw.as_slice() == new_raw {
+                    return Ok(());
+                }
                 *c = element_count;
                 raw.clear();
                 raw.extend_from_slice(new_raw);
@@ -442,8 +487,27 @@ impl OdinDocument {
         target_node_id: NodeId,
         source_node_id: NodeId,
     ) -> Result<()> {
+        let target_resolved = self
+            .resolve_node_payload(target_node_id)
+            .unwrap_or(target_node_id);
+        let source_resolved = self
+            .resolve_node_payload(source_node_id)
+            .unwrap_or(source_node_id);
+        if self
+            .nodes
+            .get(target_resolved)
+            .zip(self.nodes.get(source_resolved))
+            .map(|(a, b)| a.kind == b.kind)
+            .unwrap_or(false)
+        {
+            return Ok(());
+        }
         let (target_start, target_end) = self.node_token_range(target_node_id)?;
         let (source_start, source_end) = self.node_token_range(source_node_id)?;
+        if self.token_ranges_semantically_equal(target_start, target_end, source_start, source_end)
+        {
+            return Ok(());
+        }
         let mut cloned_tokens = self.tokens[source_start..source_end].to_vec();
         for token in &mut cloned_tokens {
             token.dirty = true;
@@ -509,6 +573,23 @@ impl OdinDocument {
             .closing_token_index
             .map_or(start + 1, |close| close + 1);
         Ok((start, end))
+    }
+
+    fn token_ranges_semantically_equal(
+        &self,
+        a_start: usize,
+        a_end: usize,
+        b_start: usize,
+        b_end: usize,
+    ) -> bool {
+        let a = &self.tokens[a_start..a_end];
+        let b = &self.tokens[b_start..b_end];
+        if a.len() != b.len() {
+            return false;
+        }
+        a.iter()
+            .zip(b.iter())
+            .all(|(x, y)| x.entry_type == y.entry_type && x.payload == y.payload)
     }
 
     fn bump_array_declared_len(&mut self, array_node_id: NodeId, delta: i64) -> Result<()> {

@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::ops::Range;
 
@@ -226,6 +227,70 @@ impl OdinDocument {
 
     pub fn node(&self, id: NodeId) -> Option<&OdinNode> {
         self.nodes.get(id)
+    }
+
+    pub fn reference_id_index(&self) -> HashMap<i32, NodeId> {
+        let mut out = HashMap::<i32, NodeId>::new();
+        for node in &self.nodes {
+            if let NodeKind::ReferenceNode { reference_id, .. } = node.kind() {
+                out.entry(*reference_id).or_insert(node.id());
+            }
+        }
+        out
+    }
+
+    pub fn resolve_reference_id(&self, reference_id: i32) -> Option<NodeId> {
+        self.reference_id_index().get(&reference_id).copied()
+    }
+
+    pub fn resolve_internal_reference_node_id(&self, node_id: NodeId) -> Option<NodeId> {
+        let node = self.node(node_id)?;
+        match node.kind() {
+            NodeKind::InternalReference(reference_id) => self.resolve_reference_id(*reference_id),
+            _ => None,
+        }
+    }
+
+    pub fn dereference_internal_reference_chain(&self, node_id: NodeId) -> Option<NodeId> {
+        let mut current = node_id;
+        let mut seen = HashSet::<NodeId>::new();
+        loop {
+            if !seen.insert(current) {
+                return None;
+            }
+            let node = self.node(current)?;
+            let next = match node.kind() {
+                NodeKind::InternalReference(reference_id) => {
+                    self.resolve_reference_id(*reference_id)
+                }
+                _ => None,
+            };
+            if let Some(next) = next {
+                current = next;
+                continue;
+            }
+            return Some(current);
+        }
+    }
+
+    pub fn resolve_node_payload(&self, node_id: NodeId) -> Option<NodeId> {
+        let mut current = self.dereference_internal_reference_chain(node_id)?;
+        let mut seen = HashSet::<NodeId>::new();
+        loop {
+            if !seen.insert(current) {
+                return None;
+            }
+            let node = self.node(current)?;
+            match node.kind() {
+                NodeKind::ReferenceNode { .. } => {
+                    let child = node.children().first().copied()?;
+                    current = self
+                        .dereference_internal_reference_chain(child)
+                        .unwrap_or(child);
+                }
+                _ => return Some(current),
+            }
+        }
     }
 }
 
