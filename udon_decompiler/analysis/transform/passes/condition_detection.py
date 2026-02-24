@@ -29,8 +29,6 @@ from udon_decompiler.analysis.transform.passes.detect_exit_points import (
 
 
 class ConditionDetection(IBlockTransform):
-    """Port of ILSpy ConditionDetection, adapted to current Python IR."""
-
     def __init__(self) -> None:
         self.context: Optional[BlockTransformContext] = None
         self.current_container: Optional[IRBlockContainer] = None
@@ -140,7 +138,6 @@ class ConditionDetection(IBlockTransform):
                     )
                     and self._has_unreachable_endpoint(target_block)
                 ):
-                    # ILSpy parity:
                     # if (...) { if (nested) { true...; goto exit; } false...; }
                     # goto exit;
                     # -> if (...) { if (!nested) { false...; } true...; } goto exit;

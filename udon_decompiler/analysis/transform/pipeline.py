@@ -4,8 +4,8 @@ from typing import Iterable, List, Sequence
 
 from udon_decompiler.analysis.ir.nodes import IRFunction
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
     IProgramTransform,
+    ITransform,
     ProgramTransformContext,
     run_il_transforms,
 )
@@ -13,17 +13,17 @@ from udon_decompiler.analysis.transform.pass_base import (
 
 class TransformPipeline:
     """
-    ILSpy-style transform pipeline:
-    - run all IILTransform on each function
+    Transform pipeline:
+    - run all ITransform on each function
     - then run program-level transforms
     """
 
     def __init__(
         self,
-        il_transforms: Iterable[IILTransform] = (),
+        il_transforms: Iterable[ITransform] = (),
         program_transforms: Iterable[IProgramTransform] = (),
     ):
-        self.il_transforms: List[IILTransform] = list(il_transforms)
+        self.il_transforms: List[ITransform] = list(il_transforms)
         self.program_transforms: List[IProgramTransform] = list(program_transforms)
 
     def run(
@@ -46,7 +46,7 @@ class TransformPipeline:
 
 
 def build_default_pipeline() -> TransformPipeline:
-    from udon_decompiler.analysis.transform.pass_base import BlockILTransform
+    from udon_decompiler.analysis.transform.pass_base import BlockTransform
     from udon_decompiler.analysis.transform.passes import (
         high_level_loop_statement_transform,
         structured_control_flow_cleanup_transform,
@@ -86,10 +86,10 @@ def build_default_pipeline() -> TransformPipeline:
         TempVariableInline,
     )
 
-    block_loop_transform = BlockILTransform()
+    block_loop_transform = BlockTransform()
     block_loop_transform.post_order_transforms.append(LoopDetection())
 
-    block_condition_transform = BlockILTransform()
+    block_condition_transform = BlockTransform()
     block_condition_transform.post_order_transforms.append(ConditionDetection())
 
     return TransformPipeline(

@@ -24,7 +24,7 @@ from udon_decompiler.analysis.ir.nodes import (
 
 class ControlFlowGraph:
     """
-    ILSpy-style control-flow graph for one IRBlockContainer.
+    Control-flow graph for one IRBlockContainer.
 
     A CFG snapshot is built once before block transforms for the container.
     Later transforms may move/reorder blocks, but this graph keeps the original
@@ -192,12 +192,9 @@ class ControlFlowGraph:
         if isinstance(statement, IRIf):
             if statement.false_statement is None:
                 return False
-            return (
-                self._statement_has_unreachable_endpoint(statement.true_statement)
-                and self._statement_has_unreachable_endpoint(
-                    statement.false_statement
-                )
-            )
+            return self._statement_has_unreachable_endpoint(
+                statement.true_statement
+            ) and self._statement_has_unreachable_endpoint(statement.false_statement)
 
         if isinstance(statement, IRBlock):
             if not statement.statements:

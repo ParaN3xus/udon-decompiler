@@ -18,22 +18,22 @@ from udon_decompiler.analysis.ir.nodes import (
     IRSwitch,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
-class HighLevelSwitchTransform(IILTransform):
+class HighLevelSwitchTransform(ITransform):
     """
     Lift low-level switch containers into high-level switch sections.
 
-    The conversion follows ILSpy StatementBuilder's core ideas:
+    The conversion follows
     - group labels by target block
     - pick a default section (largest label group when there is no explicit default)
     - inline section bodies when the target block is switch-private
     """
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         _ = context
         self._rewrite_container(function.body)
 

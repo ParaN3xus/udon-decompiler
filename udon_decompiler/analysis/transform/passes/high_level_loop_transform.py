@@ -20,8 +20,8 @@ from udon_decompiler.analysis.ir.nodes import (
 from udon_decompiler.analysis.operator import Operator
 from udon_decompiler.analysis.transform.ir_utils import iter_block_containers
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
@@ -39,16 +39,16 @@ class _DoWhileMatch:
     nested_condition_block: Optional[IRBlock]
 
 
-class HighLevelLoopTransform(IILTransform):
+class HighLevelLoopTransform(ITransform):
     """
-    Port of ILSpy HighLevelLoopTransform (while/do-while parts).
+    HighLevelLoopTransform (while/do-while parts).
 
     This pass upgrades `IRContainerKind.LOOP` to:
     - `IRContainerKind.WHILE`
     - `IRContainerKind.DO_WHILE`
     """
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         self._context = context
         self._function_body = function.body
 
@@ -62,7 +62,7 @@ class HighLevelLoopTransform(IILTransform):
 
     def _match_while_loop(self, loop: IRBlockContainer) -> bool:
         """
-        Match ILSpy canonical while transform input:
+        Canonical while transform input:
         entry:
             if (cond) <body-target or body-block>
             leave loop
@@ -280,7 +280,7 @@ class HighLevelLoopTransform(IILTransform):
         # Expected endings:
         # 1) if (cond) br entry; leave loop
         # 2) if (cond) leave loop; br entry
-        # plus ILSpy's return+nested-condition variant.
+        # plus return+nested-condition variant.
         if len(block.statements) < 2:
             return None
 

@@ -19,16 +19,16 @@ from udon_decompiler.analysis.ir.nodes import (
     IRVariableExpression,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 from udon_decompiler.models.program import SymbolInfo, UdonProgramData
 
 
-class ConstToLiteral(IILTransform):
+class ConstToLiteral(ITransform):
     """Replace ``__const_*`` variable references with literal expressions."""
 
-    def run(self, function, context: ILTransformContext) -> None:
+    def run(self, function, context: TransformContext) -> None:
         literal_cache: Dict[int, Tuple[object, Optional[str]]] = {}
         self._rewrite_container(
             container=function.body,

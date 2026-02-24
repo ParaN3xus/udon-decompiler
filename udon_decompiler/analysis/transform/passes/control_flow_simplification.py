@@ -16,8 +16,8 @@ from udon_decompiler.analysis.ir.nodes import (
     IRSwitch,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
@@ -27,9 +27,9 @@ class _SimplifiedJump:
     changed: bool
 
 
-class ControlFlowSimplification(IILTransform):
+class ControlFlowSimplification(ITransform):
     """
-    ILSpy-style early CFG simplification on current IR.
+    Early CFG simplification on current IR.
 
     Current scope:
     - simplify branch-to-branch chains
@@ -38,8 +38,8 @@ class ControlFlowSimplification(IILTransform):
     - remove dead empty blocks
     """
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
-        # Run until fixed point, similar to ILSpy's repeated cleanup effects.
+    def run(self, function: IRFunction, context: TransformContext) -> None:
+        # Run until fixed point
         for _ in range(32):
             changed = False
             if self._simplify_branch_chains(function, context):
@@ -52,7 +52,7 @@ class ControlFlowSimplification(IILTransform):
     def _simplify_branch_chains(
         self,
         function: IRFunction,
-        context: ILTransformContext,
+        context: TransformContext,
     ) -> bool:
         changed = False
         for container in self._iter_containers(function.body):
@@ -67,7 +67,7 @@ class ControlFlowSimplification(IILTransform):
     def _rewrite_statement(
         self,
         statement: IRStatement,
-        context: ILTransformContext,
+        context: TransformContext,
     ) -> tuple[IRStatement, bool]:
         if isinstance(statement, IRJump):
             simplified = self._simplify_jump(statement, context)
@@ -141,7 +141,7 @@ class ControlFlowSimplification(IILTransform):
     def _simplify_jump(
         self,
         jump: IRJump,
-        context: ILTransformContext,
+        context: TransformContext,
     ) -> _SimplifiedJump:
         original_target = jump.target
         target, chain_simplified = self._resolve_branch_target(original_target)
@@ -180,7 +180,7 @@ class ControlFlowSimplification(IILTransform):
     def _cleanup_empty_blocks(
         self,
         function: IRFunction,
-        context: ILTransformContext,
+        context: TransformContext,
     ) -> bool:
         changed = False
 
@@ -225,16 +225,15 @@ class ControlFlowSimplification(IILTransform):
         container: IRBlockContainer,
         block: IRBlock,
         incoming: Dict[IRBlock, int],
-        context: ILTransformContext,
+        context: TransformContext,
     ) -> bool:
         if block not in container.blocks:
             return False
         if not block.statements:
             return False
 
-        if (
-            len(block.statements) > 1
-            and self._statement_may_branch(block.statements[-2])
+        if len(block.statements) > 1 and self._statement_may_branch(
+            block.statements[-2]
         ):
             return False
 

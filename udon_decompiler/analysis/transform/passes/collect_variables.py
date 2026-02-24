@@ -25,16 +25,16 @@ from udon_decompiler.analysis.ir.nodes import (
     IRVariableExpression,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 from udon_decompiler.analysis.variable_identifier import Variable
 
 
-class CollectVariables(IILTransform):
+class CollectVariables(ITransform):
     """Collect referenced variables into ``function.variable_declarations``."""
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         seen_blocks: set[int] = set()
         collected: Dict[int, Variable] = {}
 
@@ -52,7 +52,7 @@ class CollectVariables(IILTransform):
     def _create_init_value(
         self,
         variable: Variable,
-        context: ILTransformContext,
+        context: TransformContext,
     ) -> Optional[IRLiteralExpression]:
         heap_entry = context.program.get_initial_heap_value(variable.address)
         if heap_entry is None:

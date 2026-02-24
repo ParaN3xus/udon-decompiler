@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 @dataclass(eq=False)
 class ControlFlowNode:
-    """ILSpy-style control-flow node."""
+    """control-flow node"""
 
     user_index: int
     block: Optional["IRBlock"]

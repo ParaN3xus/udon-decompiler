@@ -29,16 +29,16 @@ from udon_decompiler.analysis.transform.ir_utils import (
     iter_block_targets,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 from udon_decompiler.models.program import SymbolInfo
 
 
-class TempVariableInline(IILTransform):
+class TempVariableInline(ITransform):
     """Inline adjacent single-use ``__intnl_*`` temporaries within one block."""
 
-    def run(self, function, context: ILTransformContext) -> None:
+    def run(self, function, context: TransformContext) -> None:
         self._function = function
         self._successor_cache: dict[int, dict[IRBlock, list[IRBlock]]] = {}
         visited_blocks: set[int] = set()

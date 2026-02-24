@@ -8,8 +8,6 @@ from udon_decompiler.analysis.ir.control_flow_node import ControlFlowNode
 def compute_dominance(entry_point: ControlFlowNode) -> None:
     """
     Compute immediate dominators and dominator tree from entry point.
-
-    Port of ILSpy's Dominance.ComputeDominance for ControlFlowNode.
     """
 
     nodes: list[ControlFlowNode] = []
@@ -77,8 +75,6 @@ def mark_nodes_with_reachable_exits(
     cfg_nodes: Sequence[ControlFlowNode],
 ) -> List[bool]:
     """
-    Equivalent to ILSpy Dominance.MarkNodesWithReachableExits.
-
     result[i] == true iff cfg_nodes[i] has a reachable node that is not dominated
     by cfg_nodes[i].
     """
@@ -91,8 +87,7 @@ def mark_nodes_with_reachable_exits(
 
         has_multiple_inputs = len(join_node.predecessors) >= 2
         has_root_extra_input = (
-            len(join_node.predecessors) >= 1
-            and join_node.immediate_dominator is None
+            len(join_node.predecessors) >= 1 and join_node.immediate_dominator is None
         )
         if not has_multiple_inputs and not has_root_extra_input:
             continue
