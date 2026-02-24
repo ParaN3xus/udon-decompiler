@@ -14,18 +14,10 @@ namespace QvPen.UdonScript
         UnityEngine.Transform erasersParent = null;
         UnityEngine.Component[] penManagers = null /* [] */;
         UnityEngine.Component[] eraserManagers = null /* [] */;
-        UnityEngine.Color logColor = null /* "RGBA(0.949, 0.490, 0.290, 1.000)" */;
-        System.String _logPrefix = null;
         UnityEngine.Component[] __0__intnlparam = null;
         UnityEngine.Component __1__intnlparam = null;
         UnityEngine.Component[] __2__intnlparam = null;
         UnityEngine.Component __3__intnlparam = null;
-        System.String __0_get_logPrefix__ret = null;
-        System.String __0___0_ColorBeginTag__ret = null;
-        UnityEngine.Color __0_c__param = null /* "RGBA(0.000, 0.000, 0.000, 0.000)" */;
-        System.String __4__intnlparam = null;
-        UnityEngine.Color __5__intnlparam = null /* "RGBA(0.000, 0.000, 0.000, 0.000)" */;
-        System.Object[] __gintnl_SystemObjectArray_0 = null /* [null, null, null, null, null] */;
         UnityEngine.Component[] __6__intnlparam = null;
         UnityEngine.Component[] __7__intnlparam = null;
         UnityEngine.Component[] __8__intnlparam = null;
@@ -55,13 +47,13 @@ namespace QvPen.UdonScript
             if (VRC.SDKBase.Utilities.IsValid(pensParent))
             {
                 __1__intnlparam = pensParent.transform;
-                function_1();
+                function_0();
                 penManagers = __0__intnlparam;
             }
             if (VRC.SDKBase.Utilities.IsValid(erasersParent))
             {
                 __3__intnlparam = erasersParent.transform;
-                function_2();
+                function_1();
                 eraserManagers = __2__intnlparam;
             }
             return;
@@ -69,66 +61,29 @@ namespace QvPen.UdonScript
 
         void function_0()
         {
-            __5__intnlparam = __0_c__param;
-            function_3();
-            __0___0_ColorBeginTag__ret = System.String.Format("<color=\"#{0}\">", __4__intnlparam);
-            return;
-        }
-
-        void get_logPrefix()
-        {
-            if (!System.String.IsNullOrEmpty(_logPrefix))
-            {
-                __0_get_logPrefix__ret = _logPrefix;
-            }
-            else
-            {
-                __0_c__param = logColor;
-                function_0();
-                __gintnl_SystemObjectArray_0.Set(0, __0___0_ColorBeginTag__ret);
-                __gintnl_SystemObjectArray_0.Set(1, "QvPen");
-                __gintnl_SystemObjectArray_0.Set(2, "Udon");
-                __gintnl_SystemObjectArray_0.Set(3, "QvPen_Settings");
-                __gintnl_SystemObjectArray_0.Set(4, "</color>");
-                _logPrefix = System.String.Format("[{0}{1}.{2}.{3}{4}] ", __gintnl_SystemObjectArray_0);
-                __0_get_logPrefix__ret = _logPrefix;
-            }
-            return;
-        }
-
-        void function_1()
-        {
             UnityEngine.Component[] __lcl_instanceBehaviours_UnityEngineComponentArray_0 = null;
 
             __lcl_instanceBehaviours_UnityEngineComponentArray_0 =
                 __1__intnlparam.GetComponentsInChildren(null /* "VRC.Udon.UdonBehaviour, VRC.Udon, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" */);
             __7__intnlparam = __lcl_instanceBehaviours_UnityEngineComponentArray_0;
-            function_4();
+            function_2();
             __0__intnlparam = __6__intnlparam;
             return;
         }
 
-        void function_2()
+        void function_1()
         {
             UnityEngine.Component[] __lcl_instanceBehaviours_UnityEngineComponentArray_1 = null;
 
             __lcl_instanceBehaviours_UnityEngineComponentArray_1 =
                 __3__intnlparam.GetComponentsInChildren(null /* "VRC.Udon.UdonBehaviour, VRC.Udon, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" */);
             __9__intnlparam = __lcl_instanceBehaviours_UnityEngineComponentArray_1;
-            function_5();
+            function_3();
             __2__intnlparam = __8__intnlparam;
             return;
         }
 
-        void function_3()
-        {
-            __5__intnlparam = __5__intnlparam * 255.0f;
-            __4__intnlparam = System.String.Format("{0:x2}{1:x2}{2:x2}", UnityEngine.Mathf.RoundToInt(__5__intnlparam.r),
-                                                   UnityEngine.Mathf.RoundToInt(__5__intnlparam.g), UnityEngine.Mathf.RoundToInt(__5__intnlparam.b));
-            return;
-        }
-
-        void function_4()
+        void function_2()
         {
             System.Int64 __lcl_targetID_SystemInt64_0 = 0;
             System.Int32 __lcl_arraySize_SystemInt32_0 = 0;
@@ -191,7 +146,7 @@ namespace QvPen.UdonScript
             return;
         }
 
-        void function_5()
+        void function_3()
         {
             System.Int64 __lcl_targetID_SystemInt64_1 = 0;
             System.Int32 __lcl_arraySize_SystemInt32_1 = 0;

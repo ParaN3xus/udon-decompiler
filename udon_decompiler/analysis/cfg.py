@@ -1,5 +1,6 @@
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
+from typing import Deque, Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 from pydot import Dot
@@ -13,6 +14,7 @@ from udon_decompiler.analysis.stack_simulator import (
     BlockStackSimulator,
     HeapSimulator,
     StackFrame,
+    StackValue,
 )
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgramData
@@ -63,12 +65,18 @@ class CFGBuilder:
         self._all_blocks: List[BasicBlock] = []
         self._address_to_block: Dict[int, BasicBlock] = {}
         self._address_to_instruction = {inst.address: inst for inst in instructions}
+        self._prev_instruction_by_address: Dict[int, Optional[Instruction]] = {}
+        prev: Optional[Instruction] = None
+        for inst in instructions:
+            self._prev_instruction_by_address[inst.address] = prev
+            prev = inst
+        self._entry_targets: Set[int] = set()
+        self._block_simulator = BlockStackSimulator(program)
 
     def build(self) -> Dict[str, ControlFlowGraph]:
         logger.debug("Building control flow graphs...")
 
-        self._identify_entry_points()
-        self._identify_hidden_entry_points()
+        self._build_initial_blocks()
         self._build_edges()
 
         self._cfgs = self._build_function_cfgs()
@@ -78,183 +86,296 @@ class CFGBuilder:
 
         return self._cfgs
 
-    def _identify_entry_points(self):
-        res = set(self.program.entry_points)
-        for inst in self.instructions:
-            # https://github.com/ParaN3xus/udon-decompiler/issues/10
-            break
-            if inst.opcode != OpCode.PUSH:
-                continue
-            if inst.operand is None:
-                raise Exception("Invalid PUSH instruction! An operand expected!")
+    def _build_initial_blocks(self) -> None:
+        entry_addresses = []
+        for ep in self.program.entry_points:
+            entry_addresses.append(ep.call_jump_target)
+            if ep.call_jump_target != ep.address:
+                entry_addresses.append(ep.address)
 
-            sym = self.program.get_symbol_by_address(inst.operand)
-            if sym.name != SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
-                continue
-            val = self.program.get_initial_heap_value(inst.operand)
-            if val is None:
-                raise Exception("Invalid symbol! Initial value not found!")
-            if val.value.value != Instruction.HALT_JUMP_ADDR:
-                continue
+        self.identifier = BasicBlockIdentifier(
+            self.instructions, entry_addresses, self.program
+        )
+        self._all_blocks = self.identifier.identify()
+        logger.debug(f"Basic Blocks: {self._all_blocks}")
 
-            # this is a halt jump target! the next inst is a function entry!
-            res.add(
-                EntryPointInfo(
-                    name=None,
-                    address=inst.address,
-                    call_jump_target=inst.next_address,
-                )
-            )
-
-        self.program.entry_points = list(res)
-
-    def _identify_hidden_entry_points(self) -> None:
-        updated = True
-        while updated:
-            updated = False
-            entry_addresses = []
-            for e in self.program.entry_points:
-                entry_addresses.append(e.call_jump_target)
-                if e.call_jump_target != e.address:
-                    entry_addresses.append(e.address)
-
-            self.identifier = BasicBlockIdentifier(
-                self.instructions, entry_addresses, self.program
-            )
-            self._all_blocks = self.identifier.identify()
-            logger.debug(f"Basic Blocks: {self._all_blocks}")
-
-            self._address_to_block = {}
-            for block in self._all_blocks:
-                self._address_to_block[block.start_address] = block
-
-            new_entry_points = self._find_call_targets(self._all_blocks)
-            updated = self._merge_entry_points(new_entry_points)
-        self.program.entry_points.sort()
-
-    def _find_call_targets(self, blocks: List[BasicBlock]) -> List[EntryPointInfo]:
-        """
-        Find call jumps from basic blocks whose target is not listed in known
-        entry points, and thus find hidden entry points.
-        """
-        simulator = BlockStackSimulator(self.program)
-        new_entries: Dict[int, EntryPointInfo] = {}
-
-        for block in blocks:
-            state = StackFrame()
-            heap = HeapSimulator(self.program)
-
-            if block.last_instruction.opcode != OpCode.JUMP:
-                continue
-
-            for inst in block.instructions:
-                if inst.opcode != OpCode.JUMP:
-                    simulator.step(inst, state, heap)
-                    continue
-
-                # when calling a function, there should be an address in the stack
-                # that points to the next instruction to the call jump
-                top = state.pop()
-                if top is None or top.literal_value != inst.next_address:
-                    # this is not a call jump
-                    continue
-
-                target = inst.get_jump_target()
-                new_entries[target] = EntryPointInfo(
-                    name=None,
-                    address=target,
-                    call_jump_target=target,
-                )
-
-        return list(new_entries.values())
-
-    def _merge_entry_points(self, new_entries: List[EntryPointInfo]) -> bool:
-        jump_targets = [ep.call_jump_target for ep in self.program.entry_points]
-        changed = False
-        for entry in new_entries:
-            if entry.call_jump_target in jump_targets:
-                continue
-            self.program.entry_points.append(entry)
-            jump_targets.append(entry.call_jump_target)
-            changed = True
-        return changed
+        self._address_to_block = {}
+        for block in self._all_blocks:
+            self._address_to_block[block.start_address] = block
 
     def _build_edges(self) -> None:
-        entry_addrs = {
-            ep.address for ep in self.program.entry_points if ep.address is not None
-        }
-        entry_addrs.update(ep.call_jump_target for ep in self.program.entry_points)
-        public_to_internal = {
-            ep.address: ep.call_jump_target
-            for ep in self.program.entry_points
-            if ep.address is not None and ep.address != ep.call_jump_target
-        }
-
-        def _add_fallthrough(block: BasicBlock, next_addr: int) -> None:
-            if next_addr >= self.program.byte_code_length:
-                return
-            if next_addr in entry_addrs:
-                if public_to_internal.get(block.start_address) != next_addr:
-                    # It's entering another function! That means there's no return jump
-                    # and we have to fix this
-                    block.block_type = BasicBlockType.RETURN
-                    return
-            # It's another entry_addr, but they belong to the same function,
-            # which means `block` is the public entry and `next_addr` belongs
-            # to the internal entry. In that case, add fallthrough normally
-            next_block = self._get_block_starting_at(next_addr)
-            block.add_successor(next_block)
-            next_block.add_predecessor(block)
-
         for block in self._all_blocks:
-            last_inst = block.last_instruction
+            block.predecessors = []
+            block.successors = []
 
-            if last_inst.address in self.identifier.return_jumps:
-                # return jumps are ignored, since we only care about jumps
-                # inside a function
+        self._entry_targets = {ep.call_jump_target for ep in self.program.entry_points}
+
+        pending: Deque[Tuple[BasicBlock, StackFrame, HeapSimulator]] = deque()
+        visited_blocks: Set[BasicBlock] = set()
+
+        for entry in self.program.entry_points:
+            entry_block = self._address_to_block.get(entry.address)
+            if entry_block is None:
                 continue
+            init = self._initial_state_for_entry(entry)
+            pending.append((entry_block, init, HeapSimulator(self.program)))
 
-            if last_inst.opcode == OpCode.JUMP:
-                target = last_inst.get_jump_target()
-                is_call_jump = any(
-                    ep.call_jump_target == target for ep in self.program.entry_points
-                )
-                if is_call_jump:
-                    _add_fallthrough(block, last_inst.next_address)
-                else:
-                    target_block = self._get_block_starting_at(target)
-                    block.add_successor(target_block)
-                    target_block.add_predecessor(block)
+        while pending:
+            block, entry_state, entry_heap = pending.popleft()
+            if block in visited_blocks:
+                continue
+            visited_blocks.add(block)
+            self._process_block_with_state(
+                block,
+                entry_state,
+                entry_heap,
+                pending,
+            )
 
-            elif last_inst.opcode == OpCode.JUMP_IF_FALSE:
-                target = last_inst.get_jump_target()
-
-                # "FALSE" branch
-                target_block = self._get_block_starting_at(target)
-                block.add_successor(target_block)
-                target_block.add_predecessor(block)
-
-                # "TRUE" branch
-                next_addr = last_inst.next_address
-                _add_fallthrough(block, next_addr)
-
-            elif last_inst.opcode == OpCode.JUMP_INDIRECT:
-                if last_inst.operand is not None:
-                    switch_info = self.identifier.switch_cases_indir_jumps.get(
-                        last_inst.address
-                    )
-                    if switch_info:
-                        block.switch_info = switch_info
-                        for target in switch_info.targets:
-                            next_block = self._get_block_starting_at(target)
-                            block.add_successor(next_block)
-                            next_block.add_predecessor(block)
-
-            else:
-                next_addr = last_inst.next_address
-                _add_fallthrough(block, next_addr)
+        self.program.entry_points.sort()
 
         logger.debug("CFG edges built successfully")
+
+    def _process_block_with_state(
+        self,
+        block: BasicBlock,
+        entry_state: StackFrame,
+        entry_heap: HeapSimulator,
+        pending: Deque[Tuple[BasicBlock, StackFrame, HeapSimulator]],
+    ) -> None:
+        state = entry_state.copy()
+        heap = entry_heap.copy()
+
+        for instruction in block.instructions:
+            opcode = instruction.opcode
+
+            if opcode == OpCode.JUMP:
+                target = instruction.get_jump_target()
+                top = state.peek(0)
+
+                seems_like_call = (
+                    target in self._entry_targets
+                    or self._looks_like_function_header(target)
+                )
+                is_returning_call = self._matches_literal(
+                    top, instruction.next_address, heap=heap
+                )
+
+                if is_returning_call:
+                    self._register_entry_target(target, pending)
+                    _ = state.pop()
+                    self._add_fallthrough_edge(
+                        block,
+                        instruction.next_address,
+                        state,
+                        heap,
+                        pending,
+                    )
+                    block.block_type = BasicBlockType.NORMAL
+                    return
+
+                # seems like call, but not a returning call -> terminal call
+                if seems_like_call:
+                    self._register_entry_target(target, pending)
+                    block.block_type = BasicBlockType.RETURN
+                    return
+
+                # common jump
+                self._add_jump_edge(block, target, state, heap, pending)
+                block.block_type = BasicBlockType.JUMP
+                return
+
+            if opcode == OpCode.JUMP_IF_FALSE:
+                state.pop()
+                self._add_jump_edge(
+                    block,
+                    instruction.get_jump_target(),
+                    state,
+                    heap,
+                    pending,
+                )
+                self._add_fallthrough_edge(
+                    block,
+                    instruction.next_address,
+                    state,
+                    heap,
+                    pending,
+                )
+                block.block_type = BasicBlockType.CONDITIONAL
+                return
+
+            if opcode == OpCode.JUMP_INDIRECT:
+                if instruction.operand is None:
+                    raise Exception(
+                        "Invalid JUMP_INDIRECT instruction: missing operand!"
+                    )
+
+                operand_sym = self.program.get_symbol_by_address(instruction.operand)
+                if operand_sym.name == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME:
+                    block.block_type = BasicBlockType.RETURN
+                    return
+
+                block.block_type = BasicBlockType.JUMP
+                switch_info = self.identifier.switch_cases_indir_jumps.get(
+                    instruction.address
+                )
+                if switch_info is None:
+                    logger.warning(
+                        "Unrecognized JUMP_INDIRECT encountered at %s! Ignoring..."
+                    )
+                    return
+                block.switch_info = switch_info
+                for target in switch_info.targets:
+                    self._add_jump_edge(block, target, state, heap, pending)
+                return
+
+            state = self._block_simulator.step(instruction, state, heap)
+
+        self._add_fallthrough_edge(
+            block,
+            block.last_instruction.next_address,
+            state,
+            heap,
+            pending,
+        )
+        block.block_type = BasicBlockType.NORMAL
+
+    def _initial_state_for_entry(self, entry: EntryPointInfo) -> StackFrame:
+        if entry.address != entry.call_jump_target:
+            return StackFrame()
+        return StackFrame(
+            [
+                StackValue(
+                    value=-1,
+                    type_hint=None,
+                    source_instruction=None,
+                    literal_value=Instruction.HALT_JUMP_ADDR,
+                )
+            ]
+        )
+
+    def _add_jump_edge(
+        self,
+        source: BasicBlock,
+        target_addr: int,
+        state: StackFrame,
+        heap: HeapSimulator,
+        pending: Deque[Tuple[BasicBlock, StackFrame, HeapSimulator]],
+    ) -> None:
+        target = self._address_to_block.get(target_addr)
+        if target is None:
+            source.block_type = BasicBlockType.RETURN
+            return
+        self._connect_blocks(source, target)
+        pending.append((target, state.copy(), heap.copy()))
+
+    def _add_fallthrough_edge(
+        self,
+        source: BasicBlock,
+        next_addr: int,
+        state: StackFrame,
+        heap: HeapSimulator,
+        pending: Deque[Tuple[BasicBlock, StackFrame, HeapSimulator]],
+    ) -> None:
+        if next_addr >= self.program.byte_code_length:
+            return
+        target = self._address_to_block.get(next_addr)
+        if target is None:
+            raise Exception("Invalid fallthrough! Basic block excepted!")
+        self._connect_blocks(source, target)
+        pending.append((target, state.copy(), heap.copy()))
+
+    @staticmethod
+    def _connect_blocks(source: BasicBlock, target: BasicBlock) -> None:
+        if target not in source.successors:
+            source.add_successor(target)
+        if source not in target.predecessors:
+            target.add_predecessor(source)
+
+    def _register_entry_target(
+        self,
+        target: int,
+        pending: Deque[Tuple[BasicBlock, StackFrame, HeapSimulator]],
+    ) -> None:
+        if target in self._entry_targets:
+            return
+
+        self._entry_targets.add(target)
+        self.program.entry_points.append(
+            EntryPointInfo(name=None, address=target, call_jump_target=target)
+        )
+
+        target_block = self._address_to_block.get(target)
+        if target_block is None:
+            raise Exception("Invalid entry target! Basic block excepted!")
+        pending.append(
+            (
+                target_block,
+                self._initial_state_for_hidden_entry(),
+                HeapSimulator(self.program),
+            )
+        )
+
+    @staticmethod
+    def _initial_state_for_hidden_entry() -> StackFrame:
+        return StackFrame(
+            [
+                StackValue(
+                    value=-1,
+                    type_hint=None,
+                    source_instruction=None,
+                    literal_value=Instruction.HALT_JUMP_ADDR,
+                )
+            ]
+        )
+
+    def _looks_like_function_header(self, target: int) -> bool:
+        header_addr = target - OpCode.PUSH.size
+        return self._is_header_push_address(header_addr)
+
+    def _matches_literal(
+        self,
+        stack_value: Optional[StackValue],
+        expected: int,
+        heap: HeapSimulator,
+    ) -> bool:
+        if stack_value is None:
+            return False
+        if stack_value.literal_value == expected:
+            return True
+        if heap.read_literal_int(stack_value.value) == expected:
+            return True
+
+        initial = self.program.get_initial_heap_value(stack_value.value)
+        if initial is None or not initial.value.is_serializable:
+            return False
+        literal = initial.value.value
+        return isinstance(literal, int) and literal == expected
+
+    def _is_header_push_address(self, address: int) -> bool:
+        inst = self._address_to_instruction.get(address)
+        if inst is None or inst.opcode != OpCode.PUSH or inst.operand is None:
+            return False
+        try:
+            symbol = self.program.get_symbol_by_address(inst.operand)
+        except Exception:
+            return False
+        if symbol.name != SymbolInfo.HALT_JUMP_ADDR_SYMBOL_NAME:
+            return False
+        value = self.program.get_initial_heap_value(inst.operand)
+        if value is None or value.value.value != Instruction.HALT_JUMP_ADDR:
+            return False
+
+        prev = self._prev_instruction_by_address.get(address)
+        if prev is None:
+            return True
+        if prev.opcode != OpCode.JUMP_INDIRECT or prev.operand is None:
+            return False
+        try:
+            prev_sym = self.program.get_symbol_by_address(prev.operand)
+        except Exception:
+            return False
+        return prev_sym.name == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME
 
     def _get_block_starting_at(self, address: int) -> BasicBlock:
         return self._address_to_block[address]
