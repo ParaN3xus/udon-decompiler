@@ -1,33 +1,4 @@
-from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Final, List, Optional
-
-from udon_decompiler.analysis.stack_simulator import (
-    StackSimulator,
-    StackValue,
-)
-from udon_decompiler.analysis.variable_identifier import VariableIdentifier
-from udon_decompiler.models.instruction import Instruction, OpCode
-from udon_decompiler.models.module_info import (
-    ExternFunctionInfo,
-    FunctionDefinitionType,
-    UdonModuleInfo,
-)
-from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgramData
-from udon_decompiler.utils.logger import logger
-
-
-class ExpressionType(Enum):
-    LITERAL = "literal"
-    VARIABLE = "variable"  # var ref
-    OPERATOR = "op"
-    EXTERNAL_CALL = "ext_call"
-    INTERNAL_CALL = "int_call"
-    PROPERTY_ACCESS = "prop"
-    CONSTRUCTOR = "ctor"
-    # ARRAY_ACCESS = "array"        # arr access
-    ASSIGNMENT = "assignment"
-    # CAST = "cast"                 # cast
 
 
 class Operator(Enum):
