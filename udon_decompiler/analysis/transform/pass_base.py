@@ -16,7 +16,7 @@ from udon_decompiler.models.program import UdonProgramData
 
 
 class TransformStepper:
-    """No-op stepper compatible with ILSpy-style Stepper hooks."""
+    """No-op stepper"""
 
     def start_group(self, _description: str) -> None:
         return
@@ -33,9 +33,6 @@ class TransformStepper:
 class ProgramTransformContext:
     """
     Program-level transform context.
-
-    ILSpy only has function-level ILTransformContext; we keep this wrapper to carry
-    whole-program state and construct per-function ILTransformContext instances.
     """
 
     program: UdonProgramData
@@ -49,12 +46,12 @@ class ProgramTransformContext:
         if self.cancellation_check is not None:
             self.cancellation_check()
 
-    def create_il_context(self, function: IRFunction) -> "ILTransformContext":
-        return ILTransformContext(function=function, program_context=self)
+    def create_il_context(self, function: IRFunction) -> "TransformContext":
+        return TransformContext(function=function, program_context=self)
 
 
-class ILTransformContext:
-    """Per-function context for IILTransform, mirroring ILSpy naming."""
+class TransformContext:
+    """Per-function context for ITransform"""
 
     def __init__(
         self,
@@ -119,8 +116,8 @@ class IProgramTransform(ABC):
         raise NotImplementedError
 
 
-class IILTransform(ABC):
-    """Per-function IL transform."""
+class ITransform(ABC):
+    """Per-function transform."""
 
     name: Optional[str] = None
 
@@ -129,12 +126,12 @@ class IILTransform(ABC):
         return self.name or self.__class__.__name__
 
     @abstractmethod
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         raise NotImplementedError
 
 
 class IBlockTransform(ABC):
-    """Per-block transform, usually orchestrated by BlockILTransform."""
+    """Per-block transform, usually orchestrated by BlockTransform."""
 
     @abstractmethod
     def run(self, block: IRBlock, context: "BlockTransformContext") -> None:
@@ -154,10 +151,10 @@ class IStatementTransform(ABC):
         raise NotImplementedError
 
 
-class BlockTransformContext(ILTransformContext):
+class BlockTransformContext(TransformContext):
     def __init__(
         self,
-        context: ILTransformContext,
+        context: TransformContext,
         control_flow_graph: ControlFlowGraph,
     ):
         super().__init__(
@@ -182,7 +179,7 @@ class BlockTransformContext(ILTransformContext):
         self._dirty = False
 
 
-class StatementTransformContext(ILTransformContext):
+class StatementTransformContext(TransformContext):
     def __init__(self, block_context: BlockTransformContext):
         super().__init__(
             function=block_context.function,
@@ -219,8 +216,8 @@ def run_block_transforms(
 
 def run_il_transforms(
     function: IRFunction,
-    transforms: Iterable[IILTransform],
-    context: ILTransformContext,
+    transforms: Iterable[ITransform],
+    context: TransformContext,
 ) -> None:
     for transform in transforms:
         context.throw_if_cancellation_requested()
@@ -232,9 +229,6 @@ def run_il_transforms(
 class LoopingBlockTransform(IBlockTransform):
     """
     Repeats child block transforms until the block no longer changes.
-
-    Uses BlockTransformContext.mark_dirty()/reset_dirty() in place of ILSpy's
-    instruction dirty flags.
     """
 
     def __init__(self, *transforms: IBlockTransform):
@@ -263,7 +257,7 @@ class LoopingBlockTransform(IBlockTransform):
 
 class StatementTransform(IBlockTransform):
     """
-    Runs statement transforms with ILSpy's right-to-left + rerun semantics.
+    Runs statement transforms with right-to-left + rerun semantics.
     """
 
     def __init__(self, *children: IStatementTransform):
@@ -301,9 +295,9 @@ class StatementTransform(IBlockTransform):
                 pos -= 1
 
 
-class BlockILTransform(IILTransform):
+class BlockTransform(ITransform):
     """
-    IL transform that runs block transforms in dominator-tree order.
+    Transform that runs block transforms in dominator-tree order.
 
     Pre-order transforms run before dominated children;
     post-order transforms run after children.
@@ -314,7 +308,7 @@ class BlockILTransform(IILTransform):
         self.post_order_transforms: List[IBlockTransform] = []
         self._running = False
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         if self._running:
             raise RuntimeError(
                 "Reentrancy detected. Transforms are not thread-safe/re-entrant."
@@ -322,9 +316,9 @@ class BlockILTransform(IILTransform):
 
         self._running = True
         try:
-            # Snapshot containers before transforms, mirroring ILSpy's ToList()
-            # behavior. This avoids re-processing newly created containers
-            # in the same BlockILTransform run (e.g. during loop/switch detection).
+            # Snapshot containers before transforms
+            # This avoids re-processing newly created containers
+            # in the same BlockTransform run (e.g. during loop/switch detection).
             containers = list(iter_block_containers(function))
             for container in containers:
                 context.throw_if_cancellation_requested()

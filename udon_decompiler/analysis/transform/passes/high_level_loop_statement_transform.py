@@ -16,30 +16,28 @@ from udon_decompiler.analysis.ir.nodes import (
     IRStatement,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
-class HighLevelLoopStatementTransform(IILTransform):
+class HighLevelLoopStatementTransform(ITransform):
     """
     Lift low-level loop containers into explicit high-level loop statements.
 
-    This pass mirrors the role of ILSpy StatementBuilder.ConvertLoop:
     - `ContainerKind.Loop`      -> `while (true)`
     - `ContainerKind.While`     -> `while (condition)`
     - `ContainerKind.DoWhile`   -> `do { ... } while (condition)`
     """
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         self._context = context
         self._rewrite_container(function.body)
 
     def _rewrite_container(self, container: IRBlockContainer) -> None:
         for block in list(container.blocks):
             block.statements = [
-                self._rewrite_statement(statement)
-                for statement in block.statements
+                self._rewrite_statement(statement) for statement in block.statements
             ]
 
     def _rewrite_statement(self, statement: IRStatement) -> IRStatement:
@@ -53,8 +51,7 @@ class HighLevelLoopStatementTransform(IILTransform):
 
         if isinstance(statement, IRBlock):
             statement.statements = [
-                self._rewrite_statement(nested)
-                for nested in statement.statements
+                self._rewrite_statement(nested) for nested in statement.statements
             ]
             return statement
 
@@ -226,8 +223,7 @@ class HighLevelLoopStatementTransform(IILTransform):
         container: IRBlockContainer,
     ) -> bool:
         return (
-            isinstance(statement, IRLeave)
-            and statement.target_container is container
+            isinstance(statement, IRLeave) and statement.target_container is container
         )
 
     @staticmethod

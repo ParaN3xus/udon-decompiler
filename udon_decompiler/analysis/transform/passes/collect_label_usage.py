@@ -17,12 +17,12 @@ from udon_decompiler.analysis.ir.nodes import (
     IRStatement,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
-class CollectLabelUsage(IILTransform):
+class CollectLabelUsage(ITransform):
     """
     Collect label usage info for codegen.
 
@@ -31,7 +31,7 @@ class CollectLabelUsage(IILTransform):
     - IRBlockContainer.should_emit_exit_label marks whether exit label must be emitted.
     """
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         _ = context
         self._reset_flags(function.body)
         self._analyze_container(
@@ -248,10 +248,7 @@ class CollectLabelUsage(IILTransform):
             return
 
         if isinstance(statement, IRJump):
-            if (
-                continue_target is not None
-                and statement.target is continue_target
-            ):
+            if continue_target is not None and statement.target is continue_target:
                 return
             if next_block is not None and statement.target is next_block:
                 return
@@ -320,8 +317,7 @@ class CollectLabelUsage(IILTransform):
         container: IRBlockContainer,
     ) -> bool:
         return (
-            isinstance(statement, IRLeave)
-            and statement.target_container is container
+            isinstance(statement, IRLeave) and statement.target_container is container
         )
 
     @staticmethod

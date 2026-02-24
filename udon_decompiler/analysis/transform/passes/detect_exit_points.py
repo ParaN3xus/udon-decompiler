@@ -13,8 +13,8 @@ from udon_decompiler.analysis.ir.nodes import (
     IRStatement,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
@@ -32,9 +32,7 @@ class _ExitOccurrence:
     replace: Callable[[IRStatement], None]
 
 
-class DetectExitPoints(IILTransform):
-    """Port of ILSpy DetectExitPoints, adapted to the current Python IR."""
-
+class DetectExitPoints(ITransform):
     def __init__(self, can_introduce_exit_for_return: bool) -> None:
         self.can_introduce_exit_for_return = can_introduce_exit_for_return
 
@@ -45,7 +43,7 @@ class DetectExitPoints(IILTransform):
 
         self._descendant_block_cache: dict[int, set[IRBlock]] = {}
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         self._function_body = function.body
         self._current_container = None
         self._current_exit = NO_EXIT
@@ -85,9 +83,7 @@ class DetectExitPoints(IILTransform):
 
         self._current_exit = this_exit
         self._current_container = container
-        self._potential_exits = (
-            [] if this_exit is EXIT_NOT_YET_DETERMINED else None
-        )
+        self._potential_exits = [] if this_exit is EXIT_NOT_YET_DETERMINED else None
 
         for block in container.blocks:
             self._visit_block(block)
@@ -187,9 +183,8 @@ class DetectExitPoints(IILTransform):
             return
 
         if self._current_exit is EXIT_NOT_YET_DETERMINED:
-            if (
-                self._potential_exits is not None
-                and self._can_introduce_as_exit(statement)
+            if self._potential_exits is not None and self._can_introduce_as_exit(
+                statement
             ):
                 self._potential_exits.append(
                     _ExitOccurrence(statement=statement, replace=replace_statement)

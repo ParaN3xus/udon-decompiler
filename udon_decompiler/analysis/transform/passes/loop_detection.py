@@ -24,8 +24,6 @@ from udon_decompiler.analysis.transform.pass_base import (
 
 
 class LoopDetection(IBlockTransform):
-    """Port of ILSpy LoopDetection for current Python IR."""
-
     _NO_EXIT_POINT = object()
 
     def __init__(self) -> None:
@@ -240,9 +238,8 @@ class LoopDetection(IBlockTransform):
         original_cfg = cfg.cfg
         while common_ancestor.user_index >= 0:
             exit_point = original_cfg[common_ancestor.user_index]
-            if (
-                not exit_point.visited
-                and self._validate_exit_point(loop_head, exit_point)
+            if not exit_point.visited and self._validate_exit_point(
+                loop_head, exit_point
             ):
                 return exit_point
             if common_ancestor.immediate_dominator is None:

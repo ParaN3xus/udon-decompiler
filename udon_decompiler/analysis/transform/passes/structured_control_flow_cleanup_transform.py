@@ -18,12 +18,12 @@ from udon_decompiler.analysis.ir.nodes import (
     IRSwitch,
 )
 from udon_decompiler.analysis.transform.pass_base import (
-    IILTransform,
-    ILTransformContext,
+    ITransform,
+    TransformContext,
 )
 
 
-class StructuredControlFlowCleanupTransform(IILTransform):
+class StructuredControlFlowCleanupTransform(ITransform):
     """
     Cleanup pass for structured control flow.
 
@@ -31,7 +31,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
     - remove truly-empty else-branches (`else {}`) represented as an empty IRBlock.
     """
 
-    def run(self, function: IRFunction, context: ILTransformContext) -> None:
+    def run(self, function: IRFunction, context: TransformContext) -> None:
         self._context = context
         self._root_body = function.body
         self._rewrite_container(function.body)
@@ -357,14 +357,10 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                     continue
 
                 true_tail = (
-                    true_target.statements[-1]
-                    if true_target.statements
-                    else None
+                    true_target.statements[-1] if true_target.statements else None
                 )
                 false_tail = (
-                    false_target.statements[-1]
-                    if false_target.statements
-                    else None
+                    false_target.statements[-1] if false_target.statements else None
                 )
                 if not isinstance(true_tail, IRJump) or not isinstance(
                     false_tail, IRJump
@@ -1097,11 +1093,7 @@ class StructuredControlFlowCleanupTransform(IILTransform):
                 continue
             tail = region_block.statements[-1]
             is_last = index == len(region_blocks) - 1
-            if (
-                is_last
-                and isinstance(tail, IRJump)
-                and tail.target is region_end
-            ):
+            if is_last and isinstance(tail, IRJump) and tail.target is region_end:
                 continue
             if self._statement_is_unreachable_endpoint(tail):
                 return False
@@ -1174,10 +1166,8 @@ class StructuredControlFlowCleanupTransform(IILTransform):
         if isinstance(statement, IRBlock):
             if not statement.statements:
                 return False
-            return (
-                StructuredControlFlowCleanupTransform._statement_is_unreachable_endpoint(
-                    statement.statements[-1]
-                )
+            return StructuredControlFlowCleanupTransform._statement_is_unreachable_endpoint(
+                statement.statements[-1]
             )
 
         return False
