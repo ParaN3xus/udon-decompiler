@@ -4,10 +4,18 @@
 
 #show: book-page.with(title: "数据流分析")
 
-本节主要介绍 `DataFlowAnalyzer` 和 `FunctionDataFlowAnalyzer` 类及其它一些相关的类的工作.
+本节介绍 `DataFlowAnalyzer`/`FunctionDataFlowAnalyzer` 及其相关组件.
 
 = 构建 CFG
-== 识别入口点
+
+`CFGBuilder` 的主要职责是:
+
+- 基于字节码和入口点划分基本块
+- 在构边时识别隐藏函数入口
+- 为每个函数构建 `ControlFlowGraph`
+
+== 入口点模型
+
 入口点信息 `EntryPointInfo` 被定义为
 
 ```py
@@ -19,50 +27,27 @@ class EntryPointInfo:
 
 其中
 - `name` 是函数名
-- `call_jump_target` 是该函数从程序内部调用时, `JUMP` 指令的 `OPERAND`,
-- `address` 是函数从外部调用时进入的公开入口, 若没有公开入口, 则使用 `call_jump_target` 替代
+- `call_jump_target` 是该函数从程序内部调用时 `JUMP` 指令的目标地址
+- `address` 是函数的公开入口地址
 
 正如#cross-link-heading("/dev/udon/udon-program.typ", [= 入口点表])[入口点表]所述, 公开函数的入口已经标注在了 `UdonProgram.EntryPoints`.
 
-一部分私有函数也有固定形式的公开入口 `PUSH __const_SystemUInt32_0`, 因此可以被简单地识别.
-
-还有一部分私有函数(隐藏入口点)没有固定形式的公开入口, 我们通过多次迭代, 在已识别的函数中识别特殊形式的 `JUMP` 指令的方式识别它们.
-
-=== 识别隐藏入口点 <sect:identify-hidden-entry-points>
-
-基本思想是当 `JUMP` 时, 检查栈顶是否有值, 该值是否为 `JUMP` 指令的下一条指令的地址.
-
-具体实现: 重复执行下面的流程, 直到没有出现新的入口点:
-
-+ 按当前已知的入口点划分基本块
-+ 在每个基本块中寻找调用函数的 `JUMP` 指令: `_find_call_targets`
-  + 初始化 `BlockStackSimulator`, `state: StackFrame` 和 `HeapSimulator`
-  + 模拟堆和栈的运行, 直到找到这样的 `JUMP` 指令:
-    - 在该指令执行前, 栈顶有值
-    - 该值恰好等于 `JUMP` 指令的下一条指令的地址
-  + 将该 `JUMP` 指令的 `OPERAND` 记录到新的入口点中
-+ 用新的入口点中更新已知的入口点
+此外, `BytecodeParser` 会在反汇编后修正公开函数头: 若入口起始指令是 `PUSH __const_SystemUInt32_0` 且值为 `0xffffffff`, 则 `call_jump_target = address + 8`
 
 == 划分基本块
 
-在#link(<sect:identify-hidden-entry-points>)[识别隐藏入口点]完成后, 基本块实际上已经完成划分. 因此本节讲述的是上述流程的一部分, 而不是一个独立的步骤.
-
-基本上分为两步
+基本思路分两步:
 - 找到块的开头
 - 以块的开头所在的指令为分割点将指令顺序地分为基本块
 
 其中块的开头包括
-- `EntryPointInfo.address`
+- 已知入口点地址 (`EntryPointInfo.address` 与 `call_jump_target`)
 - `JUMP` 和 `JUMP_IF_FALSE` 指令的 `OPERAND` 和下一条指令的地址
-- `JUMP_INDIRECT` 指令执行时, 其 `OPERAND` 作为堆地址指向的值
+- 可识别的 `JUMP_INDIRECT` switch table 目标地址 (`BasicBlockIdentifier._get_switch_targets`)
 
-可以看出, 真正棘手的部分是 `JUMP_INDIRECT`. 实际上, 经过我的调研, 我发现 UdonSharp 编译器并不会轻易产生 `JUMP_INDIRECT`. 目前已知的 `JUMP_INDIRECT` 有两种:
-- 内部函数的返回: #cross-link-heading("/dev/udon/udon-vm.typ", [= 内部函数])[Udon VM - 内部函数]一节中指出了函数返回语句的特征, 使得我们可以很容易地识别它们. 在基本块划分中, 它们可以被忽略, 因为这条 `JUMP_INDIRECT`
-  - 要么让 UdonVM 停机: 此时并没有指示任何块的开头
-  - 要么跳转到调用该函数的 `JUMP` 指令的下一条指令: 此时该开头已经在处理该 `JUMP` 指令时识别过
-- 长的 `switch-case` 语句: 一些 switch expression 类型为 `int` 等的 `switch-case` 语句会被编译成从一个地址表中获取值, 然后 `JUMP_INDIRECT`. 这种类型的编译结果有明显可识别的模式(见 `BasicBlockIdentifier._get_switch_targets()`), 只需要匹配之然后把地址表中的所有值都识别为块的开头
-
-可能还有更多类型的 `JUMP_INDIRECT`, 或者还有一些因为 `_get_switch_targets()` 的瑕疵而未能成功识别的 `switch-case` 类型的 `JUMP_INDIRECT`. 该问题在 #link("https://github.com/ParaN3xus/udon-decompiler/issues/4")[udon-decompiler/issues/4] 中被追踪.
+`JUMP_INDIRECT` 里有两类被重点处理:
+- 函数返回跳转 (`__intnl_returnJump_SystemUInt32_0`): 视为返回语义
+- switch 地址表跳转: 识别后把所有 case target 作为块起点
 
 == 构建边
 
@@ -70,13 +55,18 @@ class EntryPointInfo:
 
 具体的方法是考察每个 `BasicBlock` 的最后一条指令, 按 `OpCode` 分类处理
 - `JUMP`:
-  - 若为函数调用, 也即跳转目标是一个入口点: 建立本块到按指令地址顺序的下一块的边
-  - 若不为函数调用: 建立本块到 `OPERAND` 起始的块的边
-- `JUMP_IF_ELSE`: 建立本块到按指令地址顺序的下一块的边, 和本块到 `OPERAND` 起始的块的边
-- `JUMP_INDIRECT`: 如上所述, 有两种
-  - 内部函数的返回: 忽略
-  - 长的 `switch-case` 语句: 建立本块的所有 `case` 的基本块的边
+  - 若识别为 returning-call, 弹出返回地址后建立 fallthrough 边
+  - 若像函数调用但不返回, 将块标记为 `RETURN`
+  - 否则是普通跳转边
+- `JUMP_IF_FALSE`: 建立 false-target 与 fallthrough 两条边
+- `JUMP_INDIRECT`:
+  - 返回跳转: 标记 `RETURN`
+  - switch 跳转: 建立到各 case target 的边
 - 其它: 建立本块到按指令地址顺序的下一块的边
+
+在这个阶段, `CFGBuilder` 还会发现隐藏入口点:
+- 如果 `JUMP` 看起来像函数调用目标, 会将目标地址注册为新入口
+- 新入口会加入队列继续分析, 直到不再产生新的入口
 
 == 构建函数 CFG <sect:build-function-cfg>
 
@@ -84,7 +74,7 @@ class EntryPointInfo:
 
 == 识别函数名
 
-公开函数的函数名可以在 `UdonProgram` 的入口点表中找到.
+公开函数名直接来自入口点表.
 
 非公开函数的函数名可以函数的返回值变量符号名判断.  UdonSharp 中生成函数返回值变量的逻辑在 `UdonSharp.Compiler.CompilationContext.BuildMethodLayout` 中. 相关代码决定了返回值变量的符号名是
 
@@ -98,7 +88,14 @@ __{id1}___{id2}_{methodName}__ret
 
 = 函数数据流分析
 
+`FunctionDataFlowAnalyzer` 对每个函数执行:
+- 栈模拟 (`StackSimulator`)
+- 变量识别 (`VariableIdentifier`)
+- IR 构建 (`IRBuilder`)
+
 == 栈模拟
+
+模拟结果会记录为每条指令执行前的 `StackFrame`, 后续变量识别与 IR 构建都会使用.
 
 按拓扑遍历顺序遍历函数的所有基本块, 对于每个基本块, 按顺序模拟其每条指令的执行对栈产生的影响, 从而获得每一条指令运行前后的栈状态. 按 `OpCode` 不同, 具体的模拟逻辑如下
 - `NOP`, `ANNOTATION`: 跳过
@@ -126,25 +123,55 @@ __{id1}___{id2}_{methodName}__ret
 - `__intnl_`: 会在之后被消除, 识别为 `TEMPORARY`
 - `__gintnl_`: 大概率在之后被消除, 此处作 `GLOBAL` 处理
 - `__lcl_`: 识别为 `LOCAL`
-- `__this_`: 是对 `this` 的成员的引用, 并不会需要变量声明, 此处作 `GLOBAL` 处理.
+- `__this_`: 按名称转为 `this`/`this.transform`/`this.gameObject`, 作用域按 `GLOBAL` 处理
+  - `__this_VRCUdonUdonBehaviour_{id}`: `this`
+  - `__this_UnityEngineTransform_{id}`: `this.transform`
+  - `__this_UnityEngineGameObject_{id}`: `this.gameObject`
 - fallback: 识别为 `GLOBAL`
-
-除此之外, 由于对 `this`(是 `MonoBehaviour`) 的引用一共就那几种, 我们可以枚举并按符号名直接给出特殊的变量名
-- `__this_VRCUdonUdonBehaviour_{id}`: `this`
-- `__this_UnityEngineTransform_{id}`: `this.transform`
-- `__this_UnityEngineGameObject_{id}`: `this.gameObject`
 
 === 记录变量读写
 
-遍历函数的基本块和块内的指令, 记录 `PUSH`, `COPY`, `EXTERN` 对堆地址(也即变量)的读写. 此处我们忽略了 `JUMP_INDIRECT`, 因为函数返回和 `switch-case` 的跳转步骤都不构成对实际变量的读写.
+会记录 `PUSH`/`COPY`/`EXTERN` 导致的读写关系.
+如果某地址未在符号表中出现, 会按回退策略创建临时变量 (`temp_{id}`).
 
-在本步骤中, 如果出现了对未在上一步中识别出的变量的读写, 这些变量会命中回退策略, 并获得一个临时变量名.
+== 构建原始 IR
 
-== 构建表达式
+`IRBuilder` 以基本块为单位构建 `IRBlockContainer`, 并把指令映射成 IR 语句:
+- `COPY` -> `IRAssignmentStatement`
+- `EXTERN` -> 外部调用/属性访问/构造/运算符表达式
+- `JUMP` -> 内部调用或 `IRJump`
+- `JUMP_IF_FALSE` -> `IRIf`
+- `JUMP_INDIRECT` -> 返回或 `IRSwitch`
 
-遍历函数内的所有指令, 结合栈模拟的结果, 不同指令可以构建出下列表达式
-- `COPY`: `ASSIGNMENT`
-- `EXTERN`: `PROPERTY_ACCESS`, `CONSTRUCTOR`, `OPERATOR`, `EXTERNAL_CALL`
-- `JUMP`: `INTERNAL_CALL`
+最后补齐隐式 fallthrough 或返回语句, 使每个块有明确终结行为.
 
-在构建这些表达式时, 会将栈中的值, 也即堆地址同时构建为 `LITERAL` 或 `VARIABLE` 表达式.
+= IR 变换管线 (`TransformPipeline`)
+
+`DataFlowAnalyzer.analyze()` 在收集所有函数 IR 后, 会运行默认管线.
+
+== 函数级 transforms
+
+执行顺序如下:
+
++ `ControlFlowSimplification`
++ `ConstToLiteral`
++ `TempVariableInline`
++ `DetectExitPoints(can_introduce_exit_for_return=False)`
++ `LoopDetection` (`BlockILTransform`)
++ `DetectExitPoints(can_introduce_exit_for_return=True)`
++ `ConditionDetection` (`BlockILTransform`)
++ `HighLevelLoopTransform`
++ `HighLevelSwitchTransform`
++ `HighLevelLoopStatementTransform`
++ `StructuredControlFlowCleanupTransform`
++ `CollectLabelUsage`
++ `CollectVariables`
+
+这些 pass 负责把低级跳转结构逐步转为高层 `while/do-while/switch` 或更简洁的条件分支.
+
+== 程序级 transforms
+
+- `IRClassConstructionTransform`: 组装 `IRClass`（类名/命名空间/函数列表）
+- `PromoteGlobals`: 提升全局变量和跨函数共享变量为类级字段
+
+此后, IR 会交给代码生成阶段输出伪 C\#.
