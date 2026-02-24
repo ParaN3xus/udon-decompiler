@@ -437,6 +437,22 @@ impl OdinDocument {
         self.reparse_after_structural_edit()
     }
 
+    pub fn replace_node_with_clone(
+        &mut self,
+        target_node_id: NodeId,
+        source_node_id: NodeId,
+    ) -> Result<()> {
+        let (target_start, target_end) = self.node_token_range(target_node_id)?;
+        let (source_start, source_end) = self.node_token_range(source_node_id)?;
+        let mut cloned_tokens = self.tokens[source_start..source_end].to_vec();
+        for token in &mut cloned_tokens {
+            token.dirty = true;
+            token.span = 0..0;
+        }
+        self.tokens.splice(target_start..target_end, cloned_tokens);
+        self.reparse_after_structural_edit()
+    }
+
     fn reparse_after_structural_edit(&mut self) -> Result<()> {
         let rebuilt = self.to_bytes()?;
         *self = OdinDocument::parse(&rebuilt)?;
