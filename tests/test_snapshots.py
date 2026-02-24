@@ -79,7 +79,8 @@ def _load_module_info() -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def _enable_debug_log() -> None:
-    set_logger_level(logging.DEBUG)
+    pass
+    # set_logger_level(logging.DEBUG)
 
 
 @pytest.mark.parametrize("case_path", CASE_PATHS, ids=lambda p: str(p))
