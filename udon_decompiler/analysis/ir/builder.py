@@ -1,4 +1,4 @@
-from typing import Final, List, Optional
+from typing import Dict, Final, List, Optional, cast
 
 from udon_decompiler.analysis.basic_block import (
     BasicBlock,
@@ -8,25 +8,21 @@ from udon_decompiler.analysis.basic_block import (
 from udon_decompiler.analysis.cfg import ControlFlowGraph
 from udon_decompiler.analysis.expression_builder import Operator
 from udon_decompiler.analysis.ir.nodes import (
-    AssignmentStatement,
-    BlockIR,
-    ConditionalTerminator,
-    ConstructorCallExpression,
-    EndTerminator,
-    ExpressionStatement,
-    ExternalCallExpression,
-    FunctionIR,
-    GotoTerminator,
-    InternalCallExpression,
+    IRAssignmentStatement,
+    IRBlock,
+    IRBlockContainer,
+    IRConstructorCallExpression,
     IRExpression,
+    IRExpressionStatement,
+    IRExternalCallExpression,
+    IRFunction,
+    IRIf,
+    IRInternalCallExpression,
+    IRJump,
+    IROperatorCallExpression,
+    IRPropertyAccessExpression,
     IRStatement,
-    IRTerminator,
-    LiteralExpression,
-    OperatorCallExpression,
-    PropertyAccessExpression,
-    ReturnTerminator,
-    SwitchTerminator,
-    VariableExpression,
+    IRVariableExpression,
 )
 from udon_decompiler.analysis.stack_simulator import (
     StackFrame,
@@ -36,7 +32,6 @@ from udon_decompiler.analysis.stack_simulator import (
 from udon_decompiler.analysis.variable_identifier import (
     Variable,
     VariableIdentifier,
-    VariableScope,
 )
 from udon_decompiler.models.instruction import Instruction, OpCode
 from udon_decompiler.models.module_info import (
@@ -49,55 +44,60 @@ from udon_decompiler.models.program import EntryPointInfo, SymbolInfo, UdonProgr
 
 class IRBuilder:
     EXTERN_OP_PREFIX: Final[str] = "__op_"
+    _SYNTHETIC_DECLARATION_INSTRUCTION: Final[Instruction] = Instruction(
+        address=-1,
+        opcode=OpCode.NOP,
+    )
 
     def __init__(
         self,
         program: UdonProgramData,
-        cfg: ControlFlowGraph,
+        function_name: str,
+        is_function_public: bool,
+        raw_blocks: List[BasicBlock],
         stack_simulator: StackSimulator,
         variable_identifier: VariableIdentifier,
     ):
         self.program = program
-        self.cfg = cfg
+        self.is_function_public = is_function_public
+        self.function_name = function_name
+        self.raw_blocks = raw_blocks
         self.stack_simulator = stack_simulator
         self.variable_identifier = variable_identifier
         self.module_info = UdonModuleInfo()
 
-    def build(self) -> FunctionIR:
-        blocks_sorted = sorted(self.cfg.graph.nodes(), key=lambda b: b.start_address)
-        blocks = {
-            block.start_address: self._build_block(block) for block in blocks_sorted
-        }
+        self._block_map: Dict[int, IRBlock] = {}
 
-        function_name = self.cfg.function_name
-        if function_name is None:
-            function_name = f"func_0x{self.cfg.entry_block.start_address:08x}"
+    def build(self) -> IRFunction:
+        for raw_block in self.raw_blocks:
+            ir_block = IRBlock(statements=[])
+            self._block_map[raw_block.start_address] = ir_block
 
-        return FunctionIR(
-            function_name=function_name,
-            is_function_public=self.cfg.is_function_public,
-            entry_block_start=self.cfg.entry_block.start_address,
-            variable_declarations=self._collect_variable_declarations(),
-            block_order=[block.start_address for block in blocks_sorted],
-            blocks=blocks,
+        body = IRBlockContainer(blocks=[])
+        for raw_block in self.raw_blocks:
+            ir_block = self._block_map[raw_block.start_address]
+            ir_block.statements = self._build_statements(raw_block)
+            body.blocks.append(ir_block)
+
+        return IRFunction(
+            function_name=self.function_name,
+            is_function_public=self.is_function_public,
+            variable_declarations=[],
+            body=body,
         )
 
-    def _build_block(self, block: BasicBlock) -> BlockIR:
-        return BlockIR(
-            start_address=block.start_address,
-            end_address=block.end_address,
-            statements=self._build_statements(block),
-            terminator=self._build_terminator(block),
-        )
+    # region _build_statements
 
     def _build_statements(self, block: BasicBlock) -> List[IRStatement]:
         statements: List[IRStatement] = []
         for instruction in block.instructions:
-            statements.extend(self._build_statements_from_instruction(instruction))
+            statements.extend(
+                self._build_statements_from_instruction(block, instruction)
+            )
         return statements
 
     def _build_statements_from_instruction(
-        self, instruction: Instruction
+        self, block: BasicBlock, instruction: Instruction
     ) -> List[IRStatement]:
         match instruction.opcode:
             case OpCode.COPY:
@@ -105,15 +105,12 @@ class IRBuilder:
             case OpCode.EXTERN:
                 return self._build_extern_statements(instruction)
             case OpCode.JUMP:
-                return self._build_internal_call_statements(instruction)
-            case (
-                OpCode.JUMP_IF_FALSE
-                | OpCode.JUMP_INDIRECT
-                | OpCode.NOP
-                | OpCode.ANNOTATION
-                | OpCode.POP
-                | OpCode.PUSH
-            ):
+                return self._build_jump_statements(instruction)
+            case OpCode.JUMP_IF_FALSE:
+                return self._build_jump_if_false_statements(instruction)
+            case OpCode.JUMP_INDIRECT:
+                return self._build_jump_indirect_statements(block, instruction)
+            case OpCode.NOP | OpCode.ANNOTATION | OpCode.POP | OpCode.PUSH:
                 return []
 
     def _build_copy_statements(self, instruction: Instruction) -> List[IRStatement]:
@@ -132,9 +129,7 @@ class IRBuilder:
 
         value_expression = self._stack_value_to_expression(source_value)
         return [
-            AssignmentStatement(
-                instruction_address=instruction.address,
-                instruction=instruction,
+            IRAssignmentStatement(
                 target=target_variable,
                 value=value_expression,
             )
@@ -172,10 +167,9 @@ class IRBuilder:
                 arguments,
             )
             return [
-                ExpressionStatement(
-                    instruction_address=instruction.address,
-                    instruction=instruction,
-                    expression=call_expression,
+                cast(
+                    IRStatement,
+                    IRExpressionStatement(expression=call_expression),
                 )
             ]
 
@@ -185,7 +179,7 @@ class IRBuilder:
             )
 
         return_slot = arguments[-1]
-        if not isinstance(return_slot, VariableExpression):
+        if not isinstance(return_slot, IRVariableExpression):
             raise Exception(
                 f"Non-void EXTERN at 0x{instruction.address:08x} return slot "
                 "is not a variable"
@@ -197,132 +191,11 @@ class IRBuilder:
             arguments[:-1],
         )
         return [
-            AssignmentStatement(
-                instruction_address=instruction.address,
-                instruction=instruction,
+            IRAssignmentStatement(
                 target=return_slot.variable,
                 value=call_expression,
             )
         ]
-
-    def _build_internal_call_statements(
-        self, instruction: Instruction
-    ) -> List[IRStatement]:
-        target_entry = self._resolve_internal_call_entry(instruction)
-        if target_entry is None:
-            return []
-        return [
-            ExpressionStatement(
-                instruction_address=instruction.address,
-                instruction=instruction,
-                expression=InternalCallExpression(entry_point=target_entry),
-            )
-        ]
-
-    def _build_extern_expression(
-        self,
-        function_info: ExternFunctionInfo,
-        signature: str,
-        arguments: List[IRExpression],
-    ) -> IRExpression:
-        match function_info.def_type:
-            case FunctionDefinitionType.FIELD:
-                return PropertyAccessExpression(
-                    function_info=function_info,
-                    signature=signature,
-                    arguments=arguments,
-                )
-            case FunctionDefinitionType.CTOR:
-                return ConstructorCallExpression(
-                    function_info=function_info,
-                    signature=signature,
-                    arguments=arguments,
-                )
-            case FunctionDefinitionType.OPERATOR:
-                return OperatorCallExpression(
-                    function_info=function_info,
-                    signature=signature,
-                    arguments=arguments,
-                    operator=self._resolve_operator(function_info),
-                )
-            case FunctionDefinitionType.METHOD:
-                return ExternalCallExpression(
-                    function_info=function_info,
-                    signature=signature,
-                    arguments=arguments,
-                )
-
-    def _build_terminator(self, block: BasicBlock) -> IRTerminator:
-        last_inst = block.last_instruction
-
-        if block.block_type == BasicBlockType.RETURN:
-            return ReturnTerminator(address=last_inst.address)
-
-        if last_inst.opcode == OpCode.JUMP_IF_FALSE:
-            false_target = last_inst.get_jump_target()
-            true_target = self._resolve_true_target(block, false_target)
-            condition = self._build_condition_expression(last_inst)
-            return ConditionalTerminator(
-                address=last_inst.address,
-                condition=condition,
-                true_target=true_target,
-                false_target=false_target,
-            )
-
-        if last_inst.opcode == OpCode.JUMP:
-            target_entry = self._resolve_internal_call_entry(last_inst)
-            if target_entry is not None:
-                successor = self._single_successor_start(block)
-                if successor is None:
-                    return EndTerminator(address=last_inst.address)
-                return GotoTerminator(address=last_inst.address, target=successor)
-
-            return GotoTerminator(
-                address=last_inst.address,
-                target=last_inst.get_jump_target(),
-            )
-
-        if last_inst.opcode == OpCode.JUMP_INDIRECT:
-            if block.switch_info is not None:
-                return self._build_switch_terminator(last_inst, block.switch_info)
-            return ReturnTerminator(address=last_inst.address)
-
-        successor = self._single_successor_start(block)
-        if successor is None:
-            return EndTerminator(address=last_inst.address)
-        return GotoTerminator(address=last_inst.address, target=successor)
-
-    def _build_switch_terminator(
-        self, instruction: Instruction, switch_info: SwitchTableInfo
-    ) -> SwitchTerminator:
-        return SwitchTerminator(
-            address=instruction.address,
-            switch_index=self._operand_to_expression(switch_info.index_operand),
-            switch_targets=list(switch_info.targets),
-        )
-
-    def _build_condition_expression(self, instruction: Instruction) -> IRExpression:
-        state = self._require_instruction_state(instruction.address)
-        condition_value = state.peek(0)
-        if condition_value is None:
-            raise Exception(
-                f"JUMP_IF_FALSE at 0x{instruction.address:08x} missing condition value"
-            )
-        return self._stack_value_to_expression(condition_value)
-
-    def _stack_value_to_expression(self, stack_value: StackValue) -> IRExpression:
-        variable = self.variable_identifier.get_variable(stack_value.value)
-        if variable is not None:
-            return VariableExpression(variable=variable)
-
-        raise Exception("Unknown stack address 0x%08x in IR build" % stack_value.value)
-
-    def _operand_to_expression(self, operand: int) -> IRExpression:
-        variable = self.variable_identifier.get_variable(operand)
-        if variable is not None:
-            return VariableExpression(variable=variable)
-
-        raise Exception(f"Unknown operand 0x{operand:08x} for switch index")
 
     def _build_call_arguments(
         self, instruction: Instruction, parameter_count: int
@@ -343,6 +216,118 @@ class IRBuilder:
                 )
             arguments.append(self._stack_value_to_expression(stack_value))
         return arguments
+
+    def _build_extern_expression(
+        self,
+        function_info: ExternFunctionInfo,
+        signature: str,
+        arguments: List[IRExpression],
+    ) -> IRExpression:
+        match function_info.def_type:
+            case FunctionDefinitionType.FIELD:
+                return IRPropertyAccessExpression(
+                    function_info=function_info,
+                    signature=signature,
+                    arguments=arguments,
+                )
+            case FunctionDefinitionType.CTOR:
+                return IRConstructorCallExpression(
+                    function_info=function_info,
+                    signature=signature,
+                    arguments=arguments,
+                )
+            case FunctionDefinitionType.OPERATOR:
+                return IROperatorCallExpression(
+                    arguments=arguments,
+                    operator=self._resolve_operator(function_info),
+                )
+            case FunctionDefinitionType.METHOD:
+                return IRExternalCallExpression(
+                    function_info=function_info,
+                    signature=signature,
+                    arguments=arguments,
+                )
+
+    def _build_jump_statements(self, instruction: Instruction) -> List[IRStatement]:
+        internal_call_entry = self._resolve_internal_call_entry(instruction)
+        if internal_call_entry is None:
+            return self._build_internal_call_statements(instruction)
+
+        target_addr = instruction.get_jump_target()
+        return [IRJump(target=self._get_block_ref(target_addr))]
+
+    def _build_internal_call_statements(
+        self, instruction: Instruction
+    ) -> List[IRStatement]:
+        target_entry = self._resolve_internal_call_entry(instruction)
+        if target_entry is None:
+            return []
+        return [
+            IRExpressionStatement(
+                expression=IRInternalCallExpression(entry_point=target_entry),
+            )
+        ]
+
+    def _build_jump_if_false_statements(
+        self, instruction: Instruction
+    ) -> List[IRStatement]:
+        false_addr = instruction.get_jump_target()
+        false_block = self._get_block_ref(false_addr)
+        jump_statement: IRStatement = IRJump(target=false_block)
+
+        condition = self._build_condition_expression(instruction)
+
+        return [
+            cast(
+                IRStatement,
+                IRIf(
+                    condition=IROperatorCallExpression(
+                        arguments=[condition], operator=Operator.UnaryNegation
+                    ),
+                    true_statement=jump_statement,
+                    false_statement=None,
+                ),
+            )
+        ]
+
+    def _build_jump_indirect_statements(
+        self, block: BasicBlock, instruction: Instruction
+    ) -> List[IRStatement]:
+        switch_info = block.switch_info
+        if switch_info is None:
+            raise Exception("JUMP_INDIRECT without switch_info detected!")
+        index_expr = self._operand_to_expression(switch_info.index_operand)
+
+        cases: Dict[int, IRBlock] = {}
+        for case_val, target_addr in enumerate(switch_info.targets):
+            cases[case_val] = self._get_block_ref(target_addr)
+
+        # todo!
+
+    # endregion
+
+    def _build_condition_expression(self, instruction: Instruction) -> IRExpression:
+        state = self._require_instruction_state(instruction.address)
+        condition_value = state.peek(0)
+        if condition_value is None:
+            raise Exception(
+                f"JUMP_IF_FALSE at 0x{instruction.address:08x} missing condition value"
+            )
+        return self._stack_value_to_expression(condition_value)
+
+    def _stack_value_to_expression(self, stack_value: StackValue) -> IRExpression:
+        variable = self.variable_identifier.get_variable(stack_value.value)
+        if variable is not None:
+            return IRVariableExpression(variable=variable)
+
+        raise Exception("Unknown stack address 0x%08x in IR build" % stack_value.value)
+
+    def _operand_to_expression(self, operand: int) -> IRExpression:
+        variable = self.variable_identifier.get_variable(operand)
+        if variable is not None:
+            return IRVariableExpression(variable=variable)
+
+        raise Exception(f"Unknown operand 0x{operand:08x} for switch index")
 
     def _resolve_operator(self, function_info: ExternFunctionInfo) -> Operator:
         if not function_info.function_name.startswith(self.EXTERN_OP_PREFIX):
@@ -365,28 +350,10 @@ class IRBuilder:
             None,
         )
 
-    def _resolve_true_target(self, block: BasicBlock, false_target: int) -> int:
-        direct_block = self.cfg.get_block_at(block.last_instruction.next_address)
-        if direct_block is not None and direct_block.start_address != false_target:
-            return direct_block.start_address
-
-        for successor in self.cfg.get_successors(block):
-            if successor.start_address != false_target:
-                return successor.start_address
-
-        raise Exception(
-            f"Cannot resolve true branch target for block 0x{block.start_address:08x}"
-        )
-
-    def _single_successor_start(self, block: BasicBlock) -> Optional[int]:
-        successors = list(self.cfg.get_successors(block))
-        if not successors:
-            return None
-        if len(successors) > 1:
-            raise Exception(
-                f"Unexpected multi-successor block at 0x{block.start_address:08x}"
-            )
-        return successors[0].start_address
+    def _get_block_ref(self, address: int) -> IRBlock:
+        if address not in self._block_map:
+            raise Exception(f"Target address 0x{address:08x} not found in block map")
+        return self._block_map[address]
 
     def _require_instruction_state(self, address: int) -> StackFrame:
         state = self.stack_simulator.get_instruction_state(address)
@@ -399,26 +366,3 @@ class IRBuilder:
         if variable is None:
             raise Exception(f"No variable registered at address 0x{address:08x}")
         return variable
-
-    def _collect_variable_declarations(self) -> List[Variable]:
-        declarations: List[Variable] = []
-        for variable in self.variable_identifier.variables.values():
-            if variable.scope not in {VariableScope.LOCAL, VariableScope.TEMPORARY}:
-                continue
-            if not variable.read_locations and not variable.write_locations:
-                continue
-            if variable.name == SymbolInfo.RETURN_JUMP_ADDR_SYMBOL_NAME:
-                continue
-
-            symbol_name = (
-                variable.original_symbol.name
-                if variable.original_symbol
-                else variable.name
-            )
-            if symbol_name.startswith(SymbolInfo.CONST_SYMBOL_PREFIX):
-                continue
-
-            declarations.append(variable)
-
-        declarations.sort(key=lambda variable: variable.address)
-        return declarations
