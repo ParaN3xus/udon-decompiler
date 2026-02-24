@@ -7,54 +7,57 @@ from udon_decompiler.models.instruction import Instruction
 from udon_decompiler.models.module_info import ExternFunctionInfo
 from udon_decompiler.models.program import EntryPointInfo, UdonProgramData
 
+# region IRExpression
+
 
 class IRExpression:
     pass
 
 
 @dataclass
-class LiteralExpression(IRExpression):
+class IRLiteralExpression(IRExpression):
     value: object
     type_hint: Optional[str]
 
 
 @dataclass
-class VariableExpression(IRExpression):
+class IRVariableExpression(IRExpression):
     variable: Variable
 
 
 @dataclass
-class InternalCallExpression(IRExpression):
+class IRInternalCallExpression(IRExpression):
     entry_point: EntryPointInfo
 
 
 @dataclass
-class ExternalCallExpression(IRExpression):
+class IRExternalCallExpression(IRExpression):
     function_info: ExternFunctionInfo
     signature: str
     arguments: List[IRExpression]
 
 
 @dataclass
-class PropertyAccessExpression(IRExpression):
+class IRPropertyAccessExpression(IRExpression):
     function_info: ExternFunctionInfo
     signature: str
     arguments: List[IRExpression]
 
 
 @dataclass
-class ConstructorCallExpression(IRExpression):
+class IRConstructorCallExpression(IRExpression):
     function_info: ExternFunctionInfo
     signature: str
     arguments: List[IRExpression]
 
 
 @dataclass
-class OperatorCallExpression(IRExpression):
-    function_info: ExternFunctionInfo
-    signature: str
+class IROperatorCallExpression(IRExpression):
     arguments: List[IRExpression]
     operator: Operator
+
+
+# endregion
 
 
 class IRStatement:
@@ -62,83 +65,57 @@ class IRStatement:
 
 
 @dataclass
-class AssignmentStatement(IRStatement):
-    instruction_address: int
-    instruction: Instruction
+class IRAssignmentStatement(IRStatement):
     target: Variable
     value: IRExpression
 
 
 @dataclass
-class ExpressionStatement(IRStatement):
-    instruction_address: int
-    instruction: Instruction
+class IRExpressionStatement(IRStatement):
     expression: IRExpression
 
 
-class IRTerminator:
-    address: int
+@dataclass
+class IRVariableDeclearationStatement(IRStatement):
+    variable: Variable
+    init_value: Optional[IRLiteralExpression]
 
 
 @dataclass
-class GotoTerminator(IRTerminator):
-    address: int
-    target: int
-
-
-@dataclass
-class ConditionalTerminator(IRTerminator):
-    address: int
-    condition: IRExpression
-    true_target: int
-    false_target: int
-
-
-@dataclass
-class SwitchTerminator(IRTerminator):
-    address: int
-    switch_index: IRExpression
-    switch_targets: List[int]
-
-
-@dataclass
-class ReturnTerminator(IRTerminator):
-    address: int
-
-
-@dataclass
-class EndTerminator(IRTerminator):
-    address: int
-
-
-@dataclass
-class BlockIR:
-    start_address: int
-    end_address: int
+class IRBlock(IRStatement):
     statements: List[IRStatement]
-    terminator: IRTerminator
 
 
 @dataclass
-class FunctionIR:
+class IRBlockContainer(IRStatement):
+    blocks: List[IRBlock]
+
+
+@dataclass
+class IRIf(IRStatement):
+    condition: IRExpression
+    true_statement: IRStatement
+    false_statement: Optional[IRStatement]
+
+
+@dataclass
+class IRJump(IRStatement):
+    target: IRBlock
+
+
+@dataclass
+class IRFunction:
     function_name: str
     is_function_public: bool
-    entry_block_start: int
-    variable_declarations: List[Variable]
-    block_order: List[int]
-    blocks: Dict[int, BlockIR] = field(default_factory=dict)
+    variable_declarations: List[IRVariableDeclearationStatement]
+
+    body: IRBlockContainer
 
 
 @dataclass
-class GlobalVariableIR:
-    variable: Variable
-    initial_value: object
-
-
-@dataclass
-class ClassIR:
+class IRClass:
     class_name: str
     namespace: Optional[str]
     program: UdonProgramData
-    global_variables: list[GlobalVariableIR]
-    functions: list[FunctionIR]
+    variable_declarations: List[IRVariableDeclearationStatement]
+    functions: list[IRFunction]
