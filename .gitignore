@@ -14,3 +14,12 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Local files
+/local
+
+# IDE Settings
+.vscode/launch.json
+
+# Resources
+/UdonModuleInfo.json
