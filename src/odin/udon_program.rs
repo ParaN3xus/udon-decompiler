@@ -133,7 +133,47 @@ impl UdonProgramBinary {
         value: PrimitiveValue,
     ) -> Result<()> {
         let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        self.doc.set_primitive(value_node, value)
+        self.doc.set_primitive_resolved(value_node, value)
+    }
+
+    pub fn set_heap_dump_strongbox_u32_array_raw(
+        &mut self,
+        index: usize,
+        raw: &[u8],
+    ) -> Result<()> {
+        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
+        let resolved_value_node = self
+            .doc
+            .resolve_node_payload(value_node)
+            .unwrap_or(value_node);
+        let target_node = if matches!(
+            self.doc
+                .node(resolved_value_node)
+                .ok_or_else(|| OdinError::new("Invalid strongbox value node id."))?
+                .kind(),
+            NodeKind::PrimitiveArray { .. }
+        ) {
+            resolved_value_node
+        } else {
+            let child = first_child(&self.doc, resolved_value_node).ok_or_else(|| {
+                OdinError::new(format!(
+                    "HeapDump[{index}] value is not PrimitiveArray and has no child."
+                ))
+            })?;
+            if !matches!(
+                self.doc
+                    .node(child)
+                    .ok_or_else(|| OdinError::new("Invalid child node id."))?
+                    .kind(),
+                NodeKind::PrimitiveArray { .. }
+            ) {
+                return Err(OdinError::new(format!(
+                    "HeapDump[{index}] value does not contain a PrimitiveArray node."
+                )));
+            }
+            child
+        };
+        self.doc.replace_primitive_array(target_node, raw)
     }
 
     pub fn set_heap_dump_strongbox_from_entry(
@@ -165,12 +205,53 @@ impl UdonProgramBinary {
         value: impl Into<String>,
     ) -> Result<()> {
         let type_node = self.heap_dump_type_node_id(index)?;
+        let value = value.into();
+        if matches!(
+            self.doc
+                .node(type_node)
+                .ok_or_else(|| OdinError::new("Invalid heap type node id."))?
+                .kind(),
+            NodeKind::Primitive(PrimitiveValue::String(_))
+        ) {
+            return set_string_like_primitive(&mut self.doc, type_node, value, "HeapDump.Item3");
+        }
         let inner = first_child(&self.doc, type_node).ok_or_else(|| {
             OdinError::new(format!(
                 "HeapDump[{index}].Item3 is not a reference node with inline type value."
             ))
         })?;
-        set_string_like_primitive(&mut self.doc, inner, value.into(), "HeapDump.Item3")
+        set_string_like_primitive(&mut self.doc, inner, value, "HeapDump.Item3")
+    }
+
+    pub fn heap_dump_type_name_string(&self, index: usize) -> Result<Option<String>> {
+        let type_node = self.heap_dump_type_node_id(index)?;
+        if let Some(value) = extract_type_name_from_node(&self.doc, type_node) {
+            return Ok(Some(value));
+        }
+        let resolved = self
+            .doc
+            .resolve_node_payload(type_node)
+            .unwrap_or(type_node);
+        Ok(extract_type_name_from_node(&self.doc, resolved))
+    }
+
+    pub(crate) fn heap_dump_type_name_string_inline(&self, index: usize) -> Result<Option<String>> {
+        let type_node = self.heap_dump_type_node_id(index)?;
+        Ok(extract_type_name_from_node(&self.doc, type_node))
+    }
+
+    pub fn heap_dump_strongbox_value_kind(&self, index: usize) -> Result<NodeKind> {
+        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
+        let resolved = self
+            .doc
+            .resolve_node_payload(value_node)
+            .unwrap_or(value_node);
+        Ok(self
+            .doc
+            .node(resolved)
+            .ok_or_else(|| OdinError::new("Invalid resolved strongbox value node id."))?
+            .kind()
+            .clone())
     }
 
     pub fn set_heap_dump_type_from_entry(
@@ -639,5 +720,28 @@ fn section_name(section: SymbolSection) -> &'static str {
     match section {
         SymbolSection::EntryPoints => "EntryPoints",
         SymbolSection::SymbolTable => "SymbolTable",
+    }
+}
+
+fn extract_type_name_from_node(doc: &OdinDocument, node_id: NodeId) -> Option<String> {
+    let node = doc.node(node_id)?;
+    match node.kind() {
+        NodeKind::Primitive(PrimitiveValue::String(value)) => Some(value.value.clone()),
+        NodeKind::TypeNameMetadata { name, .. } => Some(name.value.clone()),
+        NodeKind::TypeIdMetadata {
+            resolved_name: Some(name),
+            ..
+        } => Some(name.clone()),
+        NodeKind::ReferenceNode { type_ref, .. } | NodeKind::StructNode { type_ref } => {
+            match type_ref {
+                crate::odin::OdinTypeRef::TypeName { name, .. } => Some(name.value.clone()),
+                crate::odin::OdinTypeRef::TypeId {
+                    resolved_name: Some(name),
+                    ..
+                } => Some(name.clone()),
+                _ => None,
+            }
+        }
+        _ => first_child(doc, node_id).and_then(|child| extract_type_name_from_node(doc, child)),
     }
 }
