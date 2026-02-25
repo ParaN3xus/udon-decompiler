@@ -44,6 +44,18 @@ pub(crate) fn decode_instructions(bytes: &[u8]) -> Result<Vec<DecodedInstruction
     Ok(out)
 }
 
+pub(crate) fn decode_bytecode_to_asm_instructions(bytes: &[u8]) -> Result<Vec<AsmInstruction>> {
+    let decoded = decode_instructions(bytes)?;
+    Ok(decoded
+        .into_iter()
+        .map(|x| AsmInstruction {
+            labels: Vec::new(),
+            opcode: x.opcode,
+            operand: x.operand.map(OperandToken::Number),
+        })
+        .collect())
+}
+
 pub(crate) fn build_label_map(
     decoded: &[DecodedInstruction],
     entry_address_to_name: &HashMap<u32, String>,
@@ -120,6 +132,40 @@ pub(crate) fn encode_instructions(
     }
 
     Ok((label_to_addr, out))
+}
+
+pub(crate) fn encode_asm_instructions_to_bytecode(
+    instructions: &[AsmInstruction],
+) -> Result<Vec<u8>> {
+    let mut out = Vec::<u8>::new();
+    for inst in instructions {
+        if !inst.labels.is_empty() {
+            return Err(AsmError::new(
+                "Bytecode encoding does not accept labels on AsmInstruction.",
+            ));
+        }
+        out.extend_from_slice(&(inst.opcode as u32).to_be_bytes());
+        if inst.opcode.has_operand() {
+            let operand = inst.operand.as_ref().ok_or_else(|| {
+                AsmError::new(format!("Opcode {} missing operand.", inst.opcode.name()))
+            })?;
+            let value = match operand {
+                OperandToken::Number(v) => *v,
+                OperandToken::Label(_) | OperandToken::HeapSymbol(_) => {
+                    return Err(AsmError::new(
+                        "Bytecode encoding expects numeric operands only.",
+                    ));
+                }
+            };
+            out.extend_from_slice(&value.to_be_bytes());
+        } else if inst.operand.is_some() {
+            return Err(AsmError::new(format!(
+                "Opcode {} does not take an operand.",
+                inst.opcode.name()
+            )));
+        }
+    }
+    Ok(out)
 }
 
 fn resolve_operand(

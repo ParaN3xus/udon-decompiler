@@ -114,17 +114,17 @@ impl OpCode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum OperandToken {
+pub enum OperandToken {
     Label(String),
     HeapSymbol(String),
     Number(u32),
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct AsmInstruction {
-    pub(crate) labels: Vec<String>,
-    pub(crate) opcode: OpCode,
-    pub(crate) operand: Option<OperandToken>,
+pub struct AsmInstruction {
+    pub labels: Vec<String>,
+    pub opcode: OpCode,
+    pub operand: Option<OperandToken>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
