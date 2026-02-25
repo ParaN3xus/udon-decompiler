@@ -45,7 +45,7 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __3_value__param = null;
         System.Int32 __0_get_InkId__ret = 0;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"success": false, "byteCount": 0} */;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"byteCount": 0, "success": false} */;
 
         public void get_roundedTrailShader()
         {
@@ -369,7 +369,7 @@ namespace QvPen.UdonScript
             __lcl_n_SystemInt32_0 = listenerList.Count;
             while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
             {
-                if (listenerList.TryGetValue(__lcl_i_SystemInt32_0, null /* 15 */, out __lcl_listerToken_VRCSDK3DataDataToken_0))
+                if (listenerList.TryGetValue(__lcl_i_SystemInt32_0, null /* 15 */, ref __lcl_listerToken_VRCSDK3DataDataToken_0))
                 {
                     __lcl_listener_VRCUdonUdonBehaviour_0 = __lcl_listerToken_VRCSDK3DataDataToken_0.Reference;
                     if (VRC.SDKBase.Utilities.IsValid(__lcl_listener_VRCUdonUdonBehaviour_0))
@@ -393,7 +393,7 @@ namespace QvPen.UdonScript
             __lcl_n_SystemInt32_1 = listenerList.Count;
             while (__lcl_i_SystemInt32_1 < __lcl_n_SystemInt32_1)
             {
-                if (listenerList.TryGetValue(__lcl_i_SystemInt32_1, null /* 15 */, out __lcl_listerToken_VRCSDK3DataDataToken_1))
+                if (listenerList.TryGetValue(__lcl_i_SystemInt32_1, null /* 15 */, ref __lcl_listerToken_VRCSDK3DataDataToken_1))
                 {
                     __lcl_listener_VRCUdonUdonBehaviour_1 = __lcl_listerToken_VRCSDK3DataDataToken_1.Reference;
                     if (VRC.SDKBase.Utilities.IsValid(__lcl_listener_VRCUdonUdonBehaviour_1))

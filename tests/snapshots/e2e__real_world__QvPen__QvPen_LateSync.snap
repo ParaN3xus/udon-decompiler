@@ -33,7 +33,7 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __1_data__param = null;
         System.Boolean __0_get_isNetworkSettled__ret = false;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"success": false, "byteCount": 0} */;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"byteCount": 0, "success": false} */;
         UnityEngine.Vector3 __0___0_GetCalibrationSignal__ret = null /* "(0.00, 0.00, 0.00)" */;
         UnityEngine.Vector3[] __2_data__param = null;
         UnityEngine.LineRenderer __0_GetNextInk__ret = null;
@@ -336,7 +336,7 @@ namespace QvPen.UdonScript
                         while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
                         {
                             if (__lcl_lengthList_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_0, null /* 6 */,
-                                                                                   out __lcl_lengthToken_VRCSDK3DataDataToken_0))
+                                                                                   ref __lcl_lengthToken_VRCSDK3DataDataToken_0))
                             {
                                 __intnl_UnityEngineVector3_1 = __lcl_lengthVectors_UnityEngineVector3Array_0.Get(__lcl_i_SystemInt32_0 / 3);
                                 __intnl_UnityEngineVector3_1.set_Item(__lcl_i_SystemInt32_0 % 3,
@@ -365,7 +365,7 @@ namespace QvPen.UdonScript
                         while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
                         {
                             if (__lcl_dataList_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_0, null /* 15 */,
-                                                                                 out __lcl_dataToken_VRCSDK3DataDataToken_0))
+                                                                                 ref __lcl_dataToken_VRCSDK3DataDataToken_0))
                             {
                                 __lcl_data_UnityEngineVector3Array_0 = __lcl_dataToken_VRCSDK3DataDataToken_0.Reference;
                                 System.Array.Copy(__lcl_data_UnityEngineVector3Array_0, 0, __lcl_joinedData_UnityEngineVector3Array_0,
