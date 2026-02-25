@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use tracing::{debug, info};
+
 use crate::odin::{SymbolSection, UdonProgramBinary};
 use crate::udon_asm::render_heap_init_literal;
 
@@ -38,6 +40,7 @@ pub struct DecompileContext {
 impl DecompileContext {
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
+        info!(path = %path.display(), "loading decompile context from b64 file");
         let raw = fs::read_to_string(path)?;
         let program = UdonProgramBinary::parse_base64(&raw)?;
         let mut ctx = Self::from_program(&program)?;
@@ -50,6 +53,11 @@ impl DecompileContext {
     }
 
     pub fn from_base64_text(text: &str, input_file_name: Option<String>) -> Result<Self> {
+        debug!(
+            input_file_name = ?input_file_name,
+            input_len = text.len(),
+            "loading decompile context from base64 text"
+        );
         let program = UdonProgramBinary::parse_base64(text)?;
         let mut ctx = Self::from_program(&program)?;
         ctx.input_file_name = input_file_name;
@@ -64,7 +72,7 @@ impl DecompileContext {
         let entry_points = load_symbols(program, SymbolSection::EntryPoints)?;
         let symbols = load_symbols(program, SymbolSection::SymbolTable)?;
 
-        Ok(Self {
+        let ctx = Self {
             input_path: None,
             input_file_name: None,
             bytecode,
@@ -73,7 +81,16 @@ impl DecompileContext {
             heap_entries,
             entry_points,
             symbols,
-        })
+        };
+        info!(
+            bytecode_len = ctx.bytecode.len(),
+            instruction_count = ctx.instructions.len(),
+            entry_points = ctx.entry_points.len(),
+            symbols = ctx.symbols.len(),
+            heap_entries = ctx.heap_entries.len(),
+            "decompile context loaded"
+        );
+        Ok(ctx)
     }
 
     pub fn entry_point_index_by_name(&self, name: &str) -> Option<usize> {
@@ -97,11 +114,19 @@ impl DecompileContext {
     }
 
     pub fn sync_bytecode_from_instructions(&mut self) -> Result<()> {
+        debug!(
+            instruction_count = self.instructions.len(),
+            "syncing bytecode from instruction list"
+        );
         self.bytecode = self.instructions.to_bytecode()?;
         Ok(())
     }
 
     pub fn reload_instructions_from_bytecode(&mut self) -> Result<()> {
+        debug!(
+            bytecode_len = self.bytecode.len(),
+            "reloading instruction list from bytecode"
+        );
         self.instructions = InstructionList::from_bytecode(&self.bytecode)?;
         Ok(())
     }
