@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use tracing::{debug, info};
+use udon_decompiler::logging::init_logging;
 use udon_decompiler::odin::{SymbolSection, UdonProgramBinary};
 use udon_decompiler::udon_asm::{assemble_b64_with_original, disassemble_program_to_text};
 
@@ -12,6 +14,8 @@ use udon_decompiler::udon_asm::{assemble_b64_with_original, disassemble_program_
 #[command(about = "Udon Decompiler CLI")]
 #[command(version)]
 struct Cli {
+    #[arg(long, global = true, default_value = "info")]
+    log_level: String,
     #[command(subcommand)]
     command: Commands,
 }
@@ -46,6 +50,10 @@ enum Mode {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    init_logging(&cli.log_level)
+        .map_err(|e| anyhow::anyhow!("failed to initialize logging: {}", e))?;
+    info!(level = %cli.log_level, "logging initialized");
+
     match cli.command {
         Commands::Dc { input, output } => run(Mode::Dc, &input, output.as_deref(), None),
         Commands::Dasm { input, output } => run(Mode::Dasm, &input, output.as_deref(), None),
@@ -58,6 +66,13 @@ fn main() -> Result<()> {
 }
 
 fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>) -> Result<()> {
+    info!(
+        mode = ?mode,
+        input = %input.display(),
+        output = ?output.map(|x| x.display().to_string()),
+        template = ?template.map(|x| x.display().to_string()),
+        "start command"
+    );
     if !input.exists() {
         bail!("input path does not exist: {}", input.display());
     }
@@ -87,6 +102,13 @@ fn process_single_file(
     output: Option<&Path>,
     template: Option<&Path>,
 ) -> Result<()> {
+    debug!(
+        mode = ?mode,
+        input = %input_file.display(),
+        output = ?output.map(|x| x.display().to_string()),
+        template = ?template.map(|x| x.display().to_string()),
+        "processing single file"
+    );
     ensure_input_extension(mode, input_file)?;
     validate_template_kind_for_single(mode, template)?;
 
@@ -127,6 +149,13 @@ fn process_directory(
     output: Option<&Path>,
     template: Option<&Path>,
 ) -> Result<()> {
+    info!(
+        mode = ?mode,
+        input_dir = %input_dir.display(),
+        output = ?output.map(|x| x.display().to_string()),
+        template = ?template.map(|x| x.display().to_string()),
+        "processing directory"
+    );
     validate_template_kind_for_directory(mode, template)?;
 
     let output_dir = match output {
@@ -152,6 +181,7 @@ fn process_directory(
         );
     }
     input_files.sort();
+    debug!(count = input_files.len(), "matched input files");
 
     let mut used_names = HashMap::<String, usize>::new();
     for input_file in input_files {
@@ -187,10 +217,18 @@ fn process_one(
     output_file: &Path,
     template: Option<&Path>,
 ) -> Result<()> {
+    debug!(
+        mode = ?mode,
+        input = %input_file.display(),
+        output = %output_file.display(),
+        template = ?template.map(|x| x.display().to_string()),
+        "processing item"
+    );
     match mode {
         Mode::Dc => {
             fs::write(output_file, "")
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
+            debug!("wrote dc placeholder output");
         }
         Mode::Dasm => {
             let b64 = read_normalized_base64(input_file)?;
@@ -209,6 +247,7 @@ fn process_one(
             let asm_with_source = format!("; source-b64: {}\n{}", source_name, asm);
             fs::write(output_file, asm_with_source)
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
+            debug!("wrote disassembly output");
         }
         Mode::Asm => {
             let asm_text = fs::read_to_string(input_file)
@@ -226,6 +265,7 @@ fn process_one(
                 })?;
             fs::write(output_file, assembled_b64)
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
+            debug!(template = %template_path.display(), "wrote assembled b64 output");
         }
     }
     Ok(())
