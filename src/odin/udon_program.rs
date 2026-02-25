@@ -347,6 +347,22 @@ impl UdonProgramBinary {
         set_string_like_primitive(&mut self.doc, name_node, value.into(), "Symbol.Name")
     }
 
+    pub fn symbol_type_name_string(
+        &self,
+        section: SymbolSection,
+        index: usize,
+    ) -> Result<Option<String>> {
+        let type_node = self.symbol_type_node_id(section, index)?;
+        if let Some(value) = extract_type_name_from_node(&self.doc, type_node) {
+            return Ok(Some(value));
+        }
+        let resolved = self
+            .doc
+            .resolve_node_payload(type_node)
+            .unwrap_or(type_node);
+        Ok(extract_type_name_from_node(&self.doc, resolved))
+    }
+
     pub fn set_symbol_address(
         &mut self,
         section: SymbolSection,
