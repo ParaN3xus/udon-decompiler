@@ -23,7 +23,7 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __0_get_syncedData__ret = null;
         UnityEngine.Vector3[] __0_value__param = null;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"success": false, "byteCount": 0} */;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"byteCount": 0, "success": false} */;
 
         public void _start()
         {

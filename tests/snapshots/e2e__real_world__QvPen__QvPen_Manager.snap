@@ -177,7 +177,7 @@ namespace QvPen.UdonScript
                             while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
                             {
                                 __lcl_index_SystemInt32_0 = __lcl_indexList_SystemInt32Array_0.Get(__lcl_i_SystemInt32_0);
-                                if (callablePenList.TryGetValue(__lcl_index_SystemInt32_0, null /* 15 */, out __lcl_penToken_VRCSDK3DataDataToken_0))
+                                if (callablePenList.TryGetValue(__lcl_index_SystemInt32_0, null /* 15 */, ref __lcl_penToken_VRCSDK3DataDataToken_0))
                                 {
                                     __lcl_pen_VRCUdonUdonBehaviour_1 = __lcl_penToken_VRCSDK3DataDataToken_0.Reference;
                                     __lcl_pen_VRCUdonUdonBehaviour_1.SendCustomEvent("get_isHeld");
@@ -204,7 +204,7 @@ namespace QvPen.UdonScript
         {
             VRC.SDK3.Data.DataToken __lcl_inkDictToken_VRCSDK3DataDataToken_0 = null /* "Null" */;
 
-            if (!inkDictMap.TryGetValue(__1_penId__param, null /* 14 */, out __lcl_inkDictToken_VRCSDK3DataDataToken_0))
+            if (!inkDictMap.TryGetValue(__1_penId__param, null /* 14 */, ref __lcl_inkDictToken_VRCSDK3DataDataToken_0))
             {
                 __0___0_HasInk__ret = false;
             }
@@ -245,7 +245,7 @@ namespace QvPen.UdonScript
             else
             {
                 __lcl_inkDict_VRCSDK3DataDataDictionary_0 = inkDictMap.get_Item(__3_penId__param).DataDictionary;
-                if (!__lcl_inkDict_VRCSDK3DataDataDictionary_0.TryGetValue(__2_inkId__param, null /* 15 */, out __lcl_inkToken_VRCSDK3DataDataToken_0))
+                if (!__lcl_inkDict_VRCSDK3DataDataDictionary_0.TryGetValue(__2_inkId__param, null /* 15 */, ref __lcl_inkToken_VRCSDK3DataDataToken_0))
                 {
                     __0___0_RemoveInk__ret = false;
                 }
@@ -301,9 +301,9 @@ namespace QvPen.UdonScript
             __lcl_n_SystemInt32_1 = __lcl_inkIdList_VRCSDK3DataDataList_0.Count;
             while (__lcl_i_SystemInt32_1 < __lcl_n_SystemInt32_1)
             {
-                if (__lcl_inkIdList_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_1, null /* 6 */, out __lcl_inkIdToken_VRCSDK3DataDataToken_0) &&
+                if (__lcl_inkIdList_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_1, null /* 6 */, ref __lcl_inkIdToken_VRCSDK3DataDataToken_0) &&
                     __lcl_inkDict_VRCSDK3DataDataDictionary_1.TryGetValue(__lcl_inkIdToken_VRCSDK3DataDataToken_0, null /* 15 */,
-                                                                          out __lcl_inkToken_VRCSDK3DataDataToken_1))
+                                                                          ref __lcl_inkToken_VRCSDK3DataDataToken_1))
                 {
                     __lcl_ink_UnityEngineGameObject_1 = __lcl_inkToken_VRCSDK3DataDataToken_1.Reference;
                     if (!VRC.SDKBase.Utilities.IsValid(__lcl_ink_UnityEngineGameObject_1))
@@ -340,7 +340,7 @@ namespace QvPen.UdonScript
             __lcl_n_SystemInt32_1 = __lcl_removedInkIdList_VRCSDK3DataDataList_0.Count;
             while (__lcl_i_SystemInt32_1 < __lcl_n_SystemInt32_1)
             {
-                if (__lcl_removedInkIdList_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_1, null /* 6 */, out __lcl_inkIdToken_VRCSDK3DataDataToken_0))
+                if (__lcl_removedInkIdList_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_1, null /* 6 */, ref __lcl_inkIdToken_VRCSDK3DataDataToken_0))
                 {
                     __intnl_SystemBoolean_23 = __lcl_inkDict_VRCSDK3DataDataDictionary_1.Remove(__lcl_inkIdToken_VRCSDK3DataDataToken_0);
                 }
@@ -360,7 +360,7 @@ namespace QvPen.UdonScript
             VRC.SDK3.Data.DataToken __lcl_inkToken_VRCSDK3DataDataToken_2 = null /* "Null" */;
             UnityEngine.GameObject __lcl_ink_UnityEngineGameObject_2 = null;
 
-            if (inkDictMap.TryGetValue(__5_penId__param, null /* 14 */, out __lcl_inkDictToken_VRCSDK3DataDataToken_1))
+            if (inkDictMap.TryGetValue(__5_penId__param, null /* 14 */, ref __lcl_inkDictToken_VRCSDK3DataDataToken_1))
             {
                 __lcl_inkDict_VRCSDK3DataDataDictionary_2 = __lcl_inkDictToken_VRCSDK3DataDataToken_1.DataDictionary;
                 __lcl_inkTokens_VRCSDK3DataDataList_0 = __lcl_inkDict_VRCSDK3DataDataDictionary_2.GetValues();
@@ -368,7 +368,7 @@ namespace QvPen.UdonScript
                 __lcl_n_SystemInt32_2 = __lcl_inkTokens_VRCSDK3DataDataList_0.Count;
                 while (__lcl_i_SystemInt32_2 < __lcl_n_SystemInt32_2)
                 {
-                    if (__lcl_inkTokens_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_2, null /* 15 */, out __lcl_inkToken_VRCSDK3DataDataToken_2))
+                    if (__lcl_inkTokens_VRCSDK3DataDataList_0.TryGetValue(__lcl_i_SystemInt32_2, null /* 15 */, ref __lcl_inkToken_VRCSDK3DataDataToken_2))
                     {
                         __lcl_ink_UnityEngineGameObject_2 = __lcl_inkToken_VRCSDK3DataDataToken_2.Reference;
                         if (VRC.SDKBase.Utilities.IsValid(__lcl_ink_UnityEngineGameObject_2))
