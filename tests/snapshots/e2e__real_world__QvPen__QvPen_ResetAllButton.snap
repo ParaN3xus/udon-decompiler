@@ -1,0 +1,141 @@
+---
+source: tests/e2e.rs
+expression: output.generated_code
+---
+// Decompiled Udon Program
+// This is pseudo-code and may not compile directly
+
+namespace QvPen.UdonScript.UI
+{
+    public class QvPen_ResetAllButton : UdonSharpBehaviour
+    {
+        VRC.Udon.UdonBehaviour settings = null;
+        UnityEngine.UI.Text message = null;
+        TMPro.TextMeshPro messageTMP = null;
+        TMPro.TextMeshProUGUI messageTMPU = null;
+        VRC.SDKBase.VRCPlayerApi master = null;
+        VRC.SDKBase.VRCPlayerApi onPlayerJoinedPlayer = null;
+        VRC.SDKBase.VRCPlayerApi onOwnershipTransferredPlayer = null;
+
+        public void _onPlayerJoined()
+        {
+            System.Boolean __intnl_SystemBoolean_0 = false;
+
+            __intnl_SystemBoolean_0 = master == null;
+            if (!__intnl_SystemBoolean_0)
+            {
+                __intnl_SystemBoolean_0 = onPlayerJoinedPlayer.playerId < master.playerId;
+            }
+            if (__intnl_SystemBoolean_0)
+            {
+                master = onPlayerJoinedPlayer;
+                function_0();
+            }
+            return;
+        }
+
+        public void _onOwnershipTransferred()
+        {
+            master = onOwnershipTransferredPlayer;
+            function_0();
+            return;
+        }
+
+        void function_0()
+        {
+            System.String __lcl_displayName_SystemString_0 = null;
+            System.String __lcl_s_SystemString_0 = null;
+            System.Int32 __lcl_cnt_SystemInt32_0 = 0;
+            System.String __lcl_messageString_SystemString_0 = null;
+            System.Int32 __lcl_i_SystemInt32_0 = 0;
+
+            if (!(master == null))
+            {
+                __lcl_displayName_SystemString_0 = System.String.Empty;
+                __lcl_s_SystemString_0 = master.displayName;
+                __lcl_cnt_SystemInt32_0 = 0;
+                __lcl_i_SystemInt32_0 = 0;
+                while (__lcl_i_SystemInt32_0 < __lcl_s_SystemString_0.Length)
+                {
+                    if (System.Convert.ToInt32(__lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0)) < 128)
+                    {
+                        __lcl_cnt_SystemInt32_0 = __lcl_cnt_SystemInt32_0 + 1;
+                    }
+                    else
+                    {
+                        __lcl_cnt_SystemInt32_0 = __lcl_cnt_SystemInt32_0 + 2;
+                    }
+                    if (__lcl_cnt_SystemInt32_0 < 12)
+                    {
+                        __lcl_displayName_SystemString_0 =
+                            System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
+                        __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+                        continue;
+                    }
+                    if (__lcl_i_SystemInt32_0 == __lcl_s_SystemString_0.Length - 1)
+                    {
+                        __lcl_displayName_SystemString_0 =
+                            System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
+                    }
+                    else
+                    {
+                        __lcl_displayName_SystemString_0 = __lcl_displayName_SystemString_0 + "...";
+                    }
+                    break;
+                }
+                __lcl_messageString_SystemString_0 = System.String.Format("<size=8>[Only {0}]</size>", __lcl_displayName_SystemString_0);
+                if (message)
+                {
+                    message.text = __lcl_messageString_SystemString_0;
+                }
+                if (messageTMP)
+                {
+                    messageTMP.text = __lcl_messageString_SystemString_0;
+                }
+                if (messageTMPU)
+                {
+                    messageTMPU.text = __lcl_messageString_SystemString_0;
+                }
+            }
+            return;
+        }
+
+        public void _interact()
+        {
+            UnityEngine.Component[] __intnl_UnityEngineComponentArray_0 = null;
+            System.Int32 __intnl_SystemInt32_6 = 0;
+            System.Int32 __intnl_SystemInt32_7 = 0;
+            VRC.Udon.UdonBehaviour __lcl_penManager_VRCUdonUdonBehaviour_0 = null;
+            VRC.Udon.UdonBehaviour __lcl_eraserManager_VRCUdonUdonBehaviour_0 = null;
+
+            if (VRC.SDKBase.Networking.IsOwner(this.gameObject))
+            {
+                __intnl_UnityEngineComponentArray_0 = settings.GetProgramVariable("penManagers");
+                __intnl_SystemInt32_6 = __intnl_UnityEngineComponentArray_0.Length;
+                __intnl_SystemInt32_7 = 0;
+                while (__intnl_SystemInt32_7 < __intnl_SystemInt32_6)
+                {
+                    __lcl_penManager_VRCUdonUdonBehaviour_0 = __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_7);
+                    if (__lcl_penManager_VRCUdonUdonBehaviour_0)
+                    {
+                        __lcl_penManager_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(null /* 0 */, "ResetPen");
+                    }
+                    __intnl_SystemInt32_7 = __intnl_SystemInt32_7 + 1;
+                }
+                __intnl_UnityEngineComponentArray_0 = settings.GetProgramVariable("eraserManagers");
+                __intnl_SystemInt32_6 = __intnl_UnityEngineComponentArray_0.Length;
+                __intnl_SystemInt32_7 = 0;
+                while (__intnl_SystemInt32_7 < __intnl_SystemInt32_6)
+                {
+                    __lcl_eraserManager_VRCUdonUdonBehaviour_0 = __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_7);
+                    if (__lcl_eraserManager_VRCUdonUdonBehaviour_0)
+                    {
+                        __lcl_eraserManager_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(null /* 0 */, "ResetEraser");
+                    }
+                    __intnl_SystemInt32_7 = __intnl_SystemInt32_7 + 1;
+                }
+            }
+            return;
+        }
+    }
+}
