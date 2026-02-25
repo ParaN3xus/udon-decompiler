@@ -7,9 +7,14 @@ edition = "2024"
 anyhow = "1.0"
 base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 walkdir = "2.4"
+
+[dev-dependencies]
+insta = "1.43"
 
 [profile.release]
 opt-level = 3

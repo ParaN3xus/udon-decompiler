@@ -1,0 +1,61 @@
+---
+source: tests/e2e.rs
+expression: output.generated_code
+---
+// Decompiled Udon Program
+// This is pseudo-code and may not compile directly
+
+public class SwitchCaseLong : UdonSharpBehaviour
+{
+    System.Int32 __0_id__param = 0;
+
+    public void __0_Run()
+    {
+        System.String __lcl_itemName_SystemString_0 = null;
+
+        __lcl_itemName_SystemString_0 = "";
+        if (__0_id__param >= 0 && __0_id__param <= 110)
+        {
+            switch (__0_id__param)
+            {
+                case 101:
+                    __lcl_itemName_SystemString_0 = "Apple";
+                    goto label_bb_000001d8;
+                case 102:
+                    __lcl_itemName_SystemString_0 = "Banana";
+                    goto label_bb_000001d8;
+                case 103:
+                    __lcl_itemName_SystemString_0 = "Cherry";
+                    goto label_bb_000001d8;
+                case 104:
+                    __lcl_itemName_SystemString_0 = "Date";
+                    goto label_bb_000001d8;
+                case 105:
+                    __lcl_itemName_SystemString_0 = "Elderberry";
+                    goto label_bb_000001d8;
+                case 106:
+                    __lcl_itemName_SystemString_0 = "Fig";
+                    goto label_bb_000001d8;
+                case 107:
+                    __lcl_itemName_SystemString_0 = "Grape";
+                    goto label_bb_000001d8;
+                case 108:
+                    __lcl_itemName_SystemString_0 = "Honeydew";
+                    goto label_bb_000001d8;
+                case 109:
+                    __lcl_itemName_SystemString_0 = "Pear";
+                    goto label_bb_000001d8;
+                case 110:
+                    __lcl_itemName_SystemString_0 = "Peach";
+                    goto label_bb_000001d8;
+                default:
+                    goto label_bb_000001bc;
+            }
+        }
+    label_bb_000001bc:
+        __lcl_itemName_SystemString_0 = "Unknown";
+    label_bb_000001d8:
+        UnityEngine.Debug.Log(__lcl_itemName_SystemString_0);
+        return;
+    }
+}

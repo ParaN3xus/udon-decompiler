@@ -1,0 +1,264 @@
+---
+source: tests/e2e.rs
+expression: output.generated_code
+---
+// Decompiled Udon Program
+// This is pseudo-code and may not compile directly
+
+namespace QvPen.UdonScript
+{
+    public class QvPen_EraserManager : UdonSharpBehaviour
+    {
+        VRC.Udon.UdonBehaviour eraser = null;
+        UnityEngine.GameObject respawnButton = null;
+        UnityEngine.GameObject inUseUI = null;
+        UnityEngine.UI.Text textInUse = null;
+        TMPro.TextMeshPro textInUseTMP = null;
+        TMPro.TextMeshProUGUI textInUseTMPU = null;
+        System.Boolean _isNetworkSettled = false;
+        UnityEngine.Vector3[] _syncedData = null;
+        System.Boolean isInUseSyncBuffer = false;
+        System.Boolean __0__TakeOwnership__ret = false;
+        System.Boolean __0_get_isNetworkSettled__ret = false;
+        UnityEngine.Vector3[] __0_get_syncedData__ret = null;
+        UnityEngine.Vector3[] __0_value__param = null;
+        UnityEngine.Vector3[] __0_data__param = null;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"success": false, "byteCount": 0} */;
+
+        public void _start()
+        {
+            eraser.SetProgramVariable("__0_eraserManager__param", this);
+            eraser.SendCustomEvent("__0__Init");
+            return;
+        }
+
+        public void _onPlayerJoined()
+        {
+            System.Boolean __intnl_SystemBoolean_0 = false;
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_0 = null;
+
+            __intnl_SystemBoolean_0 = VRC.SDKBase.Networking.LocalPlayer.IsOwner(eraser.gameObject);
+            if (__intnl_SystemBoolean_0)
+            {
+                __intnl_VRCUdonUdonBehaviour_0 = eraser;
+                eraser.SendCustomEvent("get_IsUser");
+                __intnl_SystemBoolean_0 = eraser.GetProgramVariable("__0_get_IsUser__ret");
+            }
+            if (__intnl_SystemBoolean_0)
+            {
+                this.SendCustomNetworkEvent(null /* 0 */, "StartUsing");
+            }
+            return;
+        }
+
+        public void _onPlayerLeft()
+        {
+            System.Boolean __intnl_SystemBoolean_2 = false;
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_1 = null;
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_2 = null;
+
+            __intnl_SystemBoolean_2 = VRC.SDKBase.Networking.IsOwner(eraser.gameObject);
+            if (__intnl_SystemBoolean_2)
+            {
+                __intnl_VRCUdonUdonBehaviour_1 = eraser;
+                eraser.SendCustomEvent("get_IsUser");
+                __intnl_SystemBoolean_2 = !eraser.GetProgramVariable("__0_get_IsUser__ret");
+            }
+            if (__intnl_SystemBoolean_2)
+            {
+                __intnl_VRCUdonUdonBehaviour_2 = eraser;
+                eraser.SendCustomEvent("_onDrop");
+            }
+            return;
+        }
+
+        public void StartUsing()
+        {
+            VRC.SDKBase.VRCPlayerApi __lcl_owner_VRCSDKBaseVRCPlayerApi_0 = null;
+            System.String __lcl_text_SystemString_0 = null;
+
+            eraser.SetProgramVariable("isPickedUp", true);
+            respawnButton.SetActive(false);
+            inUseUI.SetActive(true);
+            __lcl_owner_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.GetOwner(eraser.gameObject);
+            if (__lcl_owner_VRCSDKBaseVRCPlayerApi_0 != null)
+            {
+                __lcl_text_SystemString_0 = __lcl_owner_VRCSDKBaseVRCPlayerApi_0.displayName;
+            }
+            else
+            {
+                __lcl_text_SystemString_0 = "Occupied";
+            }
+            if (VRC.SDKBase.Utilities.IsValid(textInUse))
+            {
+                textInUse.text = __lcl_text_SystemString_0;
+            }
+            if (VRC.SDKBase.Utilities.IsValid(textInUseTMP))
+            {
+                textInUseTMP.text = __lcl_text_SystemString_0;
+            }
+            if (VRC.SDKBase.Utilities.IsValid(textInUseTMPU))
+            {
+                textInUseTMPU.text = __lcl_text_SystemString_0;
+            }
+            return;
+        }
+
+        public void EndUsing()
+        {
+            eraser.SetProgramVariable("isPickedUp", false);
+            respawnButton.SetActive(true);
+            inUseUI.SetActive(false);
+            if (VRC.SDKBase.Utilities.IsValid(textInUse))
+            {
+                textInUse.text = System.String.Empty;
+            }
+            if (VRC.SDKBase.Utilities.IsValid(textInUseTMP))
+            {
+                textInUseTMP.text = System.String.Empty;
+            }
+            if (VRC.SDKBase.Utilities.IsValid(textInUseTMPU))
+            {
+                textInUseTMPU.text = System.String.Empty;
+            }
+            return;
+        }
+
+        public void ResetEraser()
+        {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_3 = null;
+
+            __intnl_VRCUdonUdonBehaviour_3 = eraser;
+            eraser.SendCustomEvent("_Respawn");
+            return;
+        }
+
+        public void Respawn()
+        {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_4 = null;
+
+            __intnl_VRCUdonUdonBehaviour_4 = eraser;
+            eraser.SendCustomEvent("_Respawn");
+            return;
+        }
+
+        public void _TakeOwnership()
+        {
+            if (VRC.SDKBase.Networking.IsOwner(this.gameObject))
+            {
+                _ClearSyncBuffer();
+                __0__TakeOwnership__ret = true;
+            }
+            else
+            {
+                VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer, this.gameObject);
+                __0__TakeOwnership__ret = VRC.SDKBase.Networking.IsOwner(this.gameObject);
+            }
+            return;
+        }
+
+        void get_isNetworkSettled()
+        {
+            System.Boolean __intnl_SystemBoolean_12 = false;
+
+            __intnl_SystemBoolean_12 = _isNetworkSettled;
+            if (!__intnl_SystemBoolean_12)
+            {
+                _isNetworkSettled = VRC.SDKBase.Networking.IsNetworkSettled;
+                __intnl_SystemBoolean_12 = _isNetworkSettled;
+            }
+            __0_get_isNetworkSettled__ret = __intnl_SystemBoolean_12;
+            return;
+        }
+
+        void get_syncedData()
+        {
+            __0_get_syncedData__ret = _syncedData;
+            return;
+        }
+
+        void function_0()
+        {
+            UnityEngine.Vector3[] __intnl_UnityEngineVector3Array_0 = null;
+
+            get_isNetworkSettled();
+            if (__0_get_isNetworkSettled__ret)
+            {
+                _syncedData = __0_value__param;
+                function_1();
+                __intnl_UnityEngineVector3Array_0 = _syncedData;
+                eraser.SetProgramVariable("__4_data__param", _syncedData);
+                eraser.SendCustomEvent("__0__UnpackData");
+            }
+            return;
+        }
+
+        void function_1()
+        {
+            System.Boolean __intnl_SystemBoolean_13 = false;
+            System.Boolean __intnl_SystemBoolean_14 = false;
+
+            __intnl_SystemBoolean_14 = VRC.SDKBase.VRCPlayerApi.GetPlayerCount() > 1;
+            if (__intnl_SystemBoolean_14)
+            {
+                __intnl_SystemBoolean_14 = VRC.SDKBase.Networking.IsOwner(this.gameObject);
+            }
+            __intnl_SystemBoolean_13 = __intnl_SystemBoolean_14;
+            if (__intnl_SystemBoolean_13)
+            {
+                __intnl_SystemBoolean_13 = !isInUseSyncBuffer;
+            }
+            if (__intnl_SystemBoolean_13)
+            {
+                isInUseSyncBuffer = true;
+                this.RequestSerialization();
+            }
+            return;
+        }
+
+        public void __0__SendData()
+        {
+            if (!isInUseSyncBuffer)
+            {
+                __0_value__param = __0_data__param;
+                function_0();
+            }
+            return;
+        }
+
+        public void _onPreSerialization()
+        {
+            get_syncedData();
+            _syncedData = __0_get_syncedData__ret;
+            return;
+        }
+
+        public void _onDeserialization()
+        {
+            __0_value__param = _syncedData;
+            function_0();
+            return;
+        }
+
+        public void _onPostSerialization()
+        {
+            VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_5 = null;
+
+            isInUseSyncBuffer = false;
+            if (onPostSerializationResult.success)
+            {
+                __intnl_VRCUdonUdonBehaviour_5 = eraser;
+                eraser.SendCustomEvent("ExecuteEraseInk");
+            }
+            return;
+        }
+
+        public void _ClearSyncBuffer()
+        {
+            __0_value__param = new UnityEngine.Vector3[](0);
+            function_0();
+            isInUseSyncBuffer = false;
+            return;
+        }
+    }
+}
