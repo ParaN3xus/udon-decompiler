@@ -1,13 +1,14 @@
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use tracing::{debug, info};
+use udon_decompiler::decompiler::DecompileContext;
 use udon_decompiler::logging::init_logging;
-use udon_decompiler::odin::{SymbolSection, UdonProgramBinary};
+use udon_decompiler::odin::UdonProgramBinary;
 use udon_decompiler::udon_asm::{assemble_b64_with_original, disassemble_program_to_text};
+use udon_decompiler::util::read_normalized_base64;
 
 #[derive(Parser, Debug)]
 #[command(name = "udon-decompiler")]
@@ -22,7 +23,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Decompile b64 to source code (placeholder for now).
+    /// Decompile b64 to C#.
     Dc {
         input: PathBuf,
         output: Option<PathBuf>,
@@ -46,6 +47,19 @@ enum Mode {
     Dc,
     Dasm,
     Asm,
+}
+
+enum PreparedSingleInput {
+    Dc {
+        ctx: DecompileContext,
+    },
+    Dasm {
+        program: UdonProgramBinary,
+        output_stem: String,
+    },
+    Asm {
+        asm_text: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -82,7 +96,7 @@ fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>)
     }
 
     if input.is_file() {
-        process_single_file(mode, input, output, template)?;
+        cli_process_single_file(mode, input, output, template)?;
         return Ok(());
     }
 
@@ -93,10 +107,10 @@ fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>)
         );
     }
 
-    process_directory(mode, input, output, template)
+    cli_process_directory(mode, input, output, template)
 }
 
-fn process_single_file(
+fn cli_process_single_file(
     mode: Mode,
     input_file: &Path,
     output: Option<&Path>,
@@ -111,39 +125,12 @@ fn process_single_file(
     );
     ensure_input_extension(mode, input_file)?;
     validate_template_kind_for_single(mode, template)?;
-
-    let default_filename = match mode {
-        Mode::Dc => {
-            let stem = infer_class_name_from_b64_file(input_file)?;
-            format!("{stem}.cs")
-        }
-        Mode::Dasm => {
-            let stem = infer_class_name_from_b64_file(input_file)?;
-            format!("{stem}.asm")
-        }
-        Mode::Asm => format!("{}.b64", input_file_stem(input_file)),
-    };
-
-    let output_file = match output {
-        None => input_file
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join(default_filename),
-        Some(path) if path.is_dir() => path.join(default_filename),
-        Some(path) => path.to_path_buf(),
-    };
-
-    if let Some(parent) = output_file.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create output directory {}", parent.display()))?;
-    }
-
-    process_one(mode, input_file, &output_file, template)?;
-    println!("{} -> {}", input_file.display(), output_file.display());
+    let output_file = process_single_file(mode, input_file, output, None, template)?;
+    info!("{} -> {}", input_file.display(), output_file.display());
     Ok(())
 }
 
-fn process_directory(
+fn cli_process_directory(
     mode: Mode,
     input_dir: &Path,
     output: Option<&Path>,
@@ -183,39 +170,56 @@ fn process_directory(
     input_files.sort();
     debug!(count = input_files.len(), "matched input files");
 
-    let mut used_names = HashMap::<String, usize>::new();
+    // todo: parallel
     for input_file in input_files {
-        let output_file = match mode {
-            Mode::Dc => {
-                let base = infer_class_name_from_b64_file(&input_file)?;
-                output_dir.join(unique_filename(&mut used_names, &base, "cs"))
-            }
-            Mode::Dasm => {
-                let base = infer_class_name_from_b64_file(&input_file)?;
-                output_dir.join(unique_filename(&mut used_names, &base, "asm"))
-            }
-            Mode::Asm => {
-                let base = input_file_stem(&input_file);
-                output_dir.join(unique_filename(&mut used_names, &base, "b64"))
-            }
-        };
-
         let file_template = match mode {
             Mode::Asm => template,
             _ => None,
         };
-        process_one(mode, &input_file, &output_file, file_template)?;
-        println!("{} -> {}", input_file.display(), output_file.display());
+        let output_file =
+            process_single_file(mode, &input_file, None, Some(&output_dir), file_template)?;
+        info!("{} -> {}", input_file.display(), output_file.display());
     }
 
     Ok(())
 }
 
-fn process_one(
+fn process_single_file(
+    mode: Mode,
+    input_file: &Path,
+    output: Option<&Path>,
+    output_dir: Option<&Path>,
+    template: Option<&Path>,
+) -> Result<PathBuf> {
+    let mut prepared = prepare_single_input(mode, input_file)?;
+    let default_filename = default_output_filename(mode, input_file, &prepared);
+    let output_file = if let Some(output_dir) = output_dir {
+        output_dir.join(default_filename)
+    } else {
+        match output {
+            None => input_file
+                .parent()
+                .unwrap_or(Path::new("."))
+                .join(default_filename),
+            Some(path) if path.is_dir() => path.join(default_filename),
+            Some(path) => path.to_path_buf(),
+        }
+    };
+
+    if let Some(parent) = output_file.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create output directory {}", parent.display()))?;
+    }
+    process_single_file_inner(mode, input_file, &output_file, template, &mut prepared)?;
+    Ok(output_file)
+}
+
+fn process_single_file_inner(
     mode: Mode,
     input_file: &Path,
     output_file: &Path,
     template: Option<&Path>,
+    prepared: &mut PreparedSingleInput,
 ) -> Result<()> {
     debug!(
         mode = ?mode,
@@ -226,14 +230,23 @@ fn process_one(
     );
     match mode {
         Mode::Dc => {
-            fs::write(output_file, "")
+            let PreparedSingleInput::Dc { ctx } = prepared else {
+                bail!("internal error: expected prepared dc input");
+            };
+            let output = ctx.run_basic_pipeline()?;
+            fs::write(output_file, output.generated_code)
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
-            debug!("wrote dc placeholder output");
+            debug!(
+                variables = ctx.variables.variables.len(),
+                basic_blocks = ctx.basic_blocks.blocks.len(),
+                cfg_functions = ctx.cfg_functions.len(),
+                "wrote dc output from basic decompile pipeline"
+            );
         }
         Mode::Dasm => {
-            let b64 = read_normalized_base64(input_file)?;
-            let program = UdonProgramBinary::parse_base64(&b64)
-                .with_context(|| format!("failed to parse b64 from {}", input_file.display()))?;
+            let PreparedSingleInput::Dasm { program, .. } = prepared else {
+                bail!("internal error: expected prepared dasm input");
+            };
             let asm = disassemble_program_to_text(&program).with_context(|| {
                 format!(
                     "failed to disassemble program from {}",
@@ -250,13 +263,14 @@ fn process_one(
             debug!("wrote disassembly output");
         }
         Mode::Asm => {
-            let asm_text = fs::read_to_string(input_file)
-                .with_context(|| format!("failed to read {}", input_file.display()))?;
+            let PreparedSingleInput::Asm { asm_text } = prepared else {
+                bail!("internal error: expected prepared asm input");
+            };
             let template_path =
-                choose_b64_template_path(input_file, output_file, template, &asm_text)?;
+                choose_b64_template_path(input_file, output_file, template, asm_text)?;
             let original_b64 = read_normalized_base64(&template_path)?;
             let assembled_b64 =
-                assemble_b64_with_original(&original_b64, &asm_text).with_context(|| {
+                assemble_b64_with_original(&original_b64, asm_text).with_context(|| {
                     format!(
                         "failed to assemble {} using template {}",
                         input_file.display(),
@@ -269,6 +283,46 @@ fn process_one(
         }
     }
     Ok(())
+}
+
+fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleInput> {
+    match mode {
+        Mode::Dc => {
+            let ctx = DecompileContext::from_file(input_file).with_context(|| {
+                format!(
+                    "failed to load decompile context from {}",
+                    input_file.display()
+                )
+            })?;
+            Ok(PreparedSingleInput::Dc { ctx })
+        }
+        Mode::Dasm => {
+            let b64 = read_normalized_base64(input_file)?;
+            let program = UdonProgramBinary::parse_base64(&b64)
+                .with_context(|| format!("failed to parse b64 from {}", input_file.display()))?;
+            let mut ctx = DecompileContext::from_program(&program).with_context(|| {
+                format!(
+                    "failed to create decompile context from {}",
+                    input_file.display()
+                )
+            })?;
+            ctx.set_input_file_name(
+                input_file
+                    .file_name()
+                    .map(|x| x.to_string_lossy().to_string()),
+            );
+            let output_stem = ctx.infer_output_stem_for_file();
+            Ok(PreparedSingleInput::Dasm {
+                program,
+                output_stem,
+            })
+        }
+        Mode::Asm => {
+            let asm_text = fs::read_to_string(input_file)
+                .with_context(|| format!("failed to read {}", input_file.display()))?;
+            Ok(PreparedSingleInput::Asm { asm_text })
+        }
+    }
 }
 
 fn validate_template_kind_for_single(mode: Mode, template: Option<&Path>) -> Result<()> {
@@ -410,70 +464,25 @@ fn collect_input_files(input_dir: &Path, mode: Mode) -> Result<Vec<PathBuf>> {
     Ok(out)
 }
 
-fn read_normalized_base64(path: &Path) -> Result<String> {
-    let raw =
-        fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
-    let normalized = raw
-        .chars()
-        .filter(|c| !c.is_whitespace())
-        .collect::<String>();
-    if normalized.is_empty() {
-        bail!("empty b64 input: {}", path.display());
-    }
-    Ok(normalized)
-}
-
-fn infer_class_name_from_b64_file(path: &Path) -> Result<String> {
-    let fallback = sanitize_output_stem(input_file_stem(path));
-    let b64 = read_normalized_base64(path)?;
-    let program = match UdonProgramBinary::parse_base64(&b64) {
-        Ok(v) => v,
-        Err(_) => return Ok(fallback),
-    };
-    let inferred = infer_candidate_name_from_program(&program).unwrap_or(fallback);
-    Ok(sanitize_output_stem(&inferred))
-}
-
-fn infer_candidate_name_from_program(program: &UdonProgramBinary) -> Option<String> {
-    let entry_count = program.symbols_len(SymbolSection::EntryPoints).ok()?;
-    for i in 0..entry_count {
-        let entry = program.symbol_item(SymbolSection::EntryPoints, i).ok()?;
-        let name = entry.name.trim();
-        if name.is_empty() || name.eq_ignore_ascii_case("_start") || name.starts_with("__") {
-            continue;
+fn default_output_filename(
+    mode: Mode,
+    input_file: &Path,
+    prepared: &PreparedSingleInput,
+) -> String {
+    match mode {
+        Mode::Dc => {
+            let PreparedSingleInput::Dc { ctx } = prepared else {
+                panic!()
+            };
+            format!("{}.cs", ctx.infer_output_stem_for_file())
         }
-        return Some(name.to_string());
-    }
-    None
-}
-
-fn unique_filename(used_names: &mut HashMap<String, usize>, base: &str, ext: &str) -> String {
-    let normalized_base = sanitize_output_stem(base);
-    let key = normalized_base.to_ascii_lowercase();
-    let counter = used_names.entry(key).or_insert(0);
-    *counter += 1;
-    if *counter == 1 {
-        format!("{normalized_base}.{ext}")
-    } else {
-        format!("{normalized_base}_{}.{ext}", *counter)
-    }
-}
-
-fn sanitize_output_stem(name: impl AsRef<str>) -> String {
-    let name = name.as_ref();
-    let mut out = String::with_capacity(name.len());
-    for ch in name.chars() {
-        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' {
-            out.push(ch);
-        } else {
-            out.push('_');
+        Mode::Dasm => {
+            let PreparedSingleInput::Dasm { output_stem, .. } = prepared else {
+                panic!()
+            };
+            format!("{output_stem}.asm")
         }
-    }
-    let out = out.trim_matches('_');
-    if out.is_empty() {
-        "output".to_string()
-    } else {
-        out.to_string()
+        Mode::Asm => format!("{}.b64", input_file_stem(input_file)),
     }
 }
 
