@@ -222,7 +222,7 @@ fn parse_quoted_string(text: &str, line_num: usize) -> Result<String> {
             line_num, text
         )));
     }
-    Ok(unescape_quoted_string(&trimmed[1..trimmed.len() - 1]))
+    unescape_quoted_string(&trimmed[1..trimmed.len() - 1], line_num)
 }
 
 fn parse_u32_literal(text: &str, line_num: usize) -> Result<u32> {
@@ -742,13 +742,14 @@ fn parse_f32_component(text: &str) -> Option<f32> {
     number.parse::<f32>().ok()
 }
 
-fn unescape_quoted_string(input: &str) -> String {
-    input
-        .replace("\\\"", "\"")
-        .replace("\\\\", "\\")
-        .replace("\\n", "\n")
-        .replace("\\r", "\r")
-        .replace("\\t", "\t")
+fn unescape_quoted_string(input: &str, line_num: usize) -> Result<String> {
+    let quoted = format!("\"{input}\"");
+    serde_json::from_str::<String>(&quoted).map_err(|e| {
+        AsmError::new(format!(
+            "Line {}: invalid escaped string literal '{}': {}",
+            line_num, input, e
+        ))
+    })
 }
 
 pub(crate) fn resolve_heap_literal_for_program_entry(
