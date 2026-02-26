@@ -42,3 +42,14 @@ pub const INPUT_GLOB_B64: &str = "*.b64";
 pub const INPUT_GLOB_ASM: &str = "*.asm";
 pub const CLANG_FORMAT_ASSUME_FILENAME_CS: &str = "_.cs";
 pub const FILE_UDON_MODULE_INFO_JSON: &str = "UdonModuleInfo.json";
+
+pub const SYMBOL_PREFIX_CONST: &str = "__const_";
+pub const SYMBOL_PREFIX_GLOBAL: &str = "__global_";
+pub const SYMBOL_PREFIX_GINTNL: &str = "__gintnl_";
+pub const SYMBOL_PREFIX_THIS: &str = "__this_";
+pub const SYMBOL_PREFIX_LCL: &str = "__lcl_";
+pub const SYMBOL_PREFIX_INTNL: &str = "__intnl_";
+
+pub const SYMBOL_THIS: &str = "this";
+pub const SYMBOL_THIS_TRANSFORM: &str = "this.transform";
+pub const SYMBOL_THIS_GAME_OBJECT: &str = "this.gameObject";
