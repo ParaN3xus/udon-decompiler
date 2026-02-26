@@ -2,6 +2,7 @@
 name = "udon-decompiler"
 version = "0.1.0"
 edition = "2024"
+default-run = "udon-decompiler"
 
 [dependencies]
 anyhow = "1.0"
