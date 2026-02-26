@@ -4,10 +4,16 @@ use crate::odin::{
     NodeKind, PrimitiveValue, Result as OdinResult, SymbolSection, UdonProgramBinary,
 };
 
+use super::literal::{
+    EnumRepr, HeapLiteralValue, TYPE_MISSING, TYPE_SYSTEM_BOOLEAN, TYPE_SYSTEM_BYTE,
+    TYPE_SYSTEM_DOUBLE, TYPE_SYSTEM_INT16, TYPE_SYSTEM_INT32, TYPE_SYSTEM_INT64, TYPE_SYSTEM_SBYTE,
+    TYPE_SYSTEM_SINGLE, TYPE_SYSTEM_UINT16, TYPE_SYSTEM_UINT32, TYPE_SYSTEM_UINT64,
+    TYPE_UNSERIALIZABLE, enum_repr_for_type, type_name_head,
+};
 use super::text::parse_generated_heap_symbol;
 use super::types::{
     AsmError, BindDirective, BindTableDirective, EntryDirective, HeapDirective, HeapExportMark,
-    HeapInitDirective, Result, TypeRefDirective, Visibility,
+    Result, TypeRefDirective, Visibility,
 };
 
 pub(crate) fn apply_entry_directives(
@@ -154,19 +160,9 @@ pub(crate) fn apply_heap_directives(
         };
 
         match d.type_ref {
-            TypeRefDirective::InternalRef(v) => {
-                if let Some(symbol_index) = symbol_index {
-                    program.set_symbol_type_internal_reference(
-                        SymbolSection::SymbolTable,
-                        symbol_index,
-                        v,
-                    )?;
-                }
-                program.set_heap_dump_type_internal_reference(heap_index, v)?;
-            }
             TypeRefDirective::Name(ref name) => {
-                if !name.eq_ignore_ascii_case("unserializable")
-                    && !name.eq_ignore_ascii_case("missing")
+                if !name.eq_ignore_ascii_case(TYPE_UNSERIALIZABLE)
+                    && !name.eq_ignore_ascii_case(TYPE_MISSING)
                 {
                     let current_inline = program.heap_dump_type_name_string_inline(heap_index)?;
                     if current_inline.is_some() {
@@ -203,68 +199,99 @@ pub(crate) fn apply_heap_directives(
 fn apply_heap_init(
     program: &mut UdonProgramBinary,
     heap_index: usize,
-    init: &HeapInitDirective,
+    init: &HeapLiteralValue,
 ) -> Result<()> {
     match init {
-        HeapInitDirective::Bool(v) => {
+        HeapLiteralValue::Bool(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Boolean(*v))?;
         }
-        HeapInitDirective::U8(v) => {
+        HeapLiteralValue::U8(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Byte(*v))?;
         }
-        HeapInitDirective::I8(v) => {
+        HeapLiteralValue::I8(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::SByte(*v))?;
         }
-        HeapInitDirective::U16(v) => {
+        HeapLiteralValue::U16(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::UShort(*v))?;
         }
-        HeapInitDirective::I16(v) => {
+        HeapLiteralValue::I16(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Short(*v))?;
         }
-        HeapInitDirective::U32(v) => {
+        HeapLiteralValue::U32(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::UInt(*v))?;
         }
-        HeapInitDirective::I32(v) => {
+        HeapLiteralValue::I32(v) => {
             program.set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Int(*v))?;
         }
-        HeapInitDirective::U64(v) => {
+        HeapLiteralValue::U64(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::ULong(*v))?;
         }
-        HeapInitDirective::I64(v) => {
+        HeapLiteralValue::I64(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Long(*v))?;
         }
-        HeapInitDirective::F32(v) => {
+        HeapLiteralValue::F32(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Float(*v))?;
         }
-        HeapInitDirective::F64(v) => {
+        HeapLiteralValue::F64(v) => {
             program
                 .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Double(*v))?;
         }
-        HeapInitDirective::String(v) => {
+        HeapLiteralValue::String(v) => {
             program.set_heap_dump_strongbox_value_primitive(
                 heap_index,
                 PrimitiveValue::String(crate::odin::OdinString::utf16(v.clone())),
             )?;
         }
-        HeapInitDirective::Null => {
+        HeapLiteralValue::SystemType(v) => {
+            program.set_heap_dump_strongbox_system_type_name(heap_index, v.as_str())?;
+        }
+        HeapLiteralValue::Vector2(x, y) => {
+            program.set_heap_dump_strongbox_vector2(heap_index, *x, *y)?;
+        }
+        HeapLiteralValue::Vector3(x, y, z) => {
+            program.set_heap_dump_strongbox_vector3(heap_index, *x, *y, *z)?;
+        }
+        HeapLiteralValue::Quaternion(x, y, z, w) => {
+            program.set_heap_dump_strongbox_quaternion(heap_index, *x, *y, *z, *w)?;
+        }
+        HeapLiteralValue::Color(r, g, b, a) => {
+            program.set_heap_dump_strongbox_color(heap_index, *r, *g, *b, *a)?;
+        }
+        HeapLiteralValue::SerializationResult {
+            success,
+            byte_count,
+        } => {
+            program.set_heap_dump_strongbox_serialization_result(
+                heap_index,
+                *success,
+                *byte_count,
+            )?;
+        }
+        HeapLiteralValue::TypedArray {
+            element_type,
+            elements,
+        } => {
+            program.set_heap_dump_strongbox_typed_array(heap_index, element_type, elements)?;
+        }
+        HeapLiteralValue::Null => {
             let null_template = find_heap_entry_with_null_value(program)?.ok_or_else(|| {
                 AsmError::new("Cannot apply null init: no heap entry with null value exists.")
             })?;
             program.set_heap_dump_strongbox_from_entry(heap_index, null_template)?;
         }
-        HeapInitDirective::U32Array(values) => {
+        HeapLiteralValue::U32Array(values) => {
             program.set_heap_dump_strongbox_u32_array(heap_index, values)?;
         }
-        HeapInitDirective::Ignore => {}
+        HeapLiteralValue::OpaqueArray { .. } | HeapLiteralValue::Unserializable => {}
     }
     Ok(())
 }
@@ -421,6 +448,12 @@ trait ProgramExt {
         symbol: &str,
         values: &[u32],
     ) -> OdinResult<()>;
+    fn set_heap_dump_strongbox_typed_array(
+        &mut self,
+        heap_index: usize,
+        element_type: &str,
+        elements: &[HeapLiteralValue],
+    ) -> OdinResult<()>;
 }
 
 impl ProgramExt for UdonProgramBinary {
@@ -494,4 +527,65 @@ impl ProgramExt for UdonProgramBinary {
             symbol, address
         )))
     }
+
+    fn set_heap_dump_strongbox_typed_array(
+        &mut self,
+        heap_index: usize,
+        element_type: &str,
+        elements: &[HeapLiteralValue],
+    ) -> OdinResult<()> {
+        let mut raw = Vec::<u8>::new();
+        for element in elements {
+            append_typed_array_element_raw(&mut raw, element_type, element)?;
+        }
+        self.set_heap_dump_strongbox_u32_array_raw(heap_index, raw.as_slice())
+    }
+}
+
+fn append_typed_array_element_raw(
+    out: &mut Vec<u8>,
+    element_type: &str,
+    element: &HeapLiteralValue,
+) -> OdinResult<()> {
+    let head = type_name_head(element_type);
+    if let Some(repr) = enum_repr_for_type(head) {
+        match (repr, element) {
+            (EnumRepr::U8, HeapLiteralValue::U8(v)) => out.push(*v),
+            (EnumRepr::U8, HeapLiteralValue::I32(v)) if (0..=u8::MAX as i32).contains(v) => {
+                out.push(*v as u8);
+            }
+            (EnumRepr::I32, HeapLiteralValue::I32(v)) => out.extend_from_slice(&v.to_le_bytes()),
+            (EnumRepr::I32, HeapLiteralValue::U32(v)) if *v <= i32::MAX as u32 => {
+                out.extend_from_slice(&(*v as i32).to_le_bytes());
+            }
+            _ => {
+                return Err(crate::odin::OdinError::new(format!(
+                    "Unsupported enum array element for '{}': {:?}.",
+                    element_type, element
+                )));
+            }
+        }
+        return Ok(());
+    }
+
+    match (head, element) {
+        (TYPE_SYSTEM_BOOLEAN, HeapLiteralValue::Bool(v)) => out.push(if *v { 1 } else { 0 }),
+        (TYPE_SYSTEM_SBYTE, HeapLiteralValue::I8(v)) => out.push(*v as u8),
+        (TYPE_SYSTEM_BYTE, HeapLiteralValue::U8(v)) => out.push(*v),
+        (TYPE_SYSTEM_INT16, HeapLiteralValue::I16(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_UINT16, HeapLiteralValue::U16(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_INT32, HeapLiteralValue::I32(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_UINT32, HeapLiteralValue::U32(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_INT64, HeapLiteralValue::I64(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_UINT64, HeapLiteralValue::U64(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_SINGLE, HeapLiteralValue::F32(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        (TYPE_SYSTEM_DOUBLE, HeapLiteralValue::F64(v)) => out.extend_from_slice(&v.to_le_bytes()),
+        _ => {
+            return Err(crate::odin::OdinError::new(format!(
+                "Unsupported typed array element for '{}': {:?}.",
+                element_type, element
+            )));
+        }
+    }
+    Ok(())
 }

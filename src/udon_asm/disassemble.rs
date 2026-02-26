@@ -3,8 +3,10 @@ use std::collections::{HashMap, HashSet};
 use crate::odin::{SymbolSection, UdonProgramBinary};
 
 use super::codec::{build_label_map, decode_instructions};
-use super::text::{generated_heap_symbol, render_heap_init_literal};
+use super::literal::{TYPE_UNSERIALIZABLE, UNSERIALIZABLE_LITERAL};
+use super::text::generated_heap_symbol;
 use super::types::Result;
+use super::{render_heap_literal, resolve_heap_literal_for_program_entry};
 
 pub(crate) fn disassemble_program_to_text(program: &UdonProgramBinary) -> Result<String> {
     disassemble_program_to_text_with_indent(program, "  ")
@@ -95,7 +97,14 @@ pub(crate) fn disassemble_program_to_text_with_indent(
             .unwrap_or_else(|| generated_heap_symbol(item.address));
         let resolved_value_kind = program.heap_dump_strongbox_value_kind(i)?;
         if let Some(type_name) = program.heap_dump_type_name_string(i)? {
-            let init_text = render_heap_init_literal(&type_name, &resolved_value_kind);
+            let literal = resolve_heap_literal_for_program_entry(
+                program,
+                i,
+                &type_name,
+                &resolved_value_kind,
+            )
+            .map_err(|e| super::types::AsmError::new(e.to_string()))?;
+            let init_text = render_heap_literal(&type_name, &literal);
             let mark = if symbol_table_names.contains(&symbol) {
                 if exported_symbol_names.contains(&symbol) {
                     '+'
@@ -116,8 +125,8 @@ pub(crate) fn disassemble_program_to_text_with_indent(
         heap_lines.push((
             item.address,
             format!("~ {symbol}"),
-            "unserializable".to_string(),
-            "{ unserializable }".to_string(),
+            TYPE_UNSERIALIZABLE.to_string(),
+            UNSERIALIZABLE_LITERAL.to_string(),
         ));
     }
     heap_lines.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));

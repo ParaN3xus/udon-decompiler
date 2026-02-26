@@ -1,3 +1,5 @@
+use super::literal::HeapLiteralValue;
+
 pub type Result<T> = std::result::Result<T, AsmError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,27 +144,7 @@ pub(crate) struct EntryDirective {
 
 #[derive(Debug, Clone)]
 pub(crate) enum TypeRefDirective {
-    InternalRef(i32),
     Name(String),
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum HeapInitDirective {
-    Bool(bool),
-    U8(u8),
-    I8(i8),
-    U16(u16),
-    I16(i16),
-    U32(u32),
-    I32(i32),
-    U64(u64),
-    I64(i64),
-    F32(f32),
-    F64(f64),
-    String(String),
-    Null,
-    U32Array(Vec<u32>),
-    Ignore,
 }
 
 #[derive(Debug, Clone)]
@@ -170,7 +152,7 @@ pub(crate) struct HeapDirective {
     pub(crate) export_mark: HeapExportMark,
     pub(crate) symbol: String,
     pub(crate) type_ref: TypeRefDirective,
-    pub(crate) init: HeapInitDirective,
+    pub(crate) init: HeapLiteralValue,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
