@@ -233,7 +233,7 @@ fn process_single_file_inner(
             let PreparedSingleInput::Dc { ctx } = prepared else {
                 bail!("internal error: expected prepared dc input");
             };
-            let output = ctx.run_basic_pipeline()?;
+            let output = ctx.run_decompile()?;
             fs::write(output_file, output.generated_code)
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
             debug!(
@@ -247,7 +247,7 @@ fn process_single_file_inner(
             let PreparedSingleInput::Dasm { program, .. } = prepared else {
                 bail!("internal error: expected prepared dasm input");
             };
-            let asm = disassemble_program_to_text(&program).with_context(|| {
+            let asm = disassemble_program_to_text(program).with_context(|| {
                 format!(
                     "failed to disassemble program from {}",
                     input_file.display()
