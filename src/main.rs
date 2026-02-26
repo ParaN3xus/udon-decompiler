@@ -4,10 +4,12 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use tracing::{debug, info};
-use udon_decompiler::decompiler::DecompileContext;
+use udon_decompiler::decompiler::{DecompileContext, UdonModuleInfo};
 use udon_decompiler::logging::init_logging;
 use udon_decompiler::odin::UdonProgramBinary;
-use udon_decompiler::str_constants::{EXT_ASM, EXT_B64, EXT_CS, INPUT_GLOB_ASM, INPUT_GLOB_B64};
+use udon_decompiler::str_constants::{
+    EXT_ASM, EXT_B64, EXT_CS, FILE_UDON_MODULE_INFO_JSON, INPUT_GLOB_ASM, INPUT_GLOB_B64,
+};
 use udon_decompiler::udon_asm::{assemble_b64_with_original, disassemble_program_to_text};
 use udon_decompiler::util::read_normalized_base64;
 
@@ -18,6 +20,8 @@ use udon_decompiler::util::read_normalized_base64;
 struct Cli {
     #[arg(long, global = true, default_value = "info")]
     log_level: String,
+    #[arg(long, global = true)]
+    module_info: Option<PathBuf>,
     #[command(subcommand)]
     command: Commands,
 }
@@ -67,7 +71,14 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     init_logging(&cli.log_level)
         .map_err(|e| anyhow::anyhow!("failed to initialize logging: {}", e))?;
+    let module_info_path = cli
+        .module_info
+        .clone()
+        .unwrap_or_else(|| PathBuf::from(FILE_UDON_MODULE_INFO_JSON));
+    UdonModuleInfo::set_default_module_info_path(module_info_path.clone())
+        .map_err(|e| anyhow::anyhow!("failed to configure module info path: {}", e))?;
     info!(level = %cli.log_level, "logging initialized");
+    info!(module_info = %module_info_path.display(), "module info path configured");
 
     match cli.command {
         Commands::Dc { input, output } => run(Mode::Dc, &input, output.as_deref(), None),
