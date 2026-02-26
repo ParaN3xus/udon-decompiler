@@ -10,9 +10,13 @@ namespace QvPen.UdonScript
     public class QvPen_PenManager : UdonSharpBehaviour
     {
         VRC.Udon.UdonBehaviour pen = null;
+        UnityEngine.Gradient colorGradient = null /* unserializable */;
         System.Single inkWidth = 0.005f;
         System.Int32 inkMeshLayer = 0;
         System.Int32 inkColliderLayer = 9;
+        UnityEngine.Material pcInkMaterial = null;
+        UnityEngine.Material questInkMaterial = null;
+        UnityEngine.LayerMask surftraceMask = null /* unserializable */;
         UnityEngine.GameObject respawnButton = null;
         UnityEngine.GameObject clearButton = null;
         UnityEngine.GameObject inUseUI = null;
@@ -23,7 +27,7 @@ namespace QvPen.UdonScript
         System.Boolean allowCallPen = true;
         UnityEngine.Animations.PositionConstraint clearButtonPositionConstraint = null;
         UnityEngine.Animations.RotationConstraint clearButtonRotationConstraint = null;
-        VRC.SDK3.Data.DataList listenerList = null /* [] */;
+        VRC.SDK3.Data.DataList listenerList = null /* unserializable */;
         System.Boolean _isNetworkSettled = false;
         UnityEngine.Vector3[] _syncedData = null;
         System.Int32 inkId = 0;
@@ -45,7 +49,7 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __3_value__param = null;
         System.Int32 __0_get_InkId__ret = 0;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"byteCount": 0, "success": false} */;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = new VRC.Udon.Common.SerializationResult { success = false, byteCount = 0 };
 
         public void get_roundedTrailShader()
         {
@@ -80,14 +84,14 @@ namespace QvPen.UdonScript
             }
             if (__intnl_SystemBoolean_0)
             {
-                this.SendCustomNetworkEvent(null /* 0 */, "StartUsing");
+                this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "StartUsing");
             }
             if (onPlayerJoinedPlayer.isLocal && VRC.SDKBase.Utilities.IsValid(clearButton))
             {
-                clearButtonPositionConstraint = clearButton.transform.GetComponent(
-                    null /* "UnityEngine.Animations.PositionConstraint, UnityEngine.AnimationModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" */);
-                clearButtonRotationConstraint = clearButton.transform.GetComponent(
-                    null /* "UnityEngine.Animations.RotationConstraint, UnityEngine.AnimationModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" */);
+                clearButtonPositionConstraint =
+                    clearButton.transform.GetComponent(typeof(UnityEngine.Animations.PositionConstraint) /* UnityEngine.AnimationModule */);
+                clearButtonRotationConstraint =
+                    clearButton.transform.GetComponent(typeof(UnityEngine.Animations.RotationConstraint) /* UnityEngine.AnimationModule */);
                 function_1();
             }
             return;
@@ -211,7 +215,7 @@ namespace QvPen.UdonScript
             {
                 clearButtonRotationConstraint.enabled = true;
             }
-            this.SendCustomEventDelayedSeconds("_DisableClearButtonConstraints", 2.0f, null /* 0 */);
+            this.SendCustomEventDelayedSeconds("_DisableClearButtonConstraints", 2.0f, VRC.Udon.Common.Enums.EventTiming.Update);
             return;
         }
 
@@ -362,14 +366,14 @@ namespace QvPen.UdonScript
         {
             System.Int32 __lcl_i_SystemInt32_0 = 0;
             System.Int32 __lcl_n_SystemInt32_0 = 0;
-            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_0 = null /* "Null" */;
+            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_0 = null /* unserializable */;
             VRC.Udon.UdonBehaviour __lcl_listener_VRCUdonUdonBehaviour_0 = null;
 
             __lcl_i_SystemInt32_0 = 0;
             __lcl_n_SystemInt32_0 = listenerList.Count;
             while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
             {
-                if (listenerList.TryGetValue(__lcl_i_SystemInt32_0, null /* 15 */, ref __lcl_listerToken_VRCSDK3DataDataToken_0))
+                if (listenerList.TryGetValue(__lcl_i_SystemInt32_0, VRC.SDK3.Data.TokenType.Reference, ref __lcl_listerToken_VRCSDK3DataDataToken_0))
                 {
                     __lcl_listener_VRCUdonUdonBehaviour_0 = __lcl_listerToken_VRCSDK3DataDataToken_0.Reference;
                     if (VRC.SDKBase.Utilities.IsValid(__lcl_listener_VRCUdonUdonBehaviour_0))
@@ -386,14 +390,14 @@ namespace QvPen.UdonScript
         {
             System.Int32 __lcl_i_SystemInt32_1 = 0;
             System.Int32 __lcl_n_SystemInt32_1 = 0;
-            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_1 = null /* "Null" */;
+            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_1 = null /* unserializable */;
             VRC.Udon.UdonBehaviour __lcl_listener_VRCUdonUdonBehaviour_1 = null;
 
             __lcl_i_SystemInt32_1 = 0;
             __lcl_n_SystemInt32_1 = listenerList.Count;
             while (__lcl_i_SystemInt32_1 < __lcl_n_SystemInt32_1)
             {
-                if (listenerList.TryGetValue(__lcl_i_SystemInt32_1, null /* 15 */, ref __lcl_listerToken_VRCSDK3DataDataToken_1))
+                if (listenerList.TryGetValue(__lcl_i_SystemInt32_1, VRC.SDK3.Data.TokenType.Reference, ref __lcl_listerToken_VRCSDK3DataDataToken_1))
                 {
                     __lcl_listener_VRCUdonUdonBehaviour_1 = __lcl_listerToken_VRCSDK3DataDataToken_1.Reference;
                     if (VRC.SDKBase.Utilities.IsValid(__lcl_listener_VRCUdonUdonBehaviour_1))

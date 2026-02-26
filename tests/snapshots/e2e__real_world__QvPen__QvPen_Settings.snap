@@ -16,8 +16,8 @@ namespace QvPen.UdonScript
         TMPro.TextMeshProUGUI informationTMPU = null;
         UnityEngine.Transform pensParent = null;
         UnityEngine.Transform erasersParent = null;
-        UnityEngine.Component[] penManagers = null /* [] */;
-        UnityEngine.Component[] eraserManagers = null /* [] */;
+        UnityEngine.Component[] penManagers = new UnityEngine.Component[] {};
+        UnityEngine.Component[] eraserManagers = new UnityEngine.Component[] {};
         UnityEngine.Component[] __0__intnlparam = null;
         UnityEngine.Component __1__intnlparam = null;
         UnityEngine.Component[] __2__intnlparam = null;
@@ -67,8 +67,7 @@ namespace QvPen.UdonScript
         {
             UnityEngine.Component[] __lcl_instanceBehaviours_UnityEngineComponentArray_0 = null;
 
-            __lcl_instanceBehaviours_UnityEngineComponentArray_0 =
-                __1__intnlparam.GetComponentsInChildren(null /* "VRC.Udon.UdonBehaviour, VRC.Udon, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" */);
+            __lcl_instanceBehaviours_UnityEngineComponentArray_0 = __1__intnlparam.GetComponentsInChildren(typeof(VRC.Udon.UdonBehaviour) /* VRC.Udon */);
             __7__intnlparam = __lcl_instanceBehaviours_UnityEngineComponentArray_0;
             function_2();
             __0__intnlparam = __6__intnlparam;
@@ -79,8 +78,7 @@ namespace QvPen.UdonScript
         {
             UnityEngine.Component[] __lcl_instanceBehaviours_UnityEngineComponentArray_1 = null;
 
-            __lcl_instanceBehaviours_UnityEngineComponentArray_1 =
-                __3__intnlparam.GetComponentsInChildren(null /* "VRC.Udon.UdonBehaviour, VRC.Udon, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" */);
+            __lcl_instanceBehaviours_UnityEngineComponentArray_1 = __3__intnlparam.GetComponentsInChildren(typeof(VRC.Udon.UdonBehaviour) /* VRC.Udon */);
             __9__intnlparam = __lcl_instanceBehaviours_UnityEngineComponentArray_1;
             function_3();
             __2__intnlparam = __8__intnlparam;

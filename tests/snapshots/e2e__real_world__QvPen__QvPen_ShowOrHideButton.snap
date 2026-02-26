@@ -9,7 +9,7 @@ namespace QvPen.UdonScript.UI
 {
     public class QvPen_ShowOrHideButton : UdonSharpBehaviour
     {
-        UnityEngine.GameObject[] gameObjects = null /* [] */;
+        UnityEngine.GameObject[] gameObjects = new UnityEngine.GameObject[] {};
         System.Boolean isShown = true;
         UnityEngine.GameObject displayObjectOn = null;
         UnityEngine.GameObject displayObjectOff = null;
