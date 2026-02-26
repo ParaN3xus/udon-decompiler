@@ -7,6 +7,7 @@ use tracing::{debug, info};
 use udon_decompiler::decompiler::DecompileContext;
 use udon_decompiler::logging::init_logging;
 use udon_decompiler::odin::UdonProgramBinary;
+use udon_decompiler::str_constants::{EXT_ASM, EXT_B64, EXT_CS, INPUT_GLOB_ASM, INPUT_GLOB_B64};
 use udon_decompiler::udon_asm::{assemble_b64_with_original, disassemble_program_to_text};
 use udon_decompiler::util::read_normalized_base64;
 
@@ -374,7 +375,7 @@ fn choose_b64_template_path(
                     return Ok(hinted);
                 }
             }
-            let by_stem = template.join(format!("{}.b64", input_file_stem(input_asm)));
+            let by_stem = template.join(format!("{}.{}", input_file_stem(input_asm), EXT_B64));
             if by_stem.exists() && by_stem.is_file() {
                 return Ok(by_stem);
             }
@@ -395,7 +396,7 @@ fn choose_b64_template_path(
             return Ok(hinted);
         }
     }
-    let sibling = input_asm.with_extension("b64");
+    let sibling = input_asm.with_extension(EXT_B64);
     if sibling.exists() && sibling.is_file() {
         return Ok(sibling);
     }
@@ -424,8 +425,8 @@ fn ensure_input_extension(mode: Mode, input_file: &Path) -> Result<()> {
         .unwrap_or_default()
         .to_ascii_lowercase();
     let ok = match mode {
-        Mode::Dc | Mode::Dasm => ext == "b64",
-        Mode::Asm => ext == "asm",
+        Mode::Dc | Mode::Dasm => ext == EXT_B64,
+        Mode::Asm => ext == EXT_ASM,
     };
     if ok {
         return Ok(());
@@ -454,8 +455,8 @@ fn collect_input_files(input_dir: &Path, mode: Mode) -> Result<Vec<PathBuf>> {
             .unwrap_or_default()
             .to_ascii_lowercase();
         let matched = match mode {
-            Mode::Dc | Mode::Dasm => ext == "b64",
-            Mode::Asm => ext == "asm",
+            Mode::Dc | Mode::Dasm => ext == EXT_B64,
+            Mode::Asm => ext == EXT_ASM,
         };
         if matched {
             out.push(path);
@@ -474,15 +475,15 @@ fn default_output_filename(
             let PreparedSingleInput::Dc { ctx } = prepared else {
                 panic!()
             };
-            format!("{}.cs", ctx.infer_output_stem_for_file())
+            format!("{}.{}", ctx.infer_output_stem_for_file(), EXT_CS)
         }
         Mode::Dasm => {
             let PreparedSingleInput::Dasm { output_stem, .. } = prepared else {
                 panic!()
             };
-            format!("{output_stem}.asm")
+            format!("{output_stem}.{}", EXT_ASM)
         }
-        Mode::Asm => format!("{}.b64", input_file_stem(input_file)),
+        Mode::Asm => format!("{}.{}", input_file_stem(input_file), EXT_B64),
     }
 }
 
@@ -498,7 +499,7 @@ fn input_file_stem(path: &Path) -> String {
 
 fn mode_input_glob_hint(mode: Mode) -> &'static str {
     match mode {
-        Mode::Dc | Mode::Dasm => "*.b64",
-        Mode::Asm => "*.asm",
+        Mode::Dc | Mode::Dasm => INPUT_GLOB_B64,
+        Mode::Asm => INPUT_GLOB_ASM,
     }
 }

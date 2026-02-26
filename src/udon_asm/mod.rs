@@ -1,6 +1,7 @@
 mod apply;
 mod codec;
 mod disassemble;
+mod literal;
 mod parse;
 mod text;
 mod types;
@@ -18,6 +19,8 @@ use parse::parse_asm_text;
 
 pub use types::{AsmError, AsmInstruction, OpCode, OperandToken};
 pub type Result<T> = types::Result<T>;
+
+pub(crate) use literal::HeapLiteralValue;
 
 pub fn disassemble_program_to_text(program: &UdonProgramBinary) -> Result<String> {
     disassemble::disassemble_program_to_text(program)
@@ -65,6 +68,15 @@ pub fn encode_asm_instructions_to_bytecode(instructions: &[AsmInstruction]) -> R
     codec::encode_asm_instructions_to_bytecode(instructions)
 }
 
-pub(crate) fn render_heap_init_literal(type_name: &str, kind: &NodeKind) -> String {
-    text::render_heap_init_literal(type_name, kind)
+pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -> String {
+    literal::render_heap_literal(type_name, literal)
+}
+
+pub(crate) fn resolve_heap_literal_for_program_entry(
+    program: &UdonProgramBinary,
+    index: usize,
+    type_name: &str,
+    kind: &NodeKind,
+) -> crate::odin::Result<HeapLiteralValue> {
+    literal::resolve_heap_literal_for_program_entry(program, index, type_name, kind)
 }

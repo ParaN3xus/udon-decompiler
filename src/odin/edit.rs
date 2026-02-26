@@ -203,6 +203,51 @@ impl OdinDocument {
         Ok(())
     }
 
+    pub fn set_type_name_metadata_name(
+        &mut self,
+        node_id: NodeId,
+        new_name: OdinString,
+    ) -> Result<()> {
+        let (token_index, old_name) = {
+            let node = self
+                .nodes
+                .get(node_id)
+                .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
+            match &node.kind {
+                NodeKind::TypeNameMetadata { name, .. } => (node.token_index, name.clone()),
+                _ => {
+                    return Err(OdinError::new(format!(
+                        "Node {} is not a TypeName metadata node.",
+                        node_id
+                    )));
+                }
+            }
+        };
+
+        if old_name == new_name {
+            return Ok(());
+        }
+
+        match &mut self.tokens[token_index].payload {
+            TokenPayload::TypeName { name, .. } => *name = new_name.clone(),
+            _ => {
+                return Err(OdinError::new(
+                    "Token payload mismatch for type-name metadata node.",
+                ));
+            }
+        }
+
+        self.tokens[token_index].dirty = true;
+        if let NodeKind::TypeNameMetadata { name, .. } = &mut self.nodes[node_id].kind {
+            *name = new_name;
+            Ok(())
+        } else {
+            Err(OdinError::new(
+                "Node kind mismatch for type-name metadata node.",
+            ))
+        }
+    }
+
     pub fn set_external_reference_by_index(&mut self, node_id: NodeId, value: i32) -> Result<()> {
         let (token_index, old_value) = {
             let node = self
@@ -398,7 +443,7 @@ impl OdinDocument {
             )));
         }
         let bytes_per_element_usize = bytes_per_element as usize;
-        if new_raw.len() % bytes_per_element_usize != 0 {
+        if !new_raw.len().is_multiple_of(bytes_per_element_usize) {
             return Err(OdinError::new(format!(
                 "Raw byte length {} is not divisible by bytes_per_element={}.",
                 new_raw.len(),

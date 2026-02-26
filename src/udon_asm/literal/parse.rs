@@ -1,0 +1,929 @@
+use crate::odin::{NodeKind, PrimitiveValue, UdonProgramBinary};
+use crate::udon_asm::types::{AsmError, Result, TypeRefDirective};
+
+use super::constants::*;
+use super::enum_map::{enum_name_to_value, enum_repr};
+use super::{EnumRepr, HeapLiteralValue, type_name_head};
+
+pub(crate) fn parse_type_ref(text: &str, line_num: usize) -> Result<TypeRefDirective> {
+    let text = text.trim();
+    if text.starts_with('{') && text.ends_with('}') && text.len() >= 2 {
+        Ok(TypeRefDirective::Name(
+            text[1..text.len() - 1].trim().to_string(),
+        ))
+    } else {
+        Err(AsmError::new(format!(
+            "Line {}: type ref must be '{{ <type-name> }}'.",
+            line_num
+        )))
+    }
+}
+
+pub(crate) fn parse_heap_init_directive(
+    text: &str,
+    line_num: usize,
+    type_name: &str,
+) -> Result<HeapLiteralValue> {
+    let trimmed = text.trim();
+    if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_LITERAL) {
+        Ok(HeapLiteralValue::Unserializable)
+    } else {
+        parse_typed_heap_literal(type_name, trimmed, line_num)
+    }
+}
+
+/// typename + str -> HeapLiteralValue
+fn parse_typed_heap_literal(
+    type_name: &str,
+    trimmed: &str,
+    line_num: usize,
+) -> Result<HeapLiteralValue> {
+    if trimmed.eq_ignore_ascii_case("null") {
+        return Ok(HeapLiteralValue::Null);
+    }
+    let head = type_name_head(type_name);
+
+    // arr
+    if let Some(element_type) = head.strip_suffix("[]")
+        // u32 arr is usually addr, we process that seperately
+        && head != TYPE_SYSTEM_UINT32_ARRAY
+    {
+        let parts = parse_array_items(trimmed, line_num)?;
+        if !is_supported_typed_scalar_or_enum(element_type.trim()) {
+            if parts
+                .iter()
+                .all(|part| is_unserializable_placeholder_token(part.as_str()))
+            {
+                return Ok(HeapLiteralValue::OpaqueArray { len: parts.len() });
+            }
+            return Err(AsmError::new(format!(
+                "Line {}: unsupported array element type '{}' in '{}'. Keep placeholders like '{}' or use '{}'.",
+                line_num,
+                element_type,
+                type_name,
+                UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL,
+                UNSERIALIZABLE_LITERAL
+            )));
+        }
+        let mut elements = Vec::<HeapLiteralValue>::with_capacity(parts.len());
+        for item in parts {
+            elements.push(parse_typed_heap_literal(
+                element_type.trim(),
+                item.as_str(),
+                line_num,
+            )?);
+        }
+        return Ok(HeapLiteralValue::TypedArray {
+            element_type: element_type.trim().to_string(),
+            elements,
+        });
+    }
+    // enum
+    if let Some(repr) = enum_repr(head) {
+        return parse_typed_enum_literal(head, repr, trimmed, line_num);
+    }
+    // others
+    match head {
+        TYPE_SYSTEM_BOOLEAN => match trimmed {
+            "true" => Ok(HeapLiteralValue::Bool(true)),
+            "false" => Ok(HeapLiteralValue::Bool(false)),
+            _ => Err(AsmError::new(format!(
+                "Line {}: bool init must be true/false, got '{}'.",
+                line_num, trimmed
+            ))),
+        },
+        TYPE_SYSTEM_SBYTE => trimmed
+            .parse::<i8>()
+            .map(HeapLiteralValue::I8)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid i8 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_BYTE => trimmed
+            .parse::<u8>()
+            .map(HeapLiteralValue::U8)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid u8 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_INT16 => trimmed
+            .parse::<i16>()
+            .map(HeapLiteralValue::I16)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid i16 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_UINT16 => trimmed
+            .parse::<u16>()
+            .map(HeapLiteralValue::U16)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid u16 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_INT32 => trimmed
+            .parse::<i32>()
+            .map(HeapLiteralValue::I32)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid i32 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_UINT32 => parse_u32_literal(trimmed, line_num).map(HeapLiteralValue::U32),
+        TYPE_SYSTEM_INT64 => trimmed
+            .parse::<i64>()
+            .map(HeapLiteralValue::I64)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid i64 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_UINT64 => trimmed
+            .parse::<u64>()
+            .map(HeapLiteralValue::U64)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid u64 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_SINGLE => trimmed
+            .parse::<f32>()
+            .map(HeapLiteralValue::F32)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid f32 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_DOUBLE => trimmed
+            .parse::<f64>()
+            .map(HeapLiteralValue::F64)
+            .map_err(|e| {
+                AsmError::new(format!(
+                    "Line {}: invalid f64 init '{}': {}",
+                    line_num, trimmed, e
+                ))
+            }),
+        TYPE_SYSTEM_STRING => Ok(HeapLiteralValue::String(parse_quoted_string(
+            trimmed, line_num,
+        )?)),
+        TYPE_SYSTEM_TYPE => Ok(HeapLiteralValue::SystemType(parse_system_type_literal(
+            trimmed, line_num,
+        )?)),
+        TYPE_UNITY_VECTOR2 => {
+            let (x, y) = parse_typed_vector2_literal(trimmed, line_num)?;
+            Ok(HeapLiteralValue::Vector2(x, y))
+        }
+        TYPE_UNITY_VECTOR3 => {
+            let (x, y, z) = parse_typed_vector3_literal(trimmed, line_num)?;
+            Ok(HeapLiteralValue::Vector3(x, y, z))
+        }
+        TYPE_UNITY_QUATERNION => {
+            let (x, y, z, w) = parse_typed_quaternion_literal(trimmed, line_num)?;
+            Ok(HeapLiteralValue::Quaternion(x, y, z, w))
+        }
+        TYPE_UNITY_COLOR => {
+            let (r, g, b, a) = parse_typed_color_literal(trimmed, line_num)?;
+            Ok(HeapLiteralValue::Color(r, g, b, a))
+        }
+        TYPE_VRC_SERIALIZATION_RESULT => {
+            let (success, byte_count) =
+                parse_typed_serialization_result_literal(trimmed, line_num)?;
+            Ok(HeapLiteralValue::SerializationResult {
+                success,
+                byte_count,
+            })
+        }
+        TYPE_SYSTEM_UINT32_ARRAY => Ok(HeapLiteralValue::U32Array(parse_u32_array_literal(
+            trimmed, line_num,
+        )?)),
+        _ => Err(AsmError::new(format!(
+            "Line {}: unsupported typed init for '{}', use '{}'.",
+            line_num, type_name, UNSERIALIZABLE_LITERAL
+        ))),
+    }
+}
+
+fn parse_quoted_string(text: &str, line_num: usize) -> Result<String> {
+    let trimmed = text.trim();
+    if !(trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2) {
+        return Err(AsmError::new(format!(
+            "Line {}: string init must be quoted, got '{}'.",
+            line_num, text
+        )));
+    }
+    Ok(unescape_quoted_string(&trimmed[1..trimmed.len() - 1]))
+}
+
+fn parse_u32_literal(text: &str, line_num: usize) -> Result<u32> {
+    if let Some(hex) = text.strip_prefix("0x") {
+        u32::from_str_radix(hex, 16).map_err(|e| {
+            AsmError::new(format!(
+                "Line {}: invalid u32 hex init '{}': {}",
+                line_num, text, e
+            ))
+        })
+    } else {
+        text.parse::<u32>().map_err(|e| {
+            AsmError::new(format!(
+                "Line {}: invalid u32 init '{}': {}",
+                line_num, text, e
+            ))
+        })
+    }
+}
+
+fn parse_i32_literal(text: &str, line_num: usize) -> Result<i32> {
+    if let Some(hex) = text.strip_prefix("0x") {
+        let value = u32::from_str_radix(hex, 16).map_err(|e| {
+            AsmError::new(format!(
+                "Line {}: invalid i32 hex init '{}': {}",
+                line_num, text, e
+            ))
+        })?;
+        i32::try_from(value).map_err(|_| {
+            AsmError::new(format!(
+                "Line {}: i32 hex init '{}' is out of range.",
+                line_num, text
+            ))
+        })
+    } else {
+        text.parse::<i32>().map_err(|e| {
+            AsmError::new(format!(
+                "Line {}: invalid i32 init '{}': {}",
+                line_num, text, e
+            ))
+        })
+    }
+}
+
+fn parse_typed_enum_literal(
+    type_head: &str,
+    repr: EnumRepr,
+    trimmed: &str,
+    line_num: usize,
+) -> Result<HeapLiteralValue> {
+    if let Some(value) = enum_name_to_value(type_head, trimmed) {
+        return match repr {
+            EnumRepr::I32 => i32::try_from(value)
+                .map(HeapLiteralValue::I32)
+                .map_err(|_| {
+                    AsmError::new(format!(
+                        "Line {}: enum value '{}' out of i32 range for '{}'.",
+                        line_num, trimmed, type_head
+                    ))
+                }),
+            EnumRepr::U8 => u8::try_from(value).map(HeapLiteralValue::U8).map_err(|_| {
+                AsmError::new(format!(
+                    "Line {}: enum value '{}' out of u8 range for '{}'.",
+                    line_num, trimmed, type_head
+                ))
+            }),
+        };
+    }
+
+    match repr {
+        EnumRepr::I32 => parse_i32_literal(trimmed, line_num).map(HeapLiteralValue::I32),
+        EnumRepr::U8 => parse_u32_literal(trimmed, line_num)
+            .and_then(|v| {
+                u8::try_from(v).map_err(|_| {
+                    AsmError::new(format!(
+                        "Line {}: enum init '{}' is out of u8 range for '{}'.",
+                        line_num, trimmed, type_head
+                    ))
+                })
+            })
+            .map(HeapLiteralValue::U8),
+    }
+}
+
+fn enum_literal_from_node_kind(type_head: &str, kind: &NodeKind) -> Option<HeapLiteralValue> {
+    let repr = enum_repr(type_head)?;
+    let value = match kind {
+        NodeKind::Primitive(PrimitiveValue::SByte(v)) => i64::from(*v),
+        NodeKind::Primitive(PrimitiveValue::Byte(v)) => i64::from(*v),
+        NodeKind::Primitive(PrimitiveValue::Short(v)) => i64::from(*v),
+        NodeKind::Primitive(PrimitiveValue::UShort(v)) => i64::from(*v),
+        NodeKind::Primitive(PrimitiveValue::Int(v)) => i64::from(*v),
+        NodeKind::Primitive(PrimitiveValue::UInt(v)) => i64::from(*v),
+        NodeKind::Primitive(PrimitiveValue::Long(v)) => *v,
+        NodeKind::Primitive(PrimitiveValue::ULong(v)) => i64::try_from(*v).ok()?,
+        _ => return None,
+    };
+
+    match repr {
+        EnumRepr::U8 => u8::try_from(value).ok().map(HeapLiteralValue::U8),
+        EnumRepr::I32 => i32::try_from(value).ok().map(HeapLiteralValue::I32),
+    }
+}
+
+fn parse_u32_array_literal(text: &str, line_num: usize) -> Result<Vec<u32>> {
+    let trimmed = text.trim();
+    if !(trimmed.starts_with('[') && trimmed.ends_with(']')) {
+        return Err(AsmError::new(format!(
+            "Line {}: u32[] init must be '[...]', got '{}'.",
+            line_num, text
+        )));
+    }
+    let body = &trimmed[1..trimmed.len() - 1];
+    if body.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::<u32>::new();
+    for part in body.split(',') {
+        out.push(parse_u32_literal(part.trim(), line_num)?);
+    }
+    Ok(out)
+}
+
+fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
+    let trimmed = text.trim();
+    if !(trimmed.starts_with('[') && trimmed.ends_with(']')) {
+        return Err(AsmError::new(format!(
+            "Line {}: array init must be '[...]', got '{}'.",
+            line_num, text
+        )));
+    }
+    let body = &trimmed[1..trimmed.len() - 1];
+    if body.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut out = Vec::<String>::new();
+    let mut current = String::new();
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for ch in body.chars() {
+        if in_string {
+            current.push(ch);
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            match ch {
+                '\\' => escaped = true,
+                '"' => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+
+        match ch {
+            '"' => {
+                in_string = true;
+                current.push(ch);
+            }
+            ',' => {
+                out.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    if in_string {
+        return Err(AsmError::new(format!(
+            "Line {}: unterminated string in array literal '{}'.",
+            line_num, text
+        )));
+    }
+    if !current.trim().is_empty() {
+        out.push(current.trim().to_string());
+    } else if body.ends_with(',') {
+        return Err(AsmError::new(format!(
+            "Line {}: trailing comma in array literal '{}'.",
+            line_num, text
+        )));
+    }
+    Ok(out)
+}
+
+fn decode_typed_primitive_array_from_raw(
+    element_type: &str,
+    bytes_per_element: usize,
+    raw: &[u8],
+) -> Option<Vec<HeapLiteralValue>> {
+    if bytes_per_element == 0 || !raw.len().is_multiple_of(bytes_per_element) {
+        return None;
+    }
+    let head = type_name_head(element_type);
+    let mut out = Vec::<HeapLiteralValue>::with_capacity(raw.len() / bytes_per_element);
+    for chunk in raw.chunks_exact(bytes_per_element) {
+        if let Some(repr) = enum_repr(head) {
+            let value = match repr {
+                EnumRepr::U8 if bytes_per_element == 1 => HeapLiteralValue::U8(chunk[0]),
+                EnumRepr::I32 if bytes_per_element == 4 => {
+                    HeapLiteralValue::I32(i32::from_le_bytes([
+                        chunk[0], chunk[1], chunk[2], chunk[3],
+                    ]))
+                }
+                _ => return None,
+            };
+            out.push(value);
+            continue;
+        }
+        let value = match head {
+            TYPE_SYSTEM_BOOLEAN if bytes_per_element == 1 => HeapLiteralValue::Bool(chunk[0] != 0),
+            TYPE_SYSTEM_SBYTE if bytes_per_element == 1 => HeapLiteralValue::I8(chunk[0] as i8),
+            TYPE_SYSTEM_BYTE if bytes_per_element == 1 => HeapLiteralValue::U8(chunk[0]),
+            TYPE_SYSTEM_INT16 if bytes_per_element == 2 => {
+                HeapLiteralValue::I16(i16::from_le_bytes([chunk[0], chunk[1]]))
+            }
+            TYPE_SYSTEM_UINT16 if bytes_per_element == 2 => {
+                HeapLiteralValue::U16(u16::from_le_bytes([chunk[0], chunk[1]]))
+            }
+            TYPE_SYSTEM_INT32 if bytes_per_element == 4 => {
+                HeapLiteralValue::I32(i32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+            }
+            TYPE_SYSTEM_UINT32 if bytes_per_element == 4 => {
+                HeapLiteralValue::U32(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+            }
+            TYPE_SYSTEM_INT64 if bytes_per_element == 8 => {
+                HeapLiteralValue::I64(i64::from_le_bytes([
+                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
+                ]))
+            }
+            TYPE_SYSTEM_UINT64 if bytes_per_element == 8 => {
+                HeapLiteralValue::U64(u64::from_le_bytes([
+                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
+                ]))
+            }
+            TYPE_SYSTEM_SINGLE if bytes_per_element == 4 => {
+                HeapLiteralValue::F32(f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+            }
+            TYPE_SYSTEM_DOUBLE if bytes_per_element == 8 => {
+                HeapLiteralValue::F64(f64::from_le_bytes([
+                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
+                ]))
+            }
+            _ => return None,
+        };
+        out.push(value);
+    }
+    Some(out)
+}
+
+fn is_supported_typed_scalar_or_enum(type_name: &str) -> bool {
+    if enum_repr(type_name_head(type_name)).is_some() {
+        return true;
+    }
+    matches!(
+        type_name_head(type_name),
+        TYPE_SYSTEM_BOOLEAN
+            | TYPE_SYSTEM_SBYTE
+            | TYPE_SYSTEM_BYTE
+            | TYPE_SYSTEM_INT16
+            | TYPE_SYSTEM_UINT16
+            | TYPE_SYSTEM_INT32
+            | TYPE_SYSTEM_UINT32
+            | TYPE_SYSTEM_INT64
+            | TYPE_SYSTEM_UINT64
+            | TYPE_SYSTEM_SINGLE
+            | TYPE_SYSTEM_DOUBLE
+    )
+}
+
+fn is_unserializable_placeholder_token(token: &str) -> bool {
+    let trimmed = token.trim();
+    if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_LITERAL) {
+        return true;
+    }
+    if trimmed.eq_ignore_ascii_case("null") {
+        return true;
+    }
+    false
+}
+
+fn parse_typed_vector2_literal(text: &str, line_num: usize) -> Result<(f32, f32)> {
+    parse_vector2_literal(text).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Expected 'new {}(x, y)' or '(x, y)'.",
+            line_num, TYPE_UNITY_VECTOR2, text, TYPE_UNITY_VECTOR2
+        ))
+    })
+}
+
+fn parse_typed_vector3_literal(text: &str, line_num: usize) -> Result<(f32, f32, f32)> {
+    parse_vector3_literal(text).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Expected 'new {}(x, y, z)' or '(x, y, z)'.",
+            line_num, TYPE_UNITY_VECTOR3, text, TYPE_UNITY_VECTOR3
+        ))
+    })
+}
+
+fn parse_typed_quaternion_literal(text: &str, line_num: usize) -> Result<(f32, f32, f32, f32)> {
+    parse_quaternion_literal(text).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Expected 'new {}(x, y, z, w)' or '(x, y, z, w)'.",
+            line_num, TYPE_UNITY_QUATERNION, text, TYPE_UNITY_QUATERNION
+        ))
+    })
+}
+
+fn parse_typed_color_literal(text: &str, line_num: usize) -> Result<(f32, f32, f32, f32)> {
+    parse_color_literal(text).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Expected 'new {}(r, g, b, a)', 'RGBA(r, g, b, a)' or '(r, g, b, a)'.",
+            line_num, TYPE_UNITY_COLOR, text, TYPE_UNITY_COLOR
+        ))
+    })
+}
+
+fn parse_typed_serialization_result_literal(text: &str, line_num: usize) -> Result<(bool, i32)> {
+    parse_serialization_result_text(text).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Expected 'new {} {{ success = <bool>, byteCount = <int> }}'.",
+            line_num, TYPE_VRC_SERIALIZATION_RESULT, text, TYPE_VRC_SERIALIZATION_RESULT
+        ))
+    })
+}
+
+fn parse_system_type_literal(text: &str, line_num: usize) -> Result<String> {
+    let trimmed = text.trim();
+    let Some(rest) = trimmed.strip_prefix("typeof") else {
+        return Err(AsmError::new(format!(
+            "Line {}: {} init must use typeof(...), got '{}'.",
+            line_num, TYPE_SYSTEM_TYPE, text
+        )));
+    };
+    let rest = rest.trim_start();
+    if !rest.starts_with('(') {
+        return Err(AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Expected typeof(<type>) optionally with /* <assembly> */.",
+            line_num, TYPE_SYSTEM_TYPE, text
+        )));
+    }
+
+    let mut depth = 0usize;
+    let mut close_index = None::<usize>;
+    for (idx, ch) in rest.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                if depth == 0 {
+                    return Err(AsmError::new(format!(
+                        "Line {}: invalid {} init '{}'.",
+                        line_num, TYPE_SYSTEM_TYPE, text
+                    )));
+                }
+                depth -= 1;
+                if depth == 0 {
+                    close_index = Some(idx);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let Some(close_index) = close_index else {
+        return Err(AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Missing ')'.",
+            line_num, TYPE_SYSTEM_TYPE, text
+        )));
+    };
+
+    let type_name = rest[1..close_index].trim();
+    if type_name.is_empty() {
+        return Err(AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Empty type inside typeof(...).",
+            line_num, TYPE_SYSTEM_TYPE, text
+        )));
+    }
+
+    let tail = rest[close_index + 1..].trim();
+    if tail.is_empty() {
+        return Ok(type_name.to_string());
+    }
+
+    if !(tail.starts_with("/*") && tail.ends_with("*/") && tail.len() >= 4) {
+        return Err(AsmError::new(format!(
+            "Line {}: invalid {} init '{}'. Trailing text must be block comment /* <assembly> */.",
+            line_num, TYPE_SYSTEM_TYPE, text
+        )));
+    }
+    let assembly = tail[2..tail.len() - 2].trim();
+    if assembly.is_empty() {
+        return Ok(type_name.to_string());
+    }
+    Ok(format!("{type_name}, {assembly}"))
+}
+
+fn parse_vector2_literal(text: &str) -> Option<(f32, f32)> {
+    parse_ctor_or_tuple_literal(text, &[TYPE_UNITY_VECTOR2], 2).map(|v| (v[0], v[1]))
+}
+
+fn parse_vector3_literal(text: &str) -> Option<(f32, f32, f32)> {
+    parse_ctor_or_tuple_literal(text, &[TYPE_UNITY_VECTOR3], 3).map(|v| (v[0], v[1], v[2]))
+}
+
+fn parse_quaternion_literal(text: &str) -> Option<(f32, f32, f32, f32)> {
+    parse_ctor_or_tuple_literal(text, &[TYPE_UNITY_QUATERNION], 4).map(|v| (v[0], v[1], v[2], v[3]))
+}
+
+fn parse_color_literal(text: &str) -> Option<(f32, f32, f32, f32)> {
+    if let Some(inner) = text.trim().strip_prefix("RGBA(")
+        && let Some(inner) = inner.strip_suffix(')')
+    {
+        let parts = inner.split(',').map(str::trim).collect::<Vec<_>>();
+        if parts.len() == 4 {
+            return Some((
+                parse_f32_component(parts[0])?,
+                parse_f32_component(parts[1])?,
+                parse_f32_component(parts[2])?,
+                parse_f32_component(parts[3])?,
+            ));
+        }
+    }
+    parse_ctor_or_tuple_literal(text, &[TYPE_UNITY_COLOR], 4).map(|v| (v[0], v[1], v[2], v[3]))
+}
+
+fn parse_ctor_or_tuple_literal(
+    text: &str,
+    ctor_names: &[&str],
+    component_count: usize,
+) -> Option<Vec<f32>> {
+    let mut s = text.trim();
+    if let Some(stripped) = s.strip_prefix("new") {
+        s = stripped.trim_start();
+        let mut matched_ctor = false;
+        for ctor in ctor_names {
+            if let Some(rest) = s.strip_prefix(ctor) {
+                s = rest.trim_start();
+                matched_ctor = true;
+                break;
+            }
+        }
+        if !matched_ctor {
+            return None;
+        }
+    }
+
+    if !(s.starts_with('(') && s.ends_with(')')) {
+        return None;
+    }
+    let body = &s[1..s.len() - 1];
+    let parts = body.split(',').map(str::trim).collect::<Vec<_>>();
+    if parts.len() != component_count {
+        return None;
+    }
+    let mut out = Vec::<f32>::with_capacity(component_count);
+    for part in parts {
+        out.push(parse_f32_component(part)?);
+    }
+    Some(out)
+}
+
+fn parse_serialization_result_text(text: &str) -> Option<(bool, i32)> {
+    let trimmed = text.trim();
+    if trimmed.starts_with('{') && trimmed.ends_with('}') {
+        return parse_serialization_result_json_like(trimmed);
+    }
+    parse_serialization_result_object_initializer(trimmed)
+}
+
+fn parse_serialization_result_object_initializer(text: &str) -> Option<(bool, i32)> {
+    let prefix = format!("new {TYPE_VRC_SERIALIZATION_RESULT}");
+    let rest = text.strip_prefix(prefix.as_str())?.trim_start();
+    let body = if let Some(after_brace) = rest.strip_prefix('{') {
+        after_brace.strip_suffix('}')?.trim()
+    } else {
+        return None;
+    };
+    parse_serialization_result_key_values(body, '=')
+}
+
+fn parse_serialization_result_json_like(text: &str) -> Option<(bool, i32)> {
+    let body = text.strip_prefix('{')?.strip_suffix('}')?.trim();
+    parse_serialization_result_key_values(body, ':')
+}
+
+fn parse_serialization_result_key_values(body: &str, sep: char) -> Option<(bool, i32)> {
+    let mut success: Option<bool> = None;
+    let mut byte_count: Option<i32> = None;
+
+    for pair in body.split(',') {
+        let (key_raw, value_raw) = pair.split_once(sep)?;
+        let key = key_raw.trim().trim_matches('"');
+        let value = value_raw.trim();
+        if key.eq_ignore_ascii_case("success") {
+            success = match value {
+                "true" => Some(true),
+                "false" => Some(false),
+                _ => None,
+            };
+        } else if key.eq_ignore_ascii_case("byteCount") || key.eq_ignore_ascii_case("byte_count") {
+            byte_count = value.parse::<i32>().ok();
+        }
+    }
+    Some((success?, byte_count?))
+}
+
+fn parse_f32_component(text: &str) -> Option<f32> {
+    let trimmed = text.trim();
+    let number = if let Some(v) = trimmed.strip_suffix('f') {
+        v.trim_end()
+    } else if let Some(v) = trimmed.strip_suffix('F') {
+        v.trim_end()
+    } else {
+        trimmed
+    };
+    number.parse::<f32>().ok()
+}
+
+fn unescape_quoted_string(input: &str) -> String {
+    input
+        .replace("\\\"", "\"")
+        .replace("\\\\", "\\")
+        .replace("\\n", "\n")
+        .replace("\\r", "\r")
+        .replace("\\t", "\t")
+}
+
+pub(crate) fn resolve_heap_literal_for_program_entry(
+    program: &UdonProgramBinary,
+    index: usize,
+    type_name: &str,
+    resolved_kind: &NodeKind,
+) -> crate::odin::Result<HeapLiteralValue> {
+    let head = type_name_head(type_name);
+    if let Some(element_type) = head.strip_suffix("[]") {
+        if head == TYPE_SYSTEM_UINT32_ARRAY
+            && let Some(values) = program.heap_dump_strongbox_u32_array(index)?
+        {
+            return Ok(HeapLiteralValue::U32Array(values));
+        }
+
+        if let Some((bytes_per_element, raw)) =
+            program.heap_dump_strongbox_primitive_array_raw(index)?
+        {
+            if let Some(elements) = decode_typed_primitive_array_from_raw(
+                element_type.trim(),
+                bytes_per_element,
+                raw.as_slice(),
+            ) {
+                return Ok(HeapLiteralValue::TypedArray {
+                    element_type: element_type.trim().to_string(),
+                    elements,
+                });
+            }
+            let len = if bytes_per_element > 0 {
+                raw.len() / bytes_per_element
+            } else {
+                0
+            };
+            return Ok(HeapLiteralValue::OpaqueArray { len });
+        }
+
+        if let NodeKind::Array { declared_len } = resolved_kind {
+            let len = usize::try_from((*declared_len).max(0)).unwrap_or(0);
+            return Ok(HeapLiteralValue::OpaqueArray { len });
+        }
+    }
+    if head == TYPE_UNITY_VECTOR3
+        && let Some((x, y, z)) = program.heap_dump_strongbox_vector3(index)?
+    {
+        return Ok(HeapLiteralValue::Vector3(x, y, z));
+    }
+    if head == TYPE_UNITY_VECTOR2
+        && let Some((x, y)) = program.heap_dump_strongbox_vector2(index)?
+    {
+        return Ok(HeapLiteralValue::Vector2(x, y));
+    }
+    if head == TYPE_UNITY_QUATERNION
+        && let Some((x, y, z, w)) = program.heap_dump_strongbox_quaternion(index)?
+    {
+        return Ok(HeapLiteralValue::Quaternion(x, y, z, w));
+    }
+    if head == TYPE_UNITY_COLOR
+        && let Some((r, g, b, a)) = program.heap_dump_strongbox_color(index)?
+    {
+        return Ok(HeapLiteralValue::Color(r, g, b, a));
+    }
+    if head == TYPE_VRC_SERIALIZATION_RESULT
+        && let Some((success, byte_count)) =
+            program.heap_dump_strongbox_serialization_result(index)?
+    {
+        return Ok(HeapLiteralValue::SerializationResult {
+            success,
+            byte_count,
+        });
+    }
+    if head == TYPE_SYSTEM_TYPE
+        && let Some(name) = program.heap_dump_strongbox_system_type_name(index)?
+    {
+        return Ok(HeapLiteralValue::SystemType(name));
+    }
+    Ok(heap_literal_from_node_kind(type_name, resolved_kind))
+}
+
+pub(crate) fn heap_literal_from_node_kind(type_name: &str, kind: &NodeKind) -> HeapLiteralValue {
+    if matches!(kind, NodeKind::Null) {
+        return HeapLiteralValue::Null;
+    }
+    let head = type_name_head(type_name);
+    if let Some(value) = enum_literal_from_node_kind(head, kind) {
+        return value;
+    }
+    match (head, kind) {
+        (TYPE_SYSTEM_BOOLEAN, NodeKind::Primitive(PrimitiveValue::Boolean(v))) => {
+            HeapLiteralValue::Bool(*v)
+        }
+        (TYPE_SYSTEM_SBYTE, NodeKind::Primitive(PrimitiveValue::SByte(v))) => {
+            HeapLiteralValue::I8(*v)
+        }
+        (TYPE_SYSTEM_BYTE, NodeKind::Primitive(PrimitiveValue::Byte(v))) => {
+            HeapLiteralValue::U8(*v)
+        }
+        (TYPE_SYSTEM_INT16, NodeKind::Primitive(PrimitiveValue::Short(v))) => {
+            HeapLiteralValue::I16(*v)
+        }
+        (TYPE_SYSTEM_UINT16, NodeKind::Primitive(PrimitiveValue::UShort(v))) => {
+            HeapLiteralValue::U16(*v)
+        }
+        (TYPE_SYSTEM_INT32, NodeKind::Primitive(PrimitiveValue::Int(v))) => {
+            HeapLiteralValue::I32(*v)
+        }
+        (TYPE_SYSTEM_UINT32, NodeKind::Primitive(PrimitiveValue::UInt(v))) => {
+            HeapLiteralValue::U32(*v)
+        }
+        (TYPE_SYSTEM_INT64, NodeKind::Primitive(PrimitiveValue::Long(v))) => {
+            HeapLiteralValue::I64(*v)
+        }
+        (TYPE_SYSTEM_UINT64, NodeKind::Primitive(PrimitiveValue::ULong(v))) => {
+            HeapLiteralValue::U64(*v)
+        }
+        (TYPE_SYSTEM_SINGLE, NodeKind::Primitive(PrimitiveValue::Float(v))) => {
+            HeapLiteralValue::F32(*v)
+        }
+        (TYPE_SYSTEM_DOUBLE, NodeKind::Primitive(PrimitiveValue::Double(v))) => {
+            HeapLiteralValue::F64(*v)
+        }
+        (TYPE_SYSTEM_STRING, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            HeapLiteralValue::String(v.value.clone())
+        }
+        (TYPE_SYSTEM_TYPE, NodeKind::TypeNameMetadata { name, .. }) => {
+            HeapLiteralValue::SystemType(name.value.clone())
+        }
+        (TYPE_SYSTEM_TYPE, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            HeapLiteralValue::SystemType(v.value.clone())
+        }
+        (
+            TYPE_SYSTEM_TYPE,
+            NodeKind::TypeIdMetadata {
+                resolved_name: Some(name),
+                ..
+            },
+        ) => HeapLiteralValue::SystemType(name.clone()),
+        (TYPE_UNITY_VECTOR2, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            if let Some((x, y)) = parse_vector2_literal(v.value.as_str()) {
+                HeapLiteralValue::Vector2(x, y)
+            } else {
+                HeapLiteralValue::Unserializable
+            }
+        }
+        (TYPE_UNITY_VECTOR3, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            if let Some((x, y, z)) = parse_vector3_literal(v.value.as_str()) {
+                HeapLiteralValue::Vector3(x, y, z)
+            } else {
+                HeapLiteralValue::Unserializable
+            }
+        }
+        (TYPE_UNITY_QUATERNION, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            if let Some((x, y, z, w)) = parse_quaternion_literal(v.value.as_str()) {
+                HeapLiteralValue::Quaternion(x, y, z, w)
+            } else {
+                HeapLiteralValue::Unserializable
+            }
+        }
+        (TYPE_UNITY_COLOR, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            if let Some((r, g, b, a)) = parse_color_literal(v.value.as_str()) {
+                HeapLiteralValue::Color(r, g, b, a)
+            } else {
+                HeapLiteralValue::Unserializable
+            }
+        }
+        (TYPE_VRC_SERIALIZATION_RESULT, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            if let Some((success, byte_count)) = parse_serialization_result_text(v.value.as_str()) {
+                HeapLiteralValue::SerializationResult {
+                    success,
+                    byte_count,
+                }
+            } else {
+                HeapLiteralValue::Unserializable
+            }
+        }
+        _ => HeapLiteralValue::Unserializable,
+    }
+}
