@@ -10,6 +10,7 @@ namespace QvPen.UdonScript
     public class QvPen_EraserManager : UdonSharpBehaviour
     {
         VRC.Udon.UdonBehaviour eraser = null;
+        System.Int32 inkColliderLayer = 9;
         UnityEngine.GameObject respawnButton = null;
         UnityEngine.GameObject inUseUI = null;
         UnityEngine.UI.Text textInUse = null;
@@ -23,7 +24,7 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __0_get_syncedData__ret = null;
         UnityEngine.Vector3[] __0_value__param = null;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = null /* {"byteCount": 0, "success": false} */;
+        VRC.Udon.Common.SerializationResult onPostSerializationResult = new VRC.Udon.Common.SerializationResult { success = false, byteCount = 0 };
 
         public void _start()
         {
@@ -46,7 +47,7 @@ namespace QvPen.UdonScript
             }
             if (__intnl_SystemBoolean_0)
             {
-                this.SendCustomNetworkEvent(null /* 0 */, "StartUsing");
+                this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "StartUsing");
             }
             return;
         }

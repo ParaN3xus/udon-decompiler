@@ -7,12 +7,12 @@ expression: output.generated_code
 
 public class OutParameter : UdonSharpBehaviour
 {
-    System.Object[] __gintnl_SystemObjectArray_0 = null /* [null] */;
+    System.Object[] __gintnl_SystemObjectArray_0 = new System.Object[] { null /* unserializable */ };
 
     public void _start()
     {
         VRC.SDK3.Data.DataDictionary __lcl_myDict_VRCSDK3DataDataDictionary_0 = null;
-        VRC.SDK3.Data.DataToken __lcl_outResult_VRCSDK3DataDataToken_0 = null /* "Null" */;
+        VRC.SDK3.Data.DataToken __lcl_outResult_VRCSDK3DataDataToken_0 = null /* unserializable */;
         System.Boolean __lcl_success_SystemBoolean_0 = false;
 
         __lcl_myDict_VRCSDK3DataDataDictionary_0 = new VRC.SDK3.Data.DataDictionary();

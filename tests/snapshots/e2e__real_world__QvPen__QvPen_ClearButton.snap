@@ -82,7 +82,7 @@ namespace QvPen.Udon.UI
             targetTime1 = UnityEngine.Time.time + 0.31f;
             targetTime2 = UnityEngine.Time.time + 2.0f;
             targetTime_TextImage = UnityEngine.Time.time + 5.0f;
-            this.SendCustomEventDelayedSeconds("_LoopIndicator1", 0.0f, null /* 0 */);
+            this.SendCustomEventDelayedSeconds("_LoopIndicator1", 0.0f, VRC.Udon.Common.Enums.EventTiming.Update);
             function_3();
             return;
         }
@@ -148,7 +148,7 @@ namespace QvPen.Udon.UI
                     __0_ownIndicatorValue__param = 1.0f;
                     __0_allIndicatorValue__param = __intnl_SystemSingle_8;
                     function_2();
-                    this.SendCustomEventDelayedFrames("_LoopIndicator2", 0, null /* 0 */);
+                    this.SendCustomEventDelayedFrames("_LoopIndicator2", 0, VRC.Udon.Common.Enums.EventTiming.Update);
                 }
                 else
                 {
@@ -157,7 +157,7 @@ namespace QvPen.Udon.UI
                     __0_ownIndicatorValue__param = __intnl_SystemSingle_8;
                     __0_allIndicatorValue__param = __intnl_SystemSingle_10;
                     function_2();
-                    this.SendCustomEventDelayedFrames("_LoopIndicator1", 0, null /* 0 */);
+                    this.SendCustomEventDelayedFrames("_LoopIndicator1", 0, VRC.Udon.Common.Enums.EventTiming.Update);
                 }
             }
             return;
@@ -184,7 +184,7 @@ namespace QvPen.Udon.UI
                     __0_ownIndicatorValue__param = 0.0f;
                     __0_allIndicatorValue__param = __intnl_SystemSingle_13;
                     function_2();
-                    this.SendCustomEventDelayedFrames("_LoopIndicator2", 0, null /* 0 */);
+                    this.SendCustomEventDelayedFrames("_LoopIndicator2", 0, VRC.Udon.Common.Enums.EventTiming.Update);
                 }
             }
             return;
@@ -241,7 +241,8 @@ namespace QvPen.Udon.UI
                     }
                     else
                     {
-                        this.SendCustomEventDelayedSeconds("_LoopTextImageActive", __lcl_leaveTime_TextImage_SystemSingle_0 / 2.0f, null /* 0 */);
+                        this.SendCustomEventDelayedSeconds("_LoopTextImageActive", __lcl_leaveTime_TextImage_SystemSingle_0 / 2.0f,
+                                                           VRC.Udon.Common.Enums.EventTiming.Update);
                     }
                 }
             }
@@ -276,7 +277,7 @@ namespace QvPen.Udon.UI
         {
             if (VRC.SDKBase.Utilities.IsValid(penManager))
             {
-                penManager.SendCustomNetworkEvent(null /* 0 */, "Clear");
+                penManager.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "Clear");
             }
             return;
         }
