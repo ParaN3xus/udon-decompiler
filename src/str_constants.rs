@@ -50,6 +50,9 @@ pub const SYMBOL_PREFIX_THIS: &str = "__this_";
 pub const SYMBOL_PREFIX_LCL: &str = "__lcl_";
 pub const SYMBOL_PREFIX_INTNL: &str = "__intnl_";
 
+pub const SYMBOL_RETURN_JUMP_U32: &str = "__intnl_returnJump_SystemUInt32_0";
+pub const SYMBOL_CONST_SYSTEM_UINT32_0: &str = "__const_SystemUInt32_0";
+
 pub const SYMBOL_THIS: &str = "this";
 pub const SYMBOL_THIS_TRANSFORM: &str = "this.transform";
 pub const SYMBOL_THIS_GAME_OBJECT: &str = "this.gameObject";

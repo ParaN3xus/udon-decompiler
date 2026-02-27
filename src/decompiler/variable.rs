@@ -5,6 +5,7 @@ use crate::str_constants::{
     SYMBOL_PREFIX_LCL, SYMBOL_PREFIX_THIS, SYMBOL_THIS, SYMBOL_THIS_GAME_OBJECT,
     SYMBOL_THIS_TRANSFORM,
 };
+use crate::udon_asm::generated_heap_symbol;
 
 use super::context::{DecompileHeapEntry, DecompileSymbol};
 
@@ -54,7 +55,7 @@ impl VariableTable {
                 )
             } else {
                 (
-                    format!("heap_0x{:08X}", heap.address),
+                    generated_heap_symbol(heap.address),
                     false,
                     VariableScope::Temporary,
                 )
@@ -86,6 +87,20 @@ impl VariableTable {
             .get(&address)
             .copied()
             .and_then(|idx| self.variables.get_mut(idx))
+    }
+
+    pub fn symbol_name_by_address_map(&self) -> HashMap<u32, String> {
+        self.variables
+            .iter()
+            .map(|x| (x.address, x.name.clone()))
+            .collect()
+    }
+
+    pub fn symbol_type_by_address_map(&self) -> HashMap<u32, String> {
+        self.variables
+            .iter()
+            .map(|x| (x.address, x.type_name.clone()))
+            .collect()
     }
 }
 
