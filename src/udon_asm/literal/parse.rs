@@ -156,24 +156,8 @@ fn parse_typed_heap_literal(
                     line_num, trimmed, e
                 ))
             }),
-        TYPE_SYSTEM_SINGLE => trimmed
-            .parse::<f32>()
-            .map(HeapLiteralValue::F32)
-            .map_err(|e| {
-                AsmError::new(format!(
-                    "Line {}: invalid f32 init '{}': {}",
-                    line_num, trimmed, e
-                ))
-            }),
-        TYPE_SYSTEM_DOUBLE => trimmed
-            .parse::<f64>()
-            .map(HeapLiteralValue::F64)
-            .map_err(|e| {
-                AsmError::new(format!(
-                    "Line {}: invalid f64 init '{}': {}",
-                    line_num, trimmed, e
-                ))
-            }),
+        TYPE_SYSTEM_SINGLE => parse_f32_literal(trimmed, line_num).map(HeapLiteralValue::F32),
+        TYPE_SYSTEM_DOUBLE => parse_f64_literal(trimmed, line_num).map(HeapLiteralValue::F64),
         TYPE_SYSTEM_STRING => Ok(HeapLiteralValue::String(parse_quoted_string(
             trimmed, line_num,
         )?)),
@@ -267,13 +251,24 @@ fn parse_i32_literal(text: &str, line_num: usize) -> Result<i32> {
     }
 }
 
+fn parse_f32_literal(text: &str, line_num: usize) -> Result<f32> {
+    parse_f32_component(text)
+        .ok_or_else(|| AsmError::new(format!("Line {}: invalid f32 init '{}'.", line_num, text)))
+}
+
+fn parse_f64_literal(text: &str, line_num: usize) -> Result<f64> {
+    parse_f64_component(text)
+        .ok_or_else(|| AsmError::new(format!("Line {}: invalid f64 init '{}'.", line_num, text)))
+}
+
 fn parse_typed_enum_literal(
     type_head: &str,
     repr: EnumRepr,
     trimmed: &str,
     line_num: usize,
 ) -> Result<HeapLiteralValue> {
-    if let Some(value) = enum_name_to_value(type_head, trimmed) {
+    let enum_token = trimmed.rsplit('.').next().unwrap_or(trimmed).trim();
+    if let Some(value) = enum_name_to_value(type_head, enum_token) {
         return match repr {
             EnumRepr::I32 => i32::try_from(value)
                 .map(HeapLiteralValue::I32)
@@ -289,6 +284,24 @@ fn parse_typed_enum_literal(
                     line_num, trimmed, type_head
                 ))
             }),
+        };
+    }
+
+    if let Some((cast_type, cast_value)) = parse_csharp_cast_literal(trimmed)
+        && normalize_type_token(cast_type) == normalize_type_token(type_head)
+    {
+        return match repr {
+            EnumRepr::I32 => parse_i32_literal(cast_value, line_num).map(HeapLiteralValue::I32),
+            EnumRepr::U8 => parse_u32_literal(cast_value, line_num)
+                .and_then(|v| {
+                    u8::try_from(v).map_err(|_| {
+                        AsmError::new(format!(
+                            "Line {}: enum init '{}' is out of u8 range for '{}'.",
+                            line_num, trimmed, type_head
+                        ))
+                    })
+                })
+                .map(HeapLiteralValue::U8),
         };
     }
 
@@ -328,14 +341,7 @@ fn enum_literal_from_node_kind(type_head: &str, kind: &NodeKind) -> Option<HeapL
 }
 
 fn parse_u32_array_literal(text: &str, line_num: usize) -> Result<Vec<u32>> {
-    let trimmed = text.trim();
-    if !(trimmed.starts_with('[') && trimmed.ends_with(']')) {
-        return Err(AsmError::new(format!(
-            "Line {}: u32[] init must be '[...]', got '{}'.",
-            line_num, text
-        )));
-    }
-    let body = &trimmed[1..trimmed.len() - 1];
+    let body = parse_array_literal_body(text, line_num, "u32[]")?;
     if body.trim().is_empty() {
         return Ok(Vec::new());
     }
@@ -347,14 +353,7 @@ fn parse_u32_array_literal(text: &str, line_num: usize) -> Result<Vec<u32>> {
 }
 
 fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
-    let trimmed = text.trim();
-    if !(trimmed.starts_with('[') && trimmed.ends_with(']')) {
-        return Err(AsmError::new(format!(
-            "Line {}: array init must be '[...]', got '{}'.",
-            line_num, text
-        )));
-    }
-    let body = &trimmed[1..trimmed.len() - 1];
+    let body = parse_array_literal_body(text, line_num, "array")?;
     if body.trim().is_empty() {
         return Ok(Vec::new());
     }
@@ -407,6 +406,66 @@ fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
         )));
     }
     Ok(out)
+}
+
+fn parse_array_literal_body<'a>(
+    text: &'a str,
+    line_num: usize,
+    type_name: &str,
+) -> Result<&'a str> {
+    let trimmed = text.trim();
+    if trimmed.starts_with('[') && trimmed.ends_with(']') {
+        return Ok(&trimmed[1..trimmed.len() - 1]);
+    }
+
+    if let Some(after_new) = trimmed.strip_prefix("new").map(str::trim_start) {
+        let Some(open_brace) = after_new.find('{') else {
+            return Err(AsmError::new(format!(
+                "Line {}: {} init must be '[...]' or 'new <type>[] {{ ... }}', got '{}'.",
+                line_num, type_name, text
+            )));
+        };
+        let Some(close_brace) = after_new.rfind('}') else {
+            return Err(AsmError::new(format!(
+                "Line {}: invalid {} init '{}'. Missing '}}'.",
+                line_num, type_name, text
+            )));
+        };
+        if close_brace <= open_brace {
+            return Err(AsmError::new(format!(
+                "Line {}: invalid {} init '{}'.",
+                line_num, type_name, text
+            )));
+        }
+        if !after_new[close_brace + 1..].trim().is_empty() {
+            return Err(AsmError::new(format!(
+                "Line {}: invalid {} init '{}'. Trailing text after array initializer.",
+                line_num, type_name, text
+            )));
+        }
+        return Ok(after_new[open_brace + 1..close_brace].trim());
+    }
+
+    Err(AsmError::new(format!(
+        "Line {}: {} init must be '[...]' or 'new <type>[] {{ ... }}', got '{}'.",
+        line_num, type_name, text
+    )))
+}
+
+fn parse_csharp_cast_literal(text: &str) -> Option<(&str, &str)> {
+    let trimmed = text.trim();
+    let rest = trimmed.strip_prefix('(')?;
+    let close_idx = rest.find(')')?;
+    let cast_type = rest[..close_idx].trim();
+    let value = rest[close_idx + 1..].trim();
+    if cast_type.is_empty() || value.is_empty() {
+        return None;
+    }
+    Some((cast_type, value))
+}
+
+fn normalize_type_token(text: &str) -> String {
+    type_name_head(text).replace('+', ".")
 }
 
 fn decode_typed_primitive_array_from_raw(
@@ -499,7 +558,13 @@ fn is_unserializable_placeholder_token(token: &str) -> bool {
     if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_LITERAL) {
         return true;
     }
+    if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL) {
+        return true;
+    }
     if trimmed.eq_ignore_ascii_case("null") {
+        return true;
+    }
+    if trimmed.starts_with("null") && trimmed.to_ascii_lowercase().contains("unserializable") {
         return true;
     }
     false
@@ -742,9 +807,20 @@ fn parse_f32_component(text: &str) -> Option<f32> {
     number.parse::<f32>().ok()
 }
 
+fn parse_f64_component(text: &str) -> Option<f64> {
+    let trimmed = text.trim();
+    let number = if let Some(v) = trimmed.strip_suffix('d') {
+        v.trim_end()
+    } else if let Some(v) = trimmed.strip_suffix('D') {
+        v.trim_end()
+    } else {
+        trimmed
+    };
+    number.parse::<f64>().ok()
+}
+
 fn unescape_quoted_string(input: &str, line_num: usize) -> Result<String> {
-    let quoted = format!("\"{input}\"");
-    serde_json::from_str::<String>(&quoted).map_err(|e| {
+    serde_json::from_str::<String>(&format!("\"{input}\"")).map_err(|e| {
         AsmError::new(format!(
             "Line {}: invalid escaped string literal '{}': {}",
             line_num, input, e

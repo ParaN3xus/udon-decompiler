@@ -3,6 +3,7 @@ use super::enum_map::{enum_repr, enum_value_to_name};
 use super::{EnumRepr, HeapLiteralValue, type_name_head};
 
 pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -> String {
+    let head = type_name_head(type_name);
     if let Some(text) = render_enum_literal(type_name, literal) {
         return text;
     }
@@ -17,8 +18,8 @@ pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -
         HeapLiteralValue::U32(v) => v.to_string(),
         HeapLiteralValue::I64(v) => v.to_string(),
         HeapLiteralValue::U64(v) => v.to_string(),
-        HeapLiteralValue::F32(v) => v.to_string(),
-        HeapLiteralValue::F64(v) => v.to_string(),
+        HeapLiteralValue::F32(v) => render_f32_scalar(*v),
+        HeapLiteralValue::F64(v) => render_f64_scalar(*v),
         HeapLiteralValue::String(v) => format!("{v:?}"),
         HeapLiteralValue::SystemType(v) => render_system_type_literal(v),
         HeapLiteralValue::Vector2(x, y) => render_vector2_literal(*x, *y),
@@ -32,18 +33,9 @@ pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -
         HeapLiteralValue::TypedArray {
             element_type,
             elements,
-        } => {
-            let parts = elements
-                .iter()
-                .map(|value| render_heap_array_element_literal(Some(element_type.as_str()), value))
-                .collect::<Vec<_>>();
-            format!("[{}]", parts.join(", "))
-        }
-        HeapLiteralValue::OpaqueArray { len } => render_unserializable_array_literal(*len),
-        HeapLiteralValue::U32Array(v) => {
-            let parts = v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
-            format!("[{}]", parts.join(", "))
-        }
+        } => render_typed_array_literal(element_type, elements),
+        HeapLiteralValue::OpaqueArray { len } => render_unserializable_array_literal(*len, head),
+        HeapLiteralValue::U32Array(v) => render_u32_array_literal(v),
         HeapLiteralValue::Unserializable => UNSERIALIZABLE_LITERAL.to_string(),
     }
 }
@@ -52,7 +44,12 @@ fn render_enum_literal(type_name: &str, literal: &HeapLiteralValue) -> Option<St
     let head = type_name_head(type_name);
     let repr = enum_repr(head)?;
     let value = enum_value_from_literal(repr, literal)?;
-    Some(enum_value_to_name(head, value).unwrap_or_else(|| value.to_string()))
+    let type_name = normalize_csharp_type_name(head);
+    Some(
+        enum_value_to_name(head, value)
+            .map(|name| format!("{type_name}.{name}"))
+            .unwrap_or_else(|| format!("({type_name}){value}")),
+    )
 }
 
 fn enum_value_from_literal(repr: EnumRepr, literal: &HeapLiteralValue) -> Option<i64> {
@@ -93,8 +90,8 @@ fn render_heap_array_element_literal(type_name: Option<&str>, value: &HeapLitera
         HeapLiteralValue::U32(v) => v.to_string(),
         HeapLiteralValue::I64(v) => v.to_string(),
         HeapLiteralValue::U64(v) => v.to_string(),
-        HeapLiteralValue::F32(v) => v.to_string(),
-        HeapLiteralValue::F64(v) => v.to_string(),
+        HeapLiteralValue::F32(v) => render_f32_array_element(*v),
+        HeapLiteralValue::F64(v) => render_f64_scalar(*v),
         HeapLiteralValue::String(v) => format!("{v:?}"),
         HeapLiteralValue::SystemType(v) => render_system_type_literal(v),
         HeapLiteralValue::Vector2(x, y) => render_vector2_literal(*x, *y),
@@ -108,28 +105,35 @@ fn render_heap_array_element_literal(type_name: Option<&str>, value: &HeapLitera
         HeapLiteralValue::TypedArray {
             element_type,
             elements,
-        } => {
-            let parts = elements
-                .iter()
-                .map(|item| render_heap_array_element_literal(Some(element_type.as_str()), item))
-                .collect::<Vec<_>>();
-            format!("[{}]", parts.join(", "))
-        }
+        } => render_typed_array_literal(element_type, elements),
         HeapLiteralValue::OpaqueArray { .. } => UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL.to_string(),
-        HeapLiteralValue::U32Array(v) => {
-            let parts = v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
-            format!("[{}]", parts.join(", "))
-        }
+        HeapLiteralValue::U32Array(v) => render_u32_array_literal(v),
         HeapLiteralValue::Unserializable => UNSERIALIZABLE_LITERAL.to_string(),
     }
 }
 
-fn render_unserializable_array_literal(len: usize) -> String {
-    if len == 0 {
-        return "[]".to_string();
-    }
+fn render_typed_array_literal(element_type: &str, elements: &[HeapLiteralValue]) -> String {
+    let parts = elements
+        .iter()
+        .map(|value| render_heap_array_element_literal(Some(element_type), value))
+        .collect::<Vec<_>>();
+    let csharp_array_type = format!(
+        "{}[]",
+        normalize_csharp_type_name(type_name_head(element_type))
+    );
+    format!("new {csharp_array_type} {{ {} }}", parts.join(", "))
+}
+
+fn render_u32_array_literal(values: &[u32]) -> String {
+    let parts = values.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let csharp_array_type = normalize_csharp_type_name(TYPE_SYSTEM_UINT32_ARRAY);
+    format!("new {csharp_array_type} {{ {} }}", parts.join(", "))
+}
+
+fn render_unserializable_array_literal(len: usize, type_name: &str) -> String {
     let parts = std::iter::repeat_n(UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL, len).collect::<Vec<_>>();
-    format!("[{}]", parts.join(", "))
+    let csharp_array_type = normalize_csharp_type_name(type_name);
+    format!("new {csharp_array_type} {{ {} }}", parts.join(", "))
 }
 
 fn render_vector3_literal(x: f32, y: f32, z: f32) -> String {
@@ -188,7 +192,12 @@ fn render_system_type_literal(text: &str) -> String {
         return "\"\"".to_string();
     }
     let (type_name, assembly_name) = split_assembly_qualified_type(value);
-    format!("typeof({type_name}) /* {assembly_name} */")
+    let type_name = normalize_csharp_type_name(type_name);
+    if assembly_name.is_empty() {
+        format!("typeof({type_name})")
+    } else {
+        format!("typeof({type_name}) /* {assembly_name} */")
+    }
 }
 
 fn split_assembly_qualified_type(value: &str) -> (&str, &str) {
@@ -205,7 +214,11 @@ fn split_assembly_qualified_type(value: &str) -> (&str, &str) {
             _ => {}
         }
     }
-    panic!("Invalid type {}", value);
+    (value, "")
+}
+
+fn normalize_csharp_type_name(type_name: &str) -> String {
+    type_name.trim().replace('+', ".")
 }
 
 fn render_f32_component(value: f32) -> String {
@@ -213,5 +226,25 @@ fn render_f32_component(value: f32) -> String {
         format!("{value:.1}f")
     } else {
         format!("{value}f")
+    }
+}
+
+fn render_f32_scalar(value: f32) -> String {
+    render_f32_component(value)
+}
+
+fn render_f32_array_element(value: f32) -> String {
+    if value.is_finite() && value.fract() == 0.0 {
+        format!("{value:.0}")
+    } else {
+        render_f32_component(value)
+    }
+}
+
+fn render_f64_scalar(value: f64) -> String {
+    if value.is_finite() && value.fract() == 0.0 {
+        format!("{value:.1}")
+    } else {
+        value.to_string()
     }
 }
