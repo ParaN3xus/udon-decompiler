@@ -15,11 +15,12 @@ impl InstructionId {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct InstructionList {
     instructions: Vec<AsmInstruction>,
     addresses: Vec<u32>,
     address_to_index: HashMap<u32, usize>,
+    base_address: u32,
 }
 
 impl InstructionList {
@@ -30,10 +31,18 @@ impl InstructionList {
     }
 
     pub fn from_asm_instructions(instructions: Vec<AsmInstruction>) -> Result<Self> {
+        Self::from_asm_instructions_with_base(instructions, 0)
+    }
+
+    pub fn from_asm_instructions_with_base(
+        instructions: Vec<AsmInstruction>,
+        base_address: u32,
+    ) -> Result<Self> {
         let mut list = Self {
             instructions,
             addresses: Vec::new(),
             address_to_index: HashMap::new(),
+            base_address,
         };
         list.rebuild_indexes()?;
         Ok(list)
@@ -72,6 +81,14 @@ impl InstructionList {
         self.instructions.len().checked_sub(1).map(InstructionId)
     }
 
+    pub fn id_by_index(&self, index: usize) -> Option<InstructionId> {
+        if index < self.instructions.len() {
+            Some(InstructionId(index))
+        } else {
+            None
+        }
+    }
+
     pub fn id_at_address(&self, address: u32) -> Option<InstructionId> {
         self.address_to_index
             .get(&address)
@@ -102,6 +119,11 @@ impl InstructionList {
 
     pub fn prev_of(&self, id: InstructionId) -> Option<InstructionId> {
         id.0.checked_sub(1).map(InstructionId)
+    }
+
+    pub fn next_address_of(&self, id: InstructionId) -> Option<u32> {
+        self.next_of(id)
+            .and_then(|next_id| self.address_of(next_id))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (InstructionId, u32, &AsmInstruction)> {
@@ -155,11 +177,27 @@ impl InstructionList {
         self.rebuild_indexes()
     }
 
+    pub fn slice_by_index_range(&self, start_index: usize, end_index: usize) -> Result<Self> {
+        if start_index > end_index || end_index > self.instructions.len() {
+            return Err(DecompileError::new(format!(
+                "slice range [{start_index}, {end_index}) out of bounds for len {}",
+                self.instructions.len()
+            )));
+        }
+        let base_address = if start_index < self.instructions.len() {
+            self.addresses[start_index]
+        } else {
+            self.base_address
+        };
+        let instructions = self.instructions[start_index..end_index].to_vec();
+        Self::from_asm_instructions_with_base(instructions, base_address)
+    }
+
     fn rebuild_indexes(&mut self) -> Result<()> {
         self.addresses.clear();
         self.address_to_index.clear();
 
-        let mut pc = 0_u32;
+        let mut pc = self.base_address;
         for (idx, inst) in self.instructions.iter().enumerate() {
             self.addresses.push(pc);
             self.address_to_index.insert(pc, idx);
