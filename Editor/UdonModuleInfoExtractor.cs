@@ -102,6 +102,10 @@ public class UdonModuleInfoExtractor : EditorWindow
                     isStatic = !(udonNodeDef.parameters.First().name == "instance" && udonNodeDef.parameters[0].type == moduleType);
                     returnsVoid = udonNodeDef.parameters.Last().parameterType != UdonNodeParameter.ParameterType.OUT;
                 }
+                if (udonNodeDef.parameters.Count == 0)
+                {
+                    returnsVoid = true;
+                }
 
                 var func = new FunctionDefinition
                 {
