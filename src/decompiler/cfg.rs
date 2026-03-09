@@ -244,6 +244,10 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     let target_addr = inst.numeric_operand().ok_or_else(|| {
                         DecompileError::new(format!("JUMP expects numeric operand at 0x{addr:08X}"))
                     })?;
+                    if ctx.is_out_of_program_counter_range(target_addr) {
+                        ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Return;
+                        break;
+                    }
 
                     let next_addr = ctx.instructions.next_address_of(global_inst_id);
                     let top = stack_state.peek(0);
