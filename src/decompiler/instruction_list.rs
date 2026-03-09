@@ -126,6 +126,7 @@ impl InstructionList {
             .and_then(|next_id| self.address_of(next_id))
     }
 
+    /// Yields each instruction in list order as `(instruction_id, bytecode_address, instruction)`.
     pub fn iter(&self) -> impl Iterator<Item = (InstructionId, u32, &AsmInstruction)> {
         self.instructions
             .iter()
