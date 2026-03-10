@@ -17,9 +17,7 @@ pub(crate) fn collect_switch_target_block_starts(
         if inst.opcode != OpCode::JumpIndirect {
             continue;
         }
-        let Some(operand) = inst.numeric_operand() else {
-            continue;
-        };
+        let operand = inst.numeric_operand();
         if is_return_jump_operand(operand, &ctx.symbol_name_by_address) {
             continue;
         }
@@ -74,7 +72,7 @@ pub(crate) fn resolve_switch_info_for_jump_indirect(
     if prev_extern.opcode != OpCode::Extern {
         return None;
     }
-    let extern_operand = prev_extern.numeric_operand()?;
+    let extern_operand = prev_extern.numeric_operand();
     let extern_signature = ctx.heap_string_literals.get(&extern_operand)?;
     if extern_signature != UINT32_ARRAY_GET_METHOD_NAME {
         return None;
@@ -82,8 +80,11 @@ pub(crate) fn resolve_switch_info_for_jump_indirect(
     module_info.get_function_info(extern_signature)?;
 
     let prev_push_addr = ctx.instructions.get(prev_push_addr_id)?;
-    let push_addr_operand = prev_push_addr.numeric_operand()?;
-    if prev_push_addr.opcode != OpCode::Push || push_addr_operand != jump_operand {
+    if prev_push_addr.opcode != OpCode::Push {
+        return None;
+    }
+    let push_addr_operand = prev_push_addr.numeric_operand();
+    if push_addr_operand != jump_operand {
         return None;
     }
     if symbol_name_by_address.get(&push_addr_operand) != symbol_name_by_address.get(&jump_operand) {
@@ -94,13 +95,13 @@ pub(crate) fn resolve_switch_info_for_jump_indirect(
     if prev_push_index.opcode != OpCode::Push {
         return None;
     }
-    let index_operand = prev_push_index.numeric_operand()?;
+    let index_operand = prev_push_index.numeric_operand();
 
     let prev_push_table = ctx.instructions.get(prev_push_table_id)?;
     if prev_push_table.opcode != OpCode::Push {
         return None;
     }
-    let table_operand = prev_push_table.numeric_operand()?;
+    let table_operand = prev_push_table.numeric_operand();
     let is_u32_array_table = symbol_type_by_address
         .get(&table_operand)
         .map(|name| name.split(',').next().unwrap_or(name).trim())

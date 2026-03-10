@@ -123,14 +123,12 @@ impl BasicBlockCollection {
 
             match last_inst.opcode {
                 crate::udon_asm::OpCode::Jump => {
-                    if let Some(target) = last_inst.numeric_operand() {
-                        connect_by_start(self, &start_to_block, block_id, target);
-                    }
+                    let target = last_inst.numeric_operand();
+                    connect_by_start(self, &start_to_block, block_id, target);
                 }
                 crate::udon_asm::OpCode::JumpIfFalse => {
-                    if let Some(target) = last_inst.numeric_operand() {
-                        connect_by_start(self, &start_to_block, block_id, target);
-                    }
+                    let target = last_inst.numeric_operand();
+                    connect_by_start(self, &start_to_block, block_id, target);
                     if let Some(addr) = next_addr {
                         connect_by_start(self, &start_to_block, block_id, addr);
                     }
@@ -151,9 +149,8 @@ fn find_block_starts(instructions: &InstructionList, entry_points: &[u32]) -> BT
     for (id, _addr, inst) in instructions.iter() {
         match inst.opcode {
             crate::udon_asm::OpCode::Jump | crate::udon_asm::OpCode::JumpIfFalse => {
-                if let Some(target) = inst.numeric_operand()
-                    && instructions.id_at_address(target).is_some()
-                {
+                let target = inst.numeric_operand();
+                if instructions.id_at_address(target).is_some() {
                     starts.insert(target);
                 }
                 if let Some(next_addr) = instructions

@@ -122,11 +122,25 @@ pub enum OperandToken {
     Number(u32),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AsmInstruction {
     pub labels: Vec<String>,
     pub opcode: OpCode,
     pub operand: Option<OperandToken>,
+}
+
+impl AsmInstruction {
+    pub fn numeric_operand(&self) -> u32 {
+        // todo: labels & symbol names can also be numeric by returning their
+        // addresses
+        match self.operand.as_ref() {
+            Some(OperandToken::Number(v)) => *v,
+            _ => panic!(
+                "instruction {:?} requires numeric operand but operand was {:?}",
+                self.opcode, self.operand
+            ),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
