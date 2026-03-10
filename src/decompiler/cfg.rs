@@ -128,15 +128,12 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
     let mut processed_blocks = HashSet::<usize>::new();
 
     for entry in &ctx.entry_points {
-        let block_id = ctx
-            .basic_blocks
-            .get_block_id_by_start(entry.address)
-            .ok_or_else(|| {
-                DecompileError::new(format!(
-                    "entry point '{}' points to missing basic block at 0x{:08X}",
-                    entry.name, entry.address
-                ))
-            })?;
+        let block_id = ctx.basic_block_id_by_start(entry.address).ok_or_else(|| {
+            DecompileError::new(format!(
+                "entry point '{}' points to missing basic block at 0x{:08X}",
+                entry.name, entry.address
+            ))
+        })?;
         pending.push_back((
             block_id,
             initial_stack_for_entry_point(ctx, entry),
@@ -418,14 +415,11 @@ fn enqueue_edge(
     stack_state: &StackFrame,
     heap_state: &HeapLiteralState,
 ) -> Result<()> {
-    let target_block_id = ctx
-        .basic_blocks
-        .get_block_id_by_start(target_address)
-        .ok_or_else(|| {
-            DecompileError::new(format!(
-                "cannot enqueue edge to non-block target 0x{target_address:08X}"
-            ))
-        })?;
+    let target_block_id = ctx.basic_block_id_by_start(target_address).ok_or_else(|| {
+        DecompileError::new(format!(
+            "cannot enqueue edge to non-block target 0x{target_address:08X}"
+        ))
+    })?;
     push_unique_edge(&mut artifacts.successors, source_block_id, target_block_id);
     push_unique_edge(
         &mut artifacts.predecessors,
@@ -476,15 +470,11 @@ fn build_function_cfgs(ctx: &DecompileContext) -> Vec<FunctionCfg> {
 
     for entry_index in selected_indices {
         let entry = &ctx.entry_points[entry_index];
-        let Some(entry_block) = ctx.basic_blocks.get_block_id_by_start(entry.address) else {
+        let Some(entry_block) = ctx.basic_block_id_by_start(entry.address) else {
             continue;
         };
         let mut reachable = collect_reachable_blocks(&ctx.basic_blocks, entry_block);
-        reachable.sort_by_key(|x| {
-            ctx.basic_blocks.blocks[*x]
-                .start_address()
-                .unwrap_or(u32::MAX)
-        });
+        reachable.sort_by_key(|x| ctx.basic_blocks.blocks[*x].start_address());
         functions.push(FunctionCfg {
             function_name: entry.name.clone(),
             is_function_public: entry.exported,
@@ -547,15 +537,11 @@ fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
         }
 
         let entry_address = ctx.entry_points[entry_index].address;
-        let Some(entry_block) = ctx.basic_blocks.get_block_id_by_start(entry_address) else {
+        let Some(entry_block) = ctx.basic_block_id_by_start(entry_address) else {
             continue;
         };
         let mut reachable = collect_reachable_blocks(&ctx.basic_blocks, entry_block);
-        reachable.sort_by_key(|x| {
-            ctx.basic_blocks.blocks[*x]
-                .start_address()
-                .unwrap_or(u32::MAX)
-        });
+        reachable.sort_by_key(|x| ctx.basic_blocks.blocks[*x].start_address());
 
         let mut instruction_addresses = Vec::<u32>::new();
         for block_id in reachable {
@@ -699,14 +685,11 @@ fn register_entry_target(
     }
 
     discovered_entry_addresses.push(target_addr);
-    let target_block = ctx
-        .basic_blocks
-        .get_block_id_by_start(target_addr)
-        .ok_or_else(|| {
-            DecompileError::new(format!(
-                "discovered entry target 0x{target_addr:08X} has no basic block"
-            ))
-        })?;
+    let target_block = ctx.basic_block_id_by_start(target_addr).ok_or_else(|| {
+        DecompileError::new(format!(
+            "discovered entry target 0x{target_addr:08X} has no basic block"
+        ))
+    })?;
     pending.push_back((
         target_block,
         initial_stack_for_hidden_entry(),
