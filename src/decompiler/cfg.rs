@@ -27,7 +27,6 @@ pub struct FunctionCfg {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackValue {
     pub value: u32,
-    pub literal_value: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -165,11 +164,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     let address = inst.numeric_operand().ok_or_else(|| {
                         DecompileError::new(format!("PUSH expects numeric operand at 0x{addr:08X}"))
                     })?;
-                    let literal = heap_state.get(&address).copied().flatten();
-                    stack_state.push(StackValue {
-                        value: address,
-                        literal_value: literal,
-                    });
+                    stack_state.push(StackValue { value: address });
                 }
                 OpCode::Pop => {
                     let _ = stack_state.pop().ok_or_else(|| {
@@ -187,9 +182,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                             "stack underflow on COPY target at 0x{addr:08X}"
                         ))
                     })?;
-                    let source_literal = source
-                        .literal_value
-                        .or_else(|| heap_state.get(&source.value).copied().flatten());
+                    let source_literal = heap_state.get(&source.value).copied().flatten();
                     heap_state.insert(target.value, source_literal);
                 }
                 OpCode::JumpIfFalse => {
@@ -665,10 +658,7 @@ fn initial_stack_for_entry_point(ctx: &DecompileContext, entry: &DecompileSymbol
 fn initial_stack_for_hidden_entry() -> StackFrame {
     let mut frame = StackFrame::default();
     // halt jump addr
-    frame.push(StackValue {
-        value: u32::MAX,
-        literal_value: Some(u32::MAX),
-    });
+    frame.push(StackValue { value: u32::MAX });
     frame
 }
 
@@ -761,9 +751,6 @@ fn matches_stack_literal(
     let Some(stack_value) = stack_value else {
         return false;
     };
-    if stack_value.literal_value == Some(expected) {
-        return true;
-    }
     heap_state.get(&stack_value.value).copied().flatten() == Some(expected)
 }
 
