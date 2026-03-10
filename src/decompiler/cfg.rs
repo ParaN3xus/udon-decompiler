@@ -161,9 +161,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
 
             match inst.opcode {
                 OpCode::Push => {
-                    let address = inst.numeric_operand().ok_or_else(|| {
-                        DecompileError::new(format!("PUSH expects numeric operand at 0x{addr:08X}"))
-                    })?;
+                    let address = inst.numeric_operand();
                     stack_state.push(StackValue { value: address });
                 }
                 OpCode::Pop => {
@@ -193,11 +191,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                             "stack underflow on JUMP_IF_FALSE at 0x{addr:08X}"
                         ))
                     })?;
-                    let target_addr = inst.numeric_operand().ok_or_else(|| {
-                        DecompileError::new(format!(
-                            "JUMP_IF_FALSE expects numeric operand at 0x{addr:08X}"
-                        ))
-                    })?;
+                    let target_addr = inst.numeric_operand();
                     enqueue_edge(
                         ctx,
                         &mut out,
@@ -231,9 +225,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                 OpCode::Jump => {
                     terminated = true;
 
-                    let target_addr = inst.numeric_operand().ok_or_else(|| {
-                        DecompileError::new(format!("JUMP expects numeric operand at 0x{addr:08X}"))
-                    })?;
+                    let target_addr = inst.numeric_operand();
                     if ctx.is_out_of_program_counter_range(target_addr) {
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Return;
                         break;
@@ -308,11 +300,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                 OpCode::JumpIndirect => {
                     terminated = true;
 
-                    let operand = inst.numeric_operand().ok_or_else(|| {
-                        DecompileError::new(format!(
-                            "JUMP_INDIRECT expects numeric operand at 0x{addr:08X}"
-                        ))
-                    })?;
+                    let operand = inst.numeric_operand();
                     if is_return_jump_operand(operand, &ctx.symbol_name_by_address) {
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Return;
                     } else {
@@ -567,9 +555,7 @@ fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
                 warn!("detected orphan COPY without a near PUSH, program may be broken");
                 continue;
             }
-            let Some(symbol_addr) = push_inst.numeric_operand() else {
-                continue;
-            };
+            let symbol_addr = push_inst.numeric_operand();
             let Some(symbol_name) = symbol_by_address.get(&symbol_addr) else {
                 continue;
             };
@@ -705,9 +691,7 @@ fn is_header_push_address(ctx: &DecompileContext, address: u32) -> bool {
     if inst.opcode != OpCode::Push {
         return false;
     }
-    let Some(operand) = inst.numeric_operand() else {
-        return false;
-    };
+    let operand = inst.numeric_operand();
 
     if ctx.symbol_name_by_address.get(&operand).map(|x| x.as_str())
         != Some(SYMBOL_CONST_SYSTEM_UINT32_0)
@@ -727,9 +711,7 @@ fn is_header_push_address(ctx: &DecompileContext, address: u32) -> bool {
     if prev_inst.opcode != OpCode::JumpIndirect {
         return false;
     }
-    let Some(prev_operand) = prev_inst.numeric_operand() else {
-        return false;
-    };
+    let prev_operand = prev_inst.numeric_operand();
     ctx.symbol_name_by_address
         .get(&prev_operand)
         .is_some_and(|x| x == SYMBOL_RETURN_JUMP_U32)
@@ -761,9 +743,7 @@ fn simulate_extern_call(
     heap_state: &mut HeapLiteralState,
     module_info: &UdonModuleInfo,
 ) -> Result<()> {
-    let operand = inst
-        .numeric_operand()
-        .ok_or_else(|| DecompileError::new("EXTERN expects numeric operand"))?;
+    let operand = inst.numeric_operand();
     let signature = ctx.heap_string_literals.get(&operand).ok_or_else(|| {
         DecompileError::new(format!(
             "EXTERN operand 0x{operand:08X} does not resolve to a heap string literal"
