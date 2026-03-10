@@ -32,30 +32,30 @@ pub struct BasicBlock {
 }
 
 impl BasicBlock {
-    pub fn start_address(&self) -> Option<u32> {
+    pub fn start_address(&self) -> u32 {
         self.instructions
             .first_id()
             .and_then(|id| self.instructions.address_of(id))
+            .expect("basic block must not be empty when reading start address")
     }
 
-    pub fn end_address(&self) -> Option<u32> {
+    pub fn end_address(&self) -> u32 {
         self.instructions
             .last_id()
             .and_then(|id| self.instructions.address_of(id))
+            .expect("basic block must not be empty when reading end address")
     }
 
     pub fn contains_address(&self, address: u32) -> bool {
-        match (self.start_address(), self.end_address()) {
-            (Some(start), Some(end)) => start <= address && address <= end,
-            _ => false,
-        }
+        let start = self.start_address();
+        let end = self.end_address();
+        start <= address && address <= end
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct BasicBlockCollection {
     pub blocks: Vec<BasicBlock>,
-    start_to_block: HashMap<u32, usize>,
 }
 
 impl BasicBlockCollection {
@@ -86,42 +86,19 @@ impl BasicBlockCollection {
         }
 
         let blocks = split_into_blocks(instructions, &starts);
-        let mut out = Self {
-            blocks,
-            start_to_block: HashMap::new(),
-        };
-        out.rebuild_start_index();
+        let mut out = Self { blocks };
         out.build_edges(instructions);
         out
     }
 
-    pub fn get_block_at(&self, address: u32) -> Option<&BasicBlock> {
-        if let Some(block_id) = self.start_to_block.get(&address) {
-            return self.blocks.get(*block_id);
-        }
-        self.blocks.iter().find(|x| x.contains_address(address))
-    }
-
-    pub fn get_block_by_start(&self, start_address: u32) -> Option<&BasicBlock> {
-        self.start_to_block
-            .get(&start_address)
-            .and_then(|idx| self.blocks.get(*idx))
-    }
-
-    pub fn get_block_id_by_start(&self, start_address: u32) -> Option<usize> {
-        self.start_to_block.get(&start_address).copied()
-    }
-
-    fn rebuild_start_index(&mut self) {
-        self.start_to_block.clear();
-        for (idx, block) in self.blocks.iter().enumerate() {
-            if let Some(start_address) = block.start_address() {
-                self.start_to_block.insert(start_address, idx);
-            }
-        }
-    }
-
     fn build_edges(&mut self, instructions: &InstructionList) {
+        let start_to_block = self
+            .blocks
+            .iter()
+            .enumerate()
+            .map(|(idx, block)| (block.start_address(), idx))
+            .collect::<HashMap<_, _>>();
+
         for block in &mut self.blocks {
             block.predecessors.clear();
             block.successors.clear();
@@ -147,21 +124,21 @@ impl BasicBlockCollection {
             match last_inst.opcode {
                 crate::udon_asm::OpCode::Jump => {
                     if let Some(target) = last_inst.numeric_operand() {
-                        connect_by_start(self, block_id, target);
+                        connect_by_start(self, &start_to_block, block_id, target);
                     }
                 }
                 crate::udon_asm::OpCode::JumpIfFalse => {
                     if let Some(target) = last_inst.numeric_operand() {
-                        connect_by_start(self, block_id, target);
+                        connect_by_start(self, &start_to_block, block_id, target);
                     }
                     if let Some(addr) = next_addr {
-                        connect_by_start(self, block_id, addr);
+                        connect_by_start(self, &start_to_block, block_id, addr);
                     }
                 }
                 crate::udon_asm::OpCode::JumpIndirect => {}
                 _ => {
                     if let Some(addr) = next_addr {
-                        connect_by_start(self, block_id, addr);
+                        connect_by_start(self, &start_to_block, block_id, addr);
                     }
                 }
             }
@@ -233,8 +210,13 @@ fn split_into_blocks(instructions: &InstructionList, starts: &BTreeSet<u32>) -> 
     blocks
 }
 
-fn connect_by_start(blocks: &mut BasicBlockCollection, source: usize, target_start: u32) {
-    let Some(target) = blocks.start_to_block.get(&target_start).copied() else {
+fn connect_by_start(
+    blocks: &mut BasicBlockCollection,
+    start_to_block: &HashMap<u32, usize>,
+    source: usize,
+    target_start: u32,
+) {
+    let Some(target) = start_to_block.get(&target_start).copied() else {
         return;
     };
     if !blocks.blocks[source].successors.contains(&target) {
