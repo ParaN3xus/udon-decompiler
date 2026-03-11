@@ -34,7 +34,7 @@ impl ITransform for CollectVariables {
                 continue;
             };
 
-            if variable.exported {
+            if variable.exported || is_this_like(variable.name.as_str()) {
                 continue;
             }
 
@@ -151,4 +151,11 @@ fn collect_expression_variables(expression: &IrExpression, used: &mut BTreeSet<u
         }
         _ => {}
     }
+}
+
+fn is_this_like(name: &str) -> bool {
+    name == "this"
+        || name == "this.transform"
+        || name == "this.gameObject"
+        || name.starts_with("__this_")
 }
