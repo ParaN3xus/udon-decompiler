@@ -274,7 +274,6 @@ impl Default for BlockTransform {
 }
 
 impl ITransform for BlockTransform {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let container_ids = iter_block_containers(function);
 
