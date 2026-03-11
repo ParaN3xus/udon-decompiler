@@ -6,7 +6,6 @@ use crate::decompiler::ir::{
     IrSwitch, IrVariableDeclarationStatement,
 };
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
-use crate::decompiler::variable::VariableScope;
 
 pub struct CollectVariables;
 
@@ -35,7 +34,7 @@ impl ITransform for CollectVariables {
                 continue;
             };
 
-            if variable.scope == VariableScope::Global || variable.exported {
+            if variable.exported {
                 continue;
             }
 

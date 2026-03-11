@@ -34,7 +34,6 @@ impl IProgramTransform for PromoteGlobals {
             .iter()
             .map(|x| (x.address, x))
             .collect::<HashMap<_, _>>();
-
         for (function_index, function) in functions.iter().enumerate() {
             for declaration in &function.variable_declarations {
                 let address = declaration.variable_address;
@@ -93,6 +92,7 @@ impl IProgramTransform for PromoteGlobals {
             .into_iter()
             .filter_map(|x| class_address_to_declaration.get(&x).cloned())
             .collect();
+        class_ir.functions = functions.to_vec();
 
         Ok(())
     }
