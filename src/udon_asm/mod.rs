@@ -22,8 +22,7 @@ pub use codec::{decode_bytecode_to_asm_instructions, encode_asm_instructions_to_
 pub type Result<T> = types::Result<T>;
 pub(crate) use text::generated_heap_symbol;
 pub(crate) use literal::{
-    HeapLiteralValue, parse_heap_init_directive, render_heap_literal,
-    resolve_heap_literal_for_program_entry,
+    HeapLiteralValue, render_heap_literal, resolve_heap_literal_for_program_entry,
 };
 
 pub fn disassemble_program_to_text(program: &UdonProgramBinary) -> Result<String> {
