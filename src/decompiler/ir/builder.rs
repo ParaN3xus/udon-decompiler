@@ -121,7 +121,7 @@ impl<'a> IrBuilder<'a> {
         }
 
         vec![IrStatement::Assignment(IrAssignmentStatement {
-            target_address,
+            target: IrExpression::from_heap_addr(&self.ctx.variables, target_address),
             value: IrExpression::from_heap_addr(&self.ctx.variables, source_value.value),
         })]
     }
@@ -151,6 +151,20 @@ impl<'a> IrBuilder<'a> {
 
         let args = self.build_call_arguments(address, function_info.parameter_count());
 
+        if is_property_setter(&function_info) {
+            let (value, target_args) = args.split_last().unwrap_or_else(|| {
+                panic!("Property setter at 0x{address:08X} requires at least one argument")
+            });
+            return vec![IrStatement::Assignment(IrAssignmentStatement {
+                target: self.build_extern_expression(
+                    function_info,
+                    signature,
+                    target_args.to_vec(),
+                ),
+                value: value.clone(),
+            })];
+        }
+
         if function_info.returns_void {
             let call_expr = self.build_extern_expression(function_info, signature, args);
             return vec![IrStatement::Expression(IrExpressionStatement {
@@ -164,7 +178,7 @@ impl<'a> IrBuilder<'a> {
 
         if let Some(IrExpression::Variable(IrVariableExpression { address })) = return_slot {
             return vec![IrStatement::Assignment(IrAssignmentStatement {
-                target_address: address,
+                target: IrExpression::Variable(IrVariableExpression { address }),
                 value: call_expr,
             })];
         }
@@ -494,6 +508,11 @@ impl<'a> IrBuilder<'a> {
         };
         self.function_cfg.block_ids.contains(&block_id)
     }
+}
+
+fn is_property_setter(function_info: &ExternFunctionInfo) -> bool {
+    function_info.def_type == FunctionDefinitionType::Field
+        && function_info.function_name.starts_with("__set_")
 }
 
 pub fn build_ir_functions(ctx: &DecompileContext) -> Vec<IrFunction> {

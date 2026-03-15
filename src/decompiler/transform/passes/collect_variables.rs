@@ -57,10 +57,10 @@ impl ITransform for CollectVariables {
 fn collect_statement_variables(statement: &IrStatement, used: &mut BTreeSet<u32>) {
     match statement {
         IrStatement::Assignment(IrAssignmentStatement {
-            target_address,
+            target,
             value,
         }) => {
-            used.insert(*target_address);
+            collect_assignment_target_variables(target, used);
             collect_expression_variables(value, used);
         }
         IrStatement::Expression(IrExpressionStatement { expression }) => {
@@ -118,6 +118,20 @@ fn collect_statement_variables(statement: &IrStatement, used: &mut BTreeSet<u32>
                 for statement in &block.statements {
                     collect_statement_variables(statement, used);
                 }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn collect_assignment_target_variables(target: &IrExpression, used: &mut BTreeSet<u32>) {
+    match target {
+        IrExpression::Variable(variable_expression) => {
+            used.insert(variable_expression.address);
+        }
+        IrExpression::PropertyAccess(property_access) => {
+            for arg in &property_access.arguments {
+                collect_expression_variables(arg, used);
             }
         }
         _ => {}

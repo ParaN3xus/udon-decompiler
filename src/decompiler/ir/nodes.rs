@@ -223,7 +223,7 @@ pub enum IrContainerKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IrAssignmentStatement {
-    pub target_address: u32,
+    pub target: IrExpression,
     pub value: IrExpression,
 }
 

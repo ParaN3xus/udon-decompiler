@@ -40,7 +40,8 @@ fn rewrite_statement(
     variables_by_address: &HashMap<u32, &VariableRecord>,
 ) {
     match statement {
-        IrStatement::Assignment(IrAssignmentStatement { value, .. }) => {
+        IrStatement::Assignment(IrAssignmentStatement { target, value }) => {
+            rewrite_assignment_target(target, variables_by_address);
             rewrite_expression(value, variables_by_address);
         }
         IrStatement::Expression(IrExpressionStatement { expression }) => {
@@ -101,6 +102,17 @@ fn rewrite_statement(
             }
         }
         _ => {}
+    }
+}
+
+fn rewrite_assignment_target(
+    target: &mut IrExpression,
+    variables_by_address: &HashMap<u32, &VariableRecord>,
+) {
+    if let IrExpression::PropertyAccess(call) = target {
+        for arg in &mut call.arguments {
+            rewrite_expression(arg, variables_by_address);
+        }
     }
 }
 

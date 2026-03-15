@@ -103,36 +103,36 @@ fn try_inline_adjacent(
             return false;
         };
 
-        let IrStatement::Assignment(IrAssignmentStatement {
-            target_address,
-            value,
-        }) = prev_stmt
+        let IrStatement::Assignment(IrAssignmentStatement { target, value }) = prev_stmt
         else {
             return false;
         };
-        let Some(target) = variables.get(target_address) else {
+        let Some(target_address) = assignment_target_variable_address(target) else {
+            return false;
+        };
+        let Some(target) = variables.get(&target_address) else {
             return false;
         };
         if !target.name.starts_with("__intnl_") {
             return false;
         }
-        if writes_variable_top_level(curr_stmt, *target_address) {
+        if writes_variable_top_level(curr_stmt, target_address) {
             return false;
         }
-        if count_reads_top_level(curr_stmt, *target_address) != 1 {
+        if count_reads_top_level(curr_stmt, target_address) != 1 {
             return false;
         }
         if definition_flows_to_other_block_read(
             container,
             block,
             index,
-            *target_address,
+            target_address,
             successor_cache,
         ) {
             return false;
         }
 
-        (*target_address, value.clone())
+        (target_address, value.clone())
     };
 
     let Some(curr_stmt_mut) = block.statements.get_mut(index) else {
@@ -265,17 +265,14 @@ fn build_successor_map(container: &IrBlockContainer) -> HashMap<u32, Vec<u32>> {
 }
 
 fn writes_variable_top_level(statement: &IrStatement, address: u32) -> bool {
-    matches!(
-        statement,
-        IrStatement::Assignment(IrAssignmentStatement { target_address, .. })
-            if *target_address == address
-    )
+    matches!(statement, IrStatement::Assignment(IrAssignmentStatement { target, .. })
+        if assignment_target_variable_address(target).is_some_and(|target_address| target_address == address))
 }
 
 fn count_reads_top_level(statement: &IrStatement, address: u32) -> usize {
     match statement {
-        IrStatement::Assignment(IrAssignmentStatement { value, .. }) => {
-            count_expr_reads(value, address)
+        IrStatement::Assignment(IrAssignmentStatement { target, value }) => {
+            count_assignment_target_reads(target, address) + count_expr_reads(value, address)
         }
         IrStatement::Expression(IrExpressionStatement { expression }) => {
             count_expr_reads(expression, address)
@@ -290,8 +287,8 @@ fn count_reads_top_level(statement: &IrStatement, address: u32) -> usize {
 
 fn count_reads_in_statement(statement: &IrStatement, address: u32) -> usize {
     match statement {
-        IrStatement::Assignment(IrAssignmentStatement { value, .. }) => {
-            count_expr_reads(value, address)
+        IrStatement::Assignment(IrAssignmentStatement { target, value }) => {
+            count_assignment_target_reads(target, address) + count_expr_reads(value, address)
         }
         IrStatement::Expression(IrExpressionStatement { expression }) => {
             count_expr_reads(expression, address)
@@ -353,9 +350,9 @@ fn count_reads_in_statement(statement: &IrStatement, address: u32) -> usize {
 
 fn count_writes_in_statement(statement: &IrStatement, address: u32) -> usize {
     match statement {
-        IrStatement::Assignment(IrAssignmentStatement { target_address, .. }) => {
-            usize::from(*target_address == address)
-        }
+        IrStatement::Assignment(IrAssignmentStatement { target, .. }) => usize::from(
+            assignment_target_variable_address(target).is_some_and(|target_address| target_address == address),
+        ),
         IrStatement::If(IrIf {
             true_statement,
             false_statement,
@@ -429,8 +426,10 @@ fn replace_reads_top_level(
     replacement: &IrExpression,
 ) -> bool {
     match statement {
-        IrStatement::Assignment(IrAssignmentStatement { value, .. }) => {
-            replace_expr_reads(value, address, replacement) == 1
+        IrStatement::Assignment(IrAssignmentStatement { target, value }) => {
+            replace_assignment_target_reads(target, address, replacement)
+                + replace_expr_reads(value, address, replacement)
+                == 1
         }
         IrStatement::Expression(IrExpressionStatement { expression }) => {
             replace_expr_reads(expression, address, replacement) == 1
@@ -475,6 +474,33 @@ fn replace_expr_reads(
             .iter_mut()
             .map(|x| replace_expr_reads(x, address, replacement))
             .sum(),
+        _ => 0,
+    }
+}
+
+fn assignment_target_variable_address(target: &IrExpression) -> Option<u32> {
+    match target {
+        IrExpression::Variable(variable) => Some(variable.address),
+        _ => None,
+    }
+}
+
+fn count_assignment_target_reads(target: &IrExpression, address: u32) -> usize {
+    match target {
+        IrExpression::Variable(_) => 0,
+        IrExpression::PropertyAccess(_) => count_expr_reads(target, address),
+        _ => 0,
+    }
+}
+
+fn replace_assignment_target_reads(
+    target: &mut IrExpression,
+    address: u32,
+    replacement: &IrExpression,
+) -> usize {
+    match target {
+        IrExpression::Variable(_) => 0,
+        IrExpression::PropertyAccess(_) => replace_expr_reads(target, address, replacement),
         _ => 0,
     }
 }
