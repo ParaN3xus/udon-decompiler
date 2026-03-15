@@ -44,7 +44,7 @@ pub(crate) fn decode_instructions(bytes: &[u8]) -> Result<Vec<DecodedInstruction
     Ok(out)
 }
 
-pub(crate) fn decode_bytecode_to_asm_instructions(bytes: &[u8]) -> Result<Vec<AsmInstruction>> {
+pub fn decode_bytecode_to_asm_instructions(bytes: &[u8]) -> Result<Vec<AsmInstruction>> {
     let decoded = decode_instructions(bytes)?;
     Ok(decoded
         .into_iter()
@@ -134,7 +134,7 @@ pub(crate) fn encode_instructions(
     Ok((label_to_addr, out))
 }
 
-pub(crate) fn encode_asm_instructions_to_bytecode(
+pub fn encode_asm_instructions_to_bytecode(
     instructions: &[AsmInstruction],
 ) -> Result<Vec<u8>> {
     let mut out = Vec::<u8>::new();

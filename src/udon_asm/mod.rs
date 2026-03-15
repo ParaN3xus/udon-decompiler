@@ -8,7 +8,7 @@ mod types;
 
 use base64::Engine as _;
 
-use crate::odin::{NodeKind, UdonProgramBinary};
+use crate::odin::UdonProgramBinary;
 
 use apply::{
     apply_bind_directives, apply_bind_table_directives, apply_entry_directives,
@@ -18,10 +18,13 @@ use codec::{build_heap_symbol_to_addr_map, encode_instructions};
 use parse::parse_asm_text;
 
 pub use types::{AsmError, AsmInstruction, OpCode, OperandToken};
+pub use codec::{decode_bytecode_to_asm_instructions, encode_asm_instructions_to_bytecode};
 pub type Result<T> = types::Result<T>;
 pub(crate) use text::generated_heap_symbol;
-
-pub(crate) use literal::HeapLiteralValue;
+pub(crate) use literal::{
+    HeapLiteralValue, parse_heap_init_directive, render_heap_literal,
+    resolve_heap_literal_for_program_entry,
+};
 
 pub fn disassemble_program_to_text(program: &UdonProgramBinary) -> Result<String> {
     disassemble::disassemble_program_to_text(program)
@@ -59,29 +62,4 @@ pub fn assemble_b64_with_original(original_b64: &str, asm_text: &str) -> Result<
     assemble_text_on_program(&mut program, asm_text)?;
     let bytes = program.to_bytes()?;
     Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
-}
-
-pub fn decode_bytecode_to_asm_instructions(bytecode: &[u8]) -> Result<Vec<AsmInstruction>> {
-    codec::decode_bytecode_to_asm_instructions(bytecode)
-}
-
-pub fn encode_asm_instructions_to_bytecode(instructions: &[AsmInstruction]) -> Result<Vec<u8>> {
-    codec::encode_asm_instructions_to_bytecode(instructions)
-}
-
-pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -> String {
-    literal::render_heap_literal(type_name, literal)
-}
-
-pub(crate) fn parse_heap_literal(type_name: &str, text: &str) -> Result<HeapLiteralValue> {
-    literal::parse_heap_init_directive(text, 0, type_name)
-}
-
-pub(crate) fn resolve_heap_literal_for_program_entry(
-    program: &UdonProgramBinary,
-    index: usize,
-    type_name: &str,
-    kind: &NodeKind,
-) -> crate::odin::Result<HeapLiteralValue> {
-    literal::resolve_heap_literal_for_program_entry(program, index, type_name, kind)
 }
