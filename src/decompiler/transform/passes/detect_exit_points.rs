@@ -15,9 +15,17 @@ enum CurrentExit {
 }
 
 #[derive(Debug, Clone)]
+enum StatementPathSegment {
+    Block(usize),
+    Statement(usize),
+    IfTrue,
+    IfFalse,
+}
+
+#[derive(Debug, Clone)]
 struct ExitOccurrence {
     statement: IrStatement,
-    slot: *mut IrStatement,
+    path: Vec<StatementPathSegment>,
 }
 
 pub struct DetectExitPoints {
@@ -54,7 +62,7 @@ impl ITransform for DetectExitPoints {
 
     fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
         let mut state = DetectState::new(function.body.id, self.can_introduce_exit_for_return);
-        state.visit_container(&mut function.body, None, None);
+        let _ = state.visit_container(&mut function.body, CurrentExit::NoExit);
         Ok(())
     }
 }
@@ -87,15 +95,13 @@ impl DetectState {
     fn visit_container(
         &mut self,
         container: &mut IrBlockContainer,
-        parent_block: Option<&mut IrBlock>,
-        parent_index: Option<usize>,
-    ) {
+        current_exit: CurrentExit,
+    ) -> Option<IrStatement> {
         let old_exit = self.current_exit.clone();
         let old_container_id = self.current_container_id;
         let old_potential_exits = self.potential_exits.take();
 
-        let this_exit = self.get_exit_after_statement(parent_block.as_deref(), parent_index);
-        self.current_exit = this_exit;
+        self.current_exit = current_exit;
         self.current_container_id = Some(container.id);
         let has_self_leave = statement_has_leave_target_container(container, container.id);
         self.self_leave_cache.insert(container.id, has_self_leave);
@@ -107,66 +113,70 @@ impl DetectState {
 
         let descendant_blocks = self.descendant_blocks(container);
 
-        for block in &mut container.blocks {
-            self.visit_block(block, container.id, &descendant_blocks);
+        for (block_index, block) in container.blocks.iter_mut().enumerate() {
+            self.visit_block(block, block_index, container.id, &descendant_blocks);
         }
 
         let should_introduce = matches!(self.current_exit, CurrentExit::NotYetDetermined)
-            && self.potential_exits.as_ref().is_some_and(|x| !x.is_empty())
-            && parent_block.is_some()
-            && parent_index.is_some();
+            && self.potential_exits.as_ref().is_some_and(|x| !x.is_empty());
 
-        if should_introduce {
+        let introduced_exit = if should_introduce {
             let chosen_exit = self.choose_exit(self.potential_exits.as_ref().expect("present"));
 
             if let Some(exits) = self.potential_exits.as_ref() {
                 for occurrence in exits {
                     if Self::compatible_ref(&chosen_exit, &occurrence.statement) {
-                        // SAFETY: pointers are collected from mutable references during traversal
-                        // and are only written here before any structural mutation of the owning
-                        // statement vectors in this container.
-                        unsafe {
-                            *occurrence.slot = IrStatement::Leave(IrLeave {
+                        let replaced = replace_statement_at_path(
+                            container,
+                            &occurrence.path,
+                            IrStatement::Leave(IrLeave {
                                 target_container_id: container.id,
-                            });
-                        }
+                            }),
+                        );
+                        debug_assert!(replaced, "invalid statement path recorded in DetectExitPoints");
                     }
                 }
             }
 
-            if let (Some(parent_block), Some(parent_index)) = (parent_block, parent_index) {
-                let insert_at = (parent_index + 1).min(parent_block.statements.len());
-                parent_block
-                    .statements
-                    .insert(insert_at, self.clone_exit_statement(&chosen_exit));
-            }
-        }
+            Some(self.clone_exit_statement(&chosen_exit))
+        } else {
+            None
+        };
 
         self.current_exit = old_exit;
         self.current_container_id = old_container_id;
         self.potential_exits = old_potential_exits;
+        introduced_exit
     }
 
     fn visit_block(
         &mut self,
         block: &mut IrBlock,
+        block_index: usize,
         current_container_id: u32,
         descendant_blocks: &HashSet<u32>,
     ) {
         let mut index = 0usize;
         while index < block.statements.len() {
-            let statement_ptr: *mut IrStatement = &mut block.statements[index];
-
-            // SAFETY: pointer created from exclusive borrow of block.statements[index]
-            // and used only within this loop iteration.
-            let statement = unsafe { &mut *statement_ptr };
-            self.visit_statement(
-                statement,
-                current_container_id,
-                descendant_blocks,
-                None,
-                None,
-            );
+            let next_exit = self.get_exit_after_statement(Some(block), Some(index));
+            let mut path = vec![
+                StatementPathSegment::Block(block_index),
+                StatementPathSegment::Statement(index),
+            ];
+            let inserted_exit = {
+                let statement = &mut block.statements[index];
+                self.visit_statement(
+                    statement,
+                    current_container_id,
+                    descendant_blocks,
+                    Some(next_exit),
+                    &mut path,
+                )
+            };
+            if let Some(inserted_exit) = inserted_exit {
+                let insert_at = (index + 1).min(block.statements.len());
+                block.statements.insert(insert_at, inserted_exit);
+            }
             index += 1;
         }
     }
@@ -176,48 +186,77 @@ impl DetectState {
         statement: &mut IrStatement,
         current_container_id: u32,
         descendant_blocks: &HashSet<u32>,
-        parent_block: Option<&mut IrBlock>,
-        parent_index: Option<usize>,
-    ) {
+        current_exit: Option<CurrentExit>,
+        path: &mut Vec<StatementPathSegment>,
+    ) -> Option<IrStatement> {
         match statement {
             IrStatement::BlockContainer(container) => {
-                self.visit_container(container, parent_block, parent_index);
+                self.visit_container(
+                    container,
+                    current_exit.unwrap_or(CurrentExit::NoExit),
+                )
             }
             IrStatement::If(IrIf {
                 true_statement,
                 false_statement,
                 ..
             }) => {
-                self.visit_statement(
+                path.push(StatementPathSegment::IfTrue);
+                let _ = self.visit_statement(
                     true_statement,
                     current_container_id,
                     descendant_blocks,
                     None,
-                    None,
+                    path,
                 );
+                path.pop();
                 if let Some(false_statement) = false_statement.as_mut() {
-                    self.visit_statement(
+                    path.push(StatementPathSegment::IfFalse);
+                    let _ = self.visit_statement(
                         false_statement,
                         current_container_id,
                         descendant_blocks,
                         None,
-                        None,
+                        path,
                     );
+                    path.pop();
                 }
+                None
+            }
+            IrStatement::Block(block) => {
+                for (index, nested) in block.statements.iter_mut().enumerate() {
+                    path.push(StatementPathSegment::Statement(index));
+                    let _ = self.visit_statement(
+                        nested,
+                        current_container_id,
+                        descendant_blocks,
+                        None,
+                        path,
+                    );
+                    path.pop();
+                }
+                None
             }
             IrStatement::Jump(IrJump { target_address }) => {
                 if !descendant_blocks.contains(target_address) {
-                    self.handle_exit(statement, current_container_id);
+                    self.handle_exit(statement, current_container_id, path);
                 }
+                None
             }
             IrStatement::Leave(_) => {
-                self.handle_exit(statement, current_container_id);
+                self.handle_exit(statement, current_container_id, path);
+                None
             }
-            _ => {}
+            _ => None,
         }
     }
 
-    fn handle_exit(&mut self, statement: &mut IrStatement, current_container_id: u32) {
+    fn handle_exit(
+        &mut self,
+        statement: &mut IrStatement,
+        current_container_id: u32,
+        path: &[StatementPathSegment],
+    ) {
         match &self.current_exit {
             CurrentExit::NotYetDetermined => {
                 if self.can_introduce_as_exit(statement)
@@ -225,7 +264,7 @@ impl DetectState {
                 {
                     potential_exits.push(ExitOccurrence {
                         statement: statement.clone(),
-                        slot: statement as *mut IrStatement,
+                        path: path.to_vec(),
                     });
                 }
             }
@@ -324,6 +363,62 @@ impl DetectState {
         self.descendant_block_cache
             .insert(container.id, out.clone());
         out
+    }
+}
+
+fn replace_statement_at_path(
+    container: &mut IrBlockContainer,
+    path: &[StatementPathSegment],
+    replacement: IrStatement,
+) -> bool {
+    let Some((StatementPathSegment::Block(block_index), rest)) = path.split_first() else {
+        return false;
+    };
+    let Some(block) = container.blocks.get_mut(*block_index) else {
+        return false;
+    };
+    replace_statement_in_block(block, rest, replacement)
+}
+
+fn replace_statement_in_block(
+    block: &mut IrBlock,
+    path: &[StatementPathSegment],
+    replacement: IrStatement,
+) -> bool {
+    let Some((StatementPathSegment::Statement(statement_index), rest)) = path.split_first() else {
+        return false;
+    };
+    let Some(statement) = block.statements.get_mut(*statement_index) else {
+        return false;
+    };
+    replace_statement_in_statement(statement, rest, replacement)
+}
+
+fn replace_statement_in_statement(
+    statement: &mut IrStatement,
+    path: &[StatementPathSegment],
+    replacement: IrStatement,
+) -> bool {
+    let Some((segment, rest)) = path.split_first() else {
+        *statement = replacement;
+        return true;
+    };
+
+    match (segment, statement) {
+        (StatementPathSegment::IfTrue, IrStatement::If(if_stmt)) => {
+            replace_statement_in_statement(if_stmt.true_statement.as_mut(), rest, replacement)
+        }
+        (StatementPathSegment::IfFalse, IrStatement::If(if_stmt)) => if_stmt
+            .false_statement
+            .as_mut()
+            .is_some_and(|false_statement| {
+                replace_statement_in_statement(false_statement.as_mut(), rest, replacement)
+            }),
+        (StatementPathSegment::Statement(statement_index), IrStatement::Block(block)) => block
+            .statements
+            .get_mut(*statement_index)
+            .is_some_and(|nested| replace_statement_in_statement(nested, rest, replacement)),
+        _ => false,
     }
 }
 

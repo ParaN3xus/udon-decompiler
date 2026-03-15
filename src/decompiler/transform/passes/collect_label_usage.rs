@@ -455,8 +455,7 @@ fn apply_flags_statement(
         }
         IrStatement::HighLevelSwitch(IrHighLevelSwitch { sections, .. }) => {
             for section in sections {
-                section.body.should_emit_label =
-                    label_targets.contains(&section.body.start_address);
+                section.body.should_emit_label = false;
                 for nested in &mut section.body.statements {
                     apply_flags_statement(nested, label_targets, exit_label_targets);
                 }

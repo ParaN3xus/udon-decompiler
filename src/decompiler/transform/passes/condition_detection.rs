@@ -162,6 +162,7 @@ fn process_block(
                 if let Some(mut target_block) = remove_block_by_address(container, target_addr) {
                     changed = true;
                     if_inst.true_statement = Box::new(IrStatement::Block(target_block.clone()));
+                    let mut keep_wrapped_target_block = true;
 
                     while !target_block.statements.is_empty() {
                         let nested_if = target_block.statements.first().cloned();
@@ -227,13 +228,14 @@ fn process_block(
                         true_exit_inst = None;
                         changed = true;
 
-                        if target_block.statements.len() == 1
-                            && let Some(IrStatement::If(nested_if)) =
-                                target_block.statements.first().cloned()
-                            && nested_if.false_statement.is_none()
+                            if target_block.statements.len() == 1
+                                && let Some(IrStatement::If(nested_if)) =
+                                    target_block.statements.first().cloned()
+                                && nested_if.false_statement.is_none()
                         {
                             if_inst.condition = logic_and(if_inst.condition, nested_if.condition);
                             if_inst.true_statement = nested_if.true_statement;
+                            keep_wrapped_target_block = false;
 
                             if let IrStatement::Block(inlined_true_block) =
                                 if_inst.true_statement.as_ref()
@@ -246,7 +248,9 @@ fn process_block(
                         }
                     }
 
-                    if_inst.true_statement = Box::new(IrStatement::Block(target_block));
+                    if keep_wrapped_target_block {
+                        if_inst.true_statement = Box::new(IrStatement::Block(target_block));
+                    }
                 }
             } else if is_branch_or_leave(if_inst.true_statement.as_ref()) {
                 true_exit_inst = Some((*if_inst.true_statement).clone());

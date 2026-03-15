@@ -11,30 +11,44 @@ pub struct StructuredControlFlowCleanupTransform;
 
 impl ITransform for StructuredControlFlowCleanupTransform {
 
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
-        let mut state = CleanupState::new();
+    fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
+        let mut state = CleanupState::from_context(context);
         let known_blocks = collect_all_block_addresses(&function.body);
         rewrite_container(&mut function.body, &known_blocks, &mut state);
+        state.commit(context);
         Ok(())
     }
 }
 
 #[derive(Debug, Clone)]
 struct CleanupState {
-    synthetic_block_address: u32,
+    synthetic_block_address: i64,
 }
 
 impl CleanupState {
-    fn new() -> Self {
+    fn from_context(context: &TransformContext<'_, '_>) -> Self {
+        let current = context
+            .program_context
+            .metadata
+            .get("_synthetic_block_addr")
+            .copied()
+            .unwrap_or(-1);
         Self {
-            synthetic_block_address: u32::MAX,
+            synthetic_block_address: current,
         }
     }
 
     fn next_synthetic_block_address(&mut self) -> u32 {
         let current = self.synthetic_block_address;
-        self.synthetic_block_address = self.synthetic_block_address.saturating_sub(1);
-        current
+        self.synthetic_block_address -= 1;
+        (current as i32) as u32
+    }
+
+    fn commit(self, context: &mut TransformContext<'_, '_>) {
+        context.program_context.metadata.insert(
+            "_synthetic_block_addr".to_string(),
+            self.synthetic_block_address,
+        );
     }
 }
 

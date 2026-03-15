@@ -10,7 +10,7 @@ pub struct HighLevelLoopStatementTransform;
 impl ITransform for HighLevelLoopStatementTransform {
 
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
-        let mut state = LoopStatementState::from_context(context);
+        let mut state = LoopStatementState::from_context(function, context);
         rewrite_container(&mut function.body, &mut state);
         state.commit(context);
         Ok(())
@@ -19,11 +19,12 @@ impl ITransform for HighLevelLoopStatementTransform {
 
 #[derive(Debug, Clone)]
 struct LoopStatementState {
+    next_container_id: u32,
     synthetic_block_address: i64,
 }
 
 impl LoopStatementState {
-    fn from_context(context: &TransformContext<'_, '_>) -> Self {
+    fn from_context(function: &IrFunction, context: &TransformContext<'_, '_>) -> Self {
         let current = context
             .program_context
             .metadata
@@ -31,8 +32,15 @@ impl LoopStatementState {
             .copied()
             .unwrap_or(-1);
         Self {
+            next_container_id: max_container_id(&function.body).saturating_add(1),
             synthetic_block_address: current,
         }
+    }
+
+    fn next_container_id(&mut self) -> u32 {
+        let current = self.next_container_id;
+        self.next_container_id = self.next_container_id.saturating_add(1);
+        current
     }
 
     fn next_synthetic_block_address(&mut self) -> u32 {
@@ -96,20 +104,23 @@ fn rewrite_statement(statement: IrStatement, state: &mut LoopStatementState) -> 
 
 fn lift_container(container: IrBlockContainer, state: &mut LoopStatementState) -> IrStatement {
     match container.kind {
-        IrContainerKind::Loop => lift_infinite_loop(container),
+        IrContainerKind::Loop => lift_infinite_loop(container, state),
         IrContainerKind::While => lift_while(container, state),
         IrContainerKind::DoWhile => lift_do_while(container, state),
         _ => IrStatement::BlockContainer(container),
     }
 }
 
-fn lift_infinite_loop(container: IrBlockContainer) -> IrStatement {
+fn lift_infinite_loop(
+    container: IrBlockContainer,
+    state: &mut LoopStatementState,
+) -> IrStatement {
     let Some(entry) = container.entry_block().cloned() else {
         return IrStatement::BlockContainer(container);
     };
 
     let mut body = IrBlockContainer {
-        id: container.id,
+        id: state.next_container_id(),
         blocks: container.blocks.clone(),
         kind: IrContainerKind::Block,
         should_emit_exit_label: container.should_emit_exit_label,
@@ -196,7 +207,7 @@ fn lift_while(container: IrBlockContainer, state: &mut LoopStatementState) -> Ir
     body_blocks.push(entry_anchor.clone());
 
     let mut body_container = IrBlockContainer {
-        id: container.id,
+        id: state.next_container_id(),
         blocks: body_blocks,
         kind: IrContainerKind::Block,
         should_emit_exit_label: container.should_emit_exit_label,
@@ -260,7 +271,7 @@ fn lift_do_while(container: IrBlockContainer, state: &mut LoopStatementState) ->
     body_blocks.push(condition_anchor.clone());
 
     let mut body_container = IrBlockContainer {
-        id: container.id,
+        id: state.next_container_id(),
         blocks: body_blocks,
         kind: IrContainerKind::Block,
         should_emit_exit_label: container.should_emit_exit_label,
@@ -312,5 +323,50 @@ fn remove_trailing_continue_jump(body: &mut IrBlockContainer, continue_target: u
             block.statements.pop();
         }
         break;
+    }
+}
+
+fn max_container_id(container: &IrBlockContainer) -> u32 {
+    let mut max_id = container.id;
+    for block in &container.blocks {
+        for statement in &block.statements {
+            max_id = max_id.max(max_container_id_in_statement(statement));
+        }
+    }
+    max_id
+}
+
+fn max_container_id_in_statement(statement: &IrStatement) -> u32 {
+    match statement {
+        IrStatement::Block(block) => block
+            .statements
+            .iter()
+            .map(max_container_id_in_statement)
+            .max()
+            .unwrap_or(0),
+        IrStatement::BlockContainer(container) => max_container_id(container),
+        IrStatement::If(if_stmt) => {
+            let mut max_id = max_container_id_in_statement(if_stmt.true_statement.as_ref());
+            if let Some(false_statement) = if_stmt.false_statement.as_ref() {
+                max_id = max_id.max(max_container_id_in_statement(false_statement.as_ref()));
+            }
+            max_id
+        }
+        IrStatement::HighLevelSwitch(switch_stmt) => switch_stmt
+            .sections
+            .iter()
+            .flat_map(|section| section.body.statements.iter())
+            .map(max_container_id_in_statement)
+            .max()
+            .unwrap_or(0),
+        IrStatement::HighLevelWhile(while_stmt) => max_container_id(&while_stmt.body),
+        IrStatement::HighLevelDoWhile(do_while_stmt) => max_container_id(&do_while_stmt.body),
+        IrStatement::Assignment(_)
+        | IrStatement::Expression(_)
+        | IrStatement::VariableDeclaration(_)
+        | IrStatement::Jump(_)
+        | IrStatement::Leave(_)
+        | IrStatement::Return(_)
+        | IrStatement::Switch(_) => 0,
     }
 }

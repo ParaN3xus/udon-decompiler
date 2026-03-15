@@ -12,9 +12,9 @@ pub struct LoopDetection;
 
 impl ITransform for LoopDetection {
 
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
+    fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let function_body_id = function.body.id;
-        let mut state = LoopDetectionState::new(function);
+        let mut state = LoopDetectionState::from_context(function, context);
         let container_ids = iter_block_containers(function);
         for container_id in container_ids {
             let Some(container) = find_container_mut(&mut function.body, container_id) else {
@@ -22,6 +22,7 @@ impl ITransform for LoopDetection {
             };
             detect_in_container(container, function_body_id, &mut state);
         }
+        state.commit(context);
         Ok(())
     }
 }
@@ -29,14 +30,20 @@ impl ITransform for LoopDetection {
 #[derive(Debug, Clone)]
 struct LoopDetectionState {
     next_container_id: u32,
-    synthetic_block_address: u32,
+    synthetic_block_address: i64,
 }
 
 impl LoopDetectionState {
-    fn new(function: &IrFunction) -> Self {
+    fn from_context(function: &IrFunction, context: &TransformContext<'_, '_>) -> Self {
+        let current = context
+            .program_context
+            .metadata
+            .get("_synthetic_block_addr")
+            .copied()
+            .unwrap_or(-1);
         Self {
             next_container_id: max_container_id(&function.body).saturating_add(1),
-            synthetic_block_address: u32::MAX,
+            synthetic_block_address: current,
         }
     }
 
@@ -47,9 +54,16 @@ impl LoopDetectionState {
     }
 
     fn alloc_block_address(&mut self) -> u32 {
-        let address = self.synthetic_block_address;
-        self.synthetic_block_address = self.synthetic_block_address.saturating_sub(1);
-        address
+        let current = self.synthetic_block_address;
+        self.synthetic_block_address -= 1;
+        (current as i32) as u32
+    }
+
+    fn commit(self, context: &mut TransformContext<'_, '_>) {
+        context.program_context.metadata.insert(
+            "_synthetic_block_addr".to_string(),
+            self.synthetic_block_address,
+        );
     }
 }
 
