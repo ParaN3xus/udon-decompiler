@@ -31,7 +31,10 @@ pub use module_info::{
     ExternFunctionInfo, FunctionDefinitionType, ParameterType, UINT32_ARRAY_GET_METHOD_NAME,
     UdonModuleInfo,
 };
-pub use pipeline::{DecompilePipelineOutput, run_decompile_pipeline};
+pub use pipeline::{
+    AsmBindAnalysis, DecompilePipelineOutput, collect_asm_bind_analysis, run_analysis_pipeline,
+    run_decompile_pipeline,
+};
 pub use transform::{
     BlockTransform, BlockTransformContext, IBlockTransform, IProgramTransform, IStatementTransform,
     ITransform, LoopingBlockTransform, ProgramTransformContext, StatementTransform,

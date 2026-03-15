@@ -143,6 +143,18 @@ impl AsmInstruction {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AsmBindDirective {
+    pub symbol: String,
+    pub address: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AsmBindTableDirective {
+    pub symbol: String,
+    pub addresses: Vec<u32>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Visibility {
     Public,

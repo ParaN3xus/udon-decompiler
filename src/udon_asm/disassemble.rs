@@ -6,16 +6,15 @@ use super::codec::{build_label_map, decode_instructions};
 use super::literal::{TYPE_UNSERIALIZABLE, UNSERIALIZABLE_LITERAL};
 use super::text::generated_heap_symbol;
 use super::types::Result;
+use super::{AsmBindDirective, AsmBindTableDirective};
 use super::{render_heap_literal, resolve_heap_literal_for_program_entry};
 
-pub(crate) fn disassemble_program_to_text(program: &UdonProgramBinary) -> Result<String> {
-    disassemble_program_to_text_with_indent(program, "  ")
-}
-
-pub(crate) fn disassemble_program_to_text_with_indent(
+pub fn disassemble_program_to_text(
     program: &UdonProgramBinary,
-    indent: &str,
+    binds: &[AsmBindDirective],
+    bind_tables: &[AsmBindTableDirective],
 ) -> Result<String> {
+    let indent = "  ";
     let bytecode = program.byte_code()?;
     let decoded = decode_instructions(&bytecode)?;
 
@@ -45,7 +44,12 @@ pub(crate) fn disassemble_program_to_text_with_indent(
         exported_entry_names.insert(program.exported_symbol(SymbolSection::EntryPoints, i)?);
     }
 
-    let label_map = build_label_map(&decoded, &entry_address_to_name);
+    let extra_label_addresses = binds
+        .iter()
+        .map(|x| x.address)
+        .chain(bind_tables.iter().flat_map(|x| x.addresses.iter().copied()))
+        .collect::<Vec<_>>();
+    let label_map = build_label_map(&decoded, &entry_address_to_name, &extra_label_addresses);
     let instruction_addresses = decoded.iter().map(|x| x.address).collect::<HashSet<_>>();
 
     let mut lines = Vec::<String>::new();
@@ -138,6 +142,31 @@ pub(crate) fn disassemble_program_to_text_with_indent(
     }
 
     lines.push("; binds".to_string());
+    for bind in binds {
+        let label = label_map
+            .get(&bind.address)
+            .cloned()
+            .unwrap_or_else(|| format!("addr_0x{:08X}", bind.address));
+        lines.push(format!("; {}bind {} -> {}", indent, bind.symbol, label));
+    }
+    for bind in bind_tables {
+        let labels = bind
+            .addresses
+            .iter()
+            .map(|address| {
+                label_map
+                    .get(address)
+                    .cloned()
+                    .unwrap_or_else(|| format!("addr_0x{:08X}", address))
+            })
+            .collect::<Vec<_>>();
+        lines.push(format!(
+            "; {}bind-table {} -> [{}]",
+            indent,
+            bind.symbol,
+            labels.join(", ")
+        ));
+    }
     lines.push(String::new());
 
     for inst in &decoded {

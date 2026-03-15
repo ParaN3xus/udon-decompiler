@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use tracing::{debug, info};
-use udon_decompiler::decompiler::{DecompileContext, UdonModuleInfo};
+use udon_decompiler::decompiler::{AsmBindAnalysis, DecompileContext, UdonModuleInfo};
 use udon_decompiler::logging::init_logging;
 use udon_decompiler::odin::UdonProgramBinary;
 use udon_decompiler::str_constants::{
@@ -60,6 +60,7 @@ enum PreparedSingleInput {
     },
     Dasm {
         program: UdonProgramBinary,
+        bind_analysis: AsmBindAnalysis,
         output_stem: String,
     },
     Asm {
@@ -256,10 +257,20 @@ fn process_single_file_inner(
             );
         }
         Mode::Dasm => {
-            let PreparedSingleInput::Dasm { program, .. } = prepared else {
+            let PreparedSingleInput::Dasm {
+                program,
+                bind_analysis,
+                ..
+            } = prepared
+            else {
                 bail!("internal error: expected prepared dasm input");
             };
-            let asm = disassemble_program_to_text(program).with_context(|| {
+            let asm = disassemble_program_to_text(
+                program,
+                &bind_analysis.binds,
+                &bind_analysis.bind_tables,
+            )
+            .with_context(|| {
                 format!(
                     "failed to disassemble program from {}",
                     input_file.display()
@@ -323,9 +334,22 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
                     .file_name()
                     .map(|x| x.to_string_lossy().to_string()),
             );
+            ctx.run_analysis().with_context(|| {
+                format!(
+                    "failed to analyze program for bind reconstruction from {}",
+                    input_file.display()
+                )
+            })?;
+            let bind_analysis = ctx.collect_asm_bind_analysis().with_context(|| {
+                format!(
+                    "failed to collect disassembly binds from {}",
+                    input_file.display()
+                )
+            })?;
             let output_stem = ctx.infer_output_stem_for_file();
             Ok(PreparedSingleInput::Dasm {
                 program,
+                bind_analysis,
                 output_stem,
             })
         }

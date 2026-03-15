@@ -15,26 +15,18 @@ use apply::{
     apply_heap_directives,
 };
 use codec::{build_heap_symbol_to_addr_map, encode_instructions};
+pub use disassemble::disassemble_program_to_text;
 use parse::parse_asm_text;
 
-pub use types::{AsmError, AsmInstruction, OpCode, OperandToken};
 pub use codec::{decode_bytecode_to_asm_instructions, encode_asm_instructions_to_bytecode};
+pub use types::{
+    AsmBindDirective, AsmBindTableDirective, AsmError, AsmInstruction, OpCode, OperandToken,
+};
 pub type Result<T> = types::Result<T>;
-pub(crate) use text::generated_heap_symbol;
 pub(crate) use literal::{
     HeapLiteralValue, render_heap_literal, resolve_heap_literal_for_program_entry,
 };
-
-pub fn disassemble_program_to_text(program: &UdonProgramBinary) -> Result<String> {
-    disassemble::disassemble_program_to_text(program)
-}
-
-pub fn disassemble_program_to_text_with_indent(
-    program: &UdonProgramBinary,
-    indent: &str,
-) -> Result<String> {
-    disassemble::disassemble_program_to_text_with_indent(program, indent)
-}
+pub(crate) use text::generated_heap_symbol;
 
 pub fn assemble_text_on_program(program: &mut UdonProgramBinary, asm_text: &str) -> Result<()> {
     let parsed = parse_asm_text(asm_text)?;

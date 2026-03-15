@@ -59,6 +59,7 @@ pub fn decode_bytecode_to_asm_instructions(bytes: &[u8]) -> Result<Vec<AsmInstru
 pub(crate) fn build_label_map(
     decoded: &[DecodedInstruction],
     entry_address_to_name: &HashMap<u32, String>,
+    extra_addresses: &[u32],
 ) -> BTreeMap<u32, String> {
     let mut addresses = HashSet::<u32>::new();
     for inst in decoded {
@@ -69,6 +70,9 @@ pub(crate) fn build_label_map(
         }
     }
     for address in entry_address_to_name.keys() {
+        addresses.insert(*address);
+    }
+    for address in extra_addresses {
         addresses.insert(*address);
     }
     let mut sorted = addresses.into_iter().collect::<Vec<_>>();

@@ -13,7 +13,7 @@ use crate::util::sanitize_output_stem;
 
 use super::basic_block::BasicBlockCollection;
 use super::cfg::{FunctionCfg, StackSimulationResult};
-use super::pipeline::DecompilePipelineOutput;
+use super::pipeline::{AsmBindAnalysis, DecompilePipelineOutput};
 use super::variable::VariableTable;
 use super::{InstructionList, Result};
 
@@ -196,6 +196,14 @@ impl DecompileContext {
 
     pub fn run_decompile(&mut self) -> Result<DecompilePipelineOutput> {
         super::pipeline::run_decompile_pipeline(self)
+    }
+
+    pub fn run_analysis(&mut self) -> Result<()> {
+        super::pipeline::run_analysis_pipeline(self)
+    }
+
+    pub fn collect_asm_bind_analysis(&self) -> Result<AsmBindAnalysis> {
+        super::pipeline::collect_asm_bind_analysis(self)
     }
 
     pub fn rebuild_symbol_address_maps_from_variables(&mut self) {
