@@ -19,6 +19,7 @@ use parse::parse_asm_text;
 
 pub use types::{AsmError, AsmInstruction, OpCode, OperandToken};
 pub type Result<T> = types::Result<T>;
+pub(crate) use text::generated_heap_symbol;
 
 pub(crate) use literal::HeapLiteralValue;
 
@@ -70,6 +71,10 @@ pub fn encode_asm_instructions_to_bytecode(instructions: &[AsmInstruction]) -> R
 
 pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -> String {
     literal::render_heap_literal(type_name, literal)
+}
+
+pub(crate) fn parse_heap_literal(type_name: &str, text: &str) -> Result<HeapLiteralValue> {
+    literal::parse_heap_init_directive(text, 0, type_name)
 }
 
 pub(crate) fn resolve_heap_literal_for_program_entry(
