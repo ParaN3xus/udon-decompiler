@@ -11,7 +11,7 @@ use super::nodes::{
     IrAssignmentStatement, IrBlock, IrBlockContainer, IrConstructorCallExpression, IrContainerKind,
     IrExpression, IrExpressionStatement, IrExternalCallExpression, IrFunction, IrIf,
     IrInternalCallExpression, IrJump, IrLeave, IrOperator, IrOperatorCallExpression,
-    IrPropertyAccessExpression, IrStatement, IrSwitch, IrVariableExpression,
+    IrPropertyAccessExpression, IrRawExpression, IrStatement, IrSwitch, IrVariableExpression,
 };
 use crate::decompiler::FunctionCfg;
 
@@ -200,6 +200,18 @@ impl<'a> IrBuilder<'a> {
                     .unwrap_or_else(|| {
                         panic!("unsupported operator extern signature: {signature}")
                     });
+                let arguments = if operator == IrOperator::ExplicitConversion {
+                    let mut arguments = arguments;
+                    arguments.insert(
+                        0,
+                        IrExpression::Raw(IrRawExpression {
+                            value: function_info.type_name.clone(),
+                        }),
+                    );
+                    arguments
+                } else {
+                    arguments
+                };
                 IrExpression::OperatorCall(IrOperatorCallExpression {
                     arguments,
                     operator,

@@ -26,7 +26,8 @@ pub enum IrOperator {
     GreaterThanOrEqual,
     LessThan,
     LessThanOrEqual,
-    Conversion,
+    ImplicitConversion,
+    ExplicitConversion,
 }
 
 impl IrOperator {
@@ -61,7 +62,8 @@ impl IrOperator {
             "GreaterThanOrEqual" => Some(Self::GreaterThanOrEqual),
             "LessThan" => Some(Self::LessThan),
             "LessThanOrEqual" => Some(Self::LessThanOrEqual),
-            "Implicit" | "Explicit" => Some(Self::Conversion),
+            "Implicit" => Some(Self::ImplicitConversion),
+            "Explicit" => Some(Self::ExplicitConversion),
             _ => None,
         }
     }
@@ -86,14 +88,18 @@ impl IrOperator {
             Self::GreaterThanOrEqual => Some("{} >= {}"),
             Self::LessThan => Some("{} < {}"),
             Self::LessThanOrEqual => Some("{} <= {}"),
-            Self::Conversion => Some("({}){}"),
+            Self::ImplicitConversion => Some("{}"),
+            Self::ExplicitConversion => Some("({}){}"),
         }
     }
 
     pub fn is_unary(self) -> bool {
         matches!(
             self,
-            Self::UnaryMinus | Self::UnaryNegation | Self::Conversion
+            Self::UnaryMinus
+                | Self::UnaryNegation
+                | Self::ImplicitConversion
+                | Self::ExplicitConversion
         )
     }
 
@@ -124,7 +130,10 @@ impl IrOperator {
             Self::ConditionalAnd | Self::LogicalAnd => 1,
             Self::ConditionalXor | Self::LogicalXor => 0,
             Self::ConditionalOr | Self::LogicalOr => -1,
-            Self::UnaryMinus | Self::UnaryNegation | Self::Conversion => 7,
+            Self::UnaryMinus
+            | Self::UnaryNegation
+            | Self::ImplicitConversion
+            | Self::ExplicitConversion => 7,
         }
     }
 }
@@ -138,6 +147,11 @@ pub struct IrLiteralExpression {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IrVariableExpression {
     pub address: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IrRawExpression {
+    pub value: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -178,6 +192,7 @@ pub struct IrOperatorCallExpression {
 pub enum IrExpression {
     Literal(IrLiteralExpression),
     Variable(IrVariableExpression),
+    Raw(IrRawExpression),
     InternalCall(IrInternalCallExpression),
     ExternalCall(IrExternalCallExpression),
     PropertyAccess(IrPropertyAccessExpression),

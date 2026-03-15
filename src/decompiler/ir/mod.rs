@@ -13,6 +13,6 @@ pub use nodes::{
     IrContainerKind, IrExpression, IrExpressionStatement, IrExternalCallExpression, IrFunction,
     IrHighLevelDoWhile, IrHighLevelSwitch, IrHighLevelSwitchSection, IrHighLevelWhile, IrIf,
     IrInternalCallExpression, IrJump, IrLeave, IrLiteralExpression, IrOperator,
-    IrOperatorCallExpression, IrPropertyAccessExpression, IrReturn, IrStatement, IrSwitch,
-    IrVariableDeclarationStatement, IrVariableExpression,
+    IrOperatorCallExpression, IrPropertyAccessExpression, IrRawExpression, IrReturn, IrStatement,
+    IrSwitch, IrVariableDeclarationStatement, IrVariableExpression,
 };
