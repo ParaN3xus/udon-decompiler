@@ -31,7 +31,7 @@ impl IProgramTransform for IrClassConstructionTransform {
 
             let init_value = Some(crate::decompiler::ir::IrLiteralExpression {
                 value: variable.init_value.clone(),
-                type_hint: Some(variable.type_name.clone()),
+                type_hint: variable.type_name.clone(),
             });
 
             class_variables.push(IrVariableDeclarationStatement {

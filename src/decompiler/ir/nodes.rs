@@ -141,7 +141,7 @@ impl IrOperator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IrLiteralExpression {
     pub value: String,
-    pub type_hint: Option<String>,
+    pub type_hint: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

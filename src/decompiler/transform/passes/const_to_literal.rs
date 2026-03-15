@@ -159,7 +159,7 @@ fn parse_literal(type_name: &str, init_value: &str) -> Option<IrLiteralExpressio
         TYPE_SYSTEM_BOOLEAN => match init_value {
             "true" | "false" => Some(IrLiteralExpression {
                 value: init_value.to_string(),
-                type_hint: Some(type_name.to_string()),
+                type_hint: type_name.to_string(),
             }),
             _ => None,
         },
@@ -170,12 +170,12 @@ fn parse_literal(type_name: &str, init_value: &str) -> Option<IrLiteralExpressio
             }
             Some(IrLiteralExpression {
                 value: init_value.to_string(),
-                type_hint: Some(type_name.to_string()),
+                type_hint: type_name.to_string(),
             })
         }
         TYPE_SYSTEM_STRING => Some(IrLiteralExpression {
             value: init_value.to_string(),
-            type_hint: Some(type_name.to_string()),
+            type_hint: type_name.to_string(),
         }),
         _ => {
             if init_value.trim().is_empty() {
@@ -183,7 +183,7 @@ fn parse_literal(type_name: &str, init_value: &str) -> Option<IrLiteralExpressio
             }
             Some(IrLiteralExpression {
                 value: init_value.to_string(),
-                type_hint: Some(type_name.to_string()),
+                type_hint: type_name.to_string(),
             })
         }
     }

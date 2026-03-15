@@ -40,7 +40,7 @@ impl ITransform for CollectVariables {
 
             let init_value = Some(crate::decompiler::ir::IrLiteralExpression {
                 value: variable.init_value.clone(),
-                type_hint: Some(variable.type_name.clone()),
+                type_hint: variable.type_name.clone(),
             });
 
             declarations.push(IrVariableDeclarationStatement {
