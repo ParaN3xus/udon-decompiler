@@ -42,6 +42,7 @@ pub const INPUT_GLOB_B64: &str = "*.b64";
 pub const INPUT_GLOB_ASM: &str = "*.asm";
 pub const CLANG_FORMAT_ASSUME_FILENAME_CS: &str = "_.cs";
 pub const FILE_UDON_MODULE_INFO_JSON: &str = "UdonModuleInfo.json";
+pub const CLASS_NAME_SYMBOL_NAME: &str = "__refl_typename";
 
 pub const SYMBOL_PREFIX_CONST: &str = "__const_";
 pub const SYMBOL_PREFIX_GLOBAL: &str = "__global_";

@@ -183,7 +183,7 @@ fn load_symbols(
         let item = program.symbol_item(section, i)?;
         let type_name = program
             .symbol_type_name_string(section, i)?
-            .unwrap_or_else(|| "unserializable".to_string());
+            .unwrap_or_else(|| TYPE_UNSERIALIZABLE.to_string());
         out.push(DecompileSymbol {
             exported: exported.contains(&item.name),
             name: item.name,
@@ -206,30 +206,57 @@ fn exported_name_set(
     Ok(out)
 }
 
-fn load_heap_entries(program: &UdonProgramBinary) -> Result<Vec<DecompileHeapEntry>> {
+struct LoadedHeapData {
+    entries: Vec<DecompileHeapEntry>,
+    u32_literals: HashMap<u32, u32>,
+    string_literals: HashMap<u32, String>,
+    u32_array_literals: HashMap<u32, Vec<u32>>,
+}
+
+fn load_heap_data(program: &UdonProgramBinary) -> Result<LoadedHeapData> {
     let len = program.heap_dump_len()?;
     let mut out = Vec::<DecompileHeapEntry>::with_capacity(len);
+    let mut u32_literals = HashMap::<u32, u32>::new();
+    let mut string_literals = HashMap::<u32, String>::new();
+    let mut u32_array_literals = HashMap::<u32, Vec<u32>>::new();
     for i in 0..len {
         let item = program.heap_dump_item(i)?;
         let maybe_type_name = program.heap_dump_type_name_string(i)?;
-        let (type_name, init_value) = if let Some(type_name) = maybe_type_name {
-            let value_kind = program.heap_dump_strongbox_value_kind(i)?;
+        let value_kind = program.heap_dump_strongbox_value_kind(i)?;
+        let (type_name, init_value, literal) = if let Some(type_name) = maybe_type_name {
+            let literal =
+                resolve_heap_literal_for_program_entry(program, i, &type_name, &value_kind)?;
             (
                 type_name.clone(),
-                render_heap_init_literal(&type_name, &value_kind),
+                render_heap_literal(&type_name, &literal),
+                literal,
             )
         } else {
             (
-                "unserializable".to_string(),
-                "{ unserializable }".to_string(),
+                TYPE_UNSERIALIZABLE.to_string(),
+                UNSERIALIZABLE_LITERAL.to_string(),
+                HeapLiteralValue::Unserializable,
             )
         };
+        if let Some(v) = literal.as_u32() {
+            u32_literals.insert(item.address, v);
+        }
+        if let Some(v) = literal.as_string() {
+            string_literals.insert(item.address, v.to_string());
+        }
+        if let Some(v) = literal.as_u32_array() {
+            u32_array_literals.insert(item.address, v.to_vec());
+        }
         out.push(DecompileHeapEntry {
-            index: i,
             address: item.address,
             type_name,
             init_value,
         });
     }
-    Ok(out)
+    Ok(LoadedHeapData {
+        entries: out,
+        u32_literals,
+        string_literals,
+        u32_array_literals,
+    })
 }
