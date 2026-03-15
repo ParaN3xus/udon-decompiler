@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use crate::decompiler::Result;
+use crate::decompiler::VariableRecord;
 use crate::decompiler::ir::{
     IrAssignmentStatement, IrExpression, IrExpressionStatement, IrFunction, IrIf,
     IrLiteralExpression, IrStatement, IrSwitch, IrVariableExpression,
 };
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
-use crate::decompiler::VariableRecord;
 use crate::str_constants::{
     TYPE_SYSTEM_BOOLEAN, TYPE_SYSTEM_DOUBLE, TYPE_SYSTEM_INT32, TYPE_SYSTEM_INT64,
     TYPE_SYSTEM_SINGLE, TYPE_SYSTEM_STRING, TYPE_SYSTEM_UINT32, TYPE_SYSTEM_UINT64,
@@ -16,8 +16,11 @@ use crate::str_constants::{
 pub struct ConstToLiteral;
 
 impl ITransform for ConstToLiteral {
-
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
+    fn run(
+        &self,
+        function: &mut IrFunction,
+        _context: &mut TransformContext<'_, '_>,
+    ) -> Result<()> {
         let variables_by_address = _context
             .program_context
             .decompile_context
@@ -126,9 +129,6 @@ fn rewrite_expression(
                 return;
             };
             if !variable.name.starts_with("__const_") {
-                return;
-            }
-            if !variable.is_init_serializable {
                 return;
             }
             if let Some(literal) =

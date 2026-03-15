@@ -22,7 +22,6 @@ pub struct VariableRecord {
     pub name: String,
     pub type_name: String,
     pub init_value: String,
-    pub is_init_serializable: bool,
     pub exported: bool,
     pub scope: VariableScope,
 }
@@ -66,7 +65,6 @@ impl VariableTable {
                 name,
                 type_name: heap.type_name.clone(),
                 init_value: heap.init_value.clone(),
-                is_init_serializable: heap.is_init_serializable,
                 exported,
                 scope,
             };

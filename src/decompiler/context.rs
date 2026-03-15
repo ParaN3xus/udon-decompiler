@@ -1,12 +1,22 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use tracing::{debug, info};
 
 use crate::odin::{SymbolSection, UdonProgramBinary};
-use crate::udon_asm::render_heap_init_literal;
+use crate::str_constants::{
+    TYPE_UNSERIALIZABLE, UNSERIALIZABLE_LITERAL,
+};
+use crate::udon_asm::{
+    HeapLiteralValue, render_heap_literal, resolve_heap_literal_for_program_entry,
+};
+use crate::util::sanitize_output_stem;
 
+use super::basic_block::BasicBlockCollection;
+use super::cfg::{FunctionCfg, StackSimulationResult};
+use super::pipeline::DecompilePipelineOutput;
+use super::variable::VariableTable;
 use super::{InstructionList, Result};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -15,6 +25,36 @@ pub struct DecompileSymbol {
     pub address: u32,
     pub exported: bool,
     pub type_name: String,
+}
+
+impl DecompileSymbol {
+    pub fn entry_call_jump_target(&self, ctx: &DecompileContext) -> u32 {
+        let Some(inst_id) = ctx.instructions.id_at_address(self.address) else {
+            return self.address;
+        };
+        let Some(inst) = ctx.instructions.get(inst_id) else {
+            return self.address;
+        };
+        if inst.opcode != crate::udon_asm::OpCode::Push {
+            return self.address;
+        }
+        let push_operand = inst.numeric_operand();
+
+        let is_halt_literal = ctx
+            .heap_u32_literals
+            .get(&push_operand)
+            .copied()
+            .is_some_and(|x| ctx.is_out_of_program_counter_range(x));
+        if !is_halt_literal {
+            return self.address;
+        }
+
+        // pushing halt jump addr
+        ctx.instructions
+            .next_of(inst_id)
+            .and_then(|next_id| ctx.instructions.address_of(next_id))
+            .unwrap_or(self.address)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
