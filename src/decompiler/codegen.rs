@@ -16,7 +16,7 @@ use crate::str_constants::{
     TYPE_SYSTEM_UINT64, TYPE_UNSERIALIZABLE, UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL,
     UNSERIALIZABLE_LITERAL,
 };
-use crate::udon_asm::{generated_heap_symbol, parse_heap_literal, render_heap_literal};
+use crate::udon_asm::generated_heap_symbol;
 
 pub fn generate_csharp(ctx: &DecompileContext, class_ir: &IrClass) -> Result<String> {
     let mut class_lines = Vec::<String>::new();
@@ -512,10 +512,7 @@ fn render_literal(literal: &IrLiteralExpression) -> String {
     if literal.value == UNSERIALIZABLE_LITERAL {
         return UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL.to_string();
     }
-    if let Ok(parsed) = parse_heap_literal(literal.type_hint.as_str(), literal.value.as_str()) {
-        return render_heap_literal(literal.type_hint.as_str(), &parsed);
-    }
-    UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL.to_string()
+    literal.value.clone()
 }
 
 fn render_variable_declaration(
