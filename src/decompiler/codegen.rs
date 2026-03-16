@@ -474,7 +474,7 @@ fn switch_section_needs_break_slice(statements: &[IrStatement]) -> bool {
     )
 }
 
-fn render_expression(expression: &IrExpression, ctx: &DecompileContext) -> String {
+pub(crate) fn render_expression(expression: &IrExpression, ctx: &DecompileContext) -> String {
     match expression {
         IrExpression::Literal(literal) => render_literal(literal),
         IrExpression::Variable(variable) => render_variable_expression(variable.address, ctx),
@@ -755,7 +755,7 @@ fn sanitize_identifier(name: &str) -> String {
     out
 }
 
-fn render_variable_expression(address: u32, ctx: &DecompileContext) -> String {
+pub(crate) fn render_variable_expression(address: u32, ctx: &DecompileContext) -> String {
     ctx.variables
         .get_by_address(address)
         .map(|variable| variable.name.clone())

@@ -6,13 +6,14 @@ use super::codec::{build_label_map, decode_instructions};
 use super::literal::{TYPE_UNSERIALIZABLE, UNSERIALIZABLE_LITERAL};
 use super::text::generated_heap_symbol;
 use super::types::Result;
-use super::{AsmBindDirective, AsmBindTableDirective};
+use super::{AsmBindDirective, AsmBindTableDirective, AsmInstructionComment};
 use super::{render_heap_literal, resolve_heap_literal_for_program_entry};
 
 pub fn disassemble_program_to_text(
     program: &UdonProgramBinary,
     binds: &[AsmBindDirective],
     bind_tables: &[AsmBindTableDirective],
+    instruction_comments: &[AsmInstructionComment],
 ) -> Result<String> {
     let indent = "  ";
     let bytecode = program.byte_code()?;
@@ -51,6 +52,10 @@ pub fn disassemble_program_to_text(
         .collect::<Vec<_>>();
     let label_map = build_label_map(&decoded, &entry_address_to_name, &extra_label_addresses);
     let instruction_addresses = decoded.iter().map(|x| x.address).collect::<HashSet<_>>();
+    let comment_by_address = instruction_comments
+        .iter()
+        .map(|x| (x.address, x.text.as_str()))
+        .collect::<HashMap<_, _>>();
 
     let mut lines = Vec::<String>::new();
     lines.push("; syntax".to_string());
@@ -174,6 +179,10 @@ pub fn disassemble_program_to_text(
             lines.push(format!("{}: ; @ 0x{:08X}", label, inst.address));
         }
         let op_name = inst.opcode.name();
+        let trailing_comment = comment_by_address
+            .get(&inst.address)
+            .map(|text| format!(" ; {}", text))
+            .unwrap_or_default();
         if let Some(operand) = inst.operand {
             if inst.opcode.is_direct_jump() {
                 if instruction_addresses.contains(&operand) {
@@ -181,9 +190,15 @@ pub fn disassemble_program_to_text(
                         .get(&operand)
                         .cloned()
                         .unwrap_or_else(|| format!("addr_0x{:08X}", operand));
-                    lines.push(format!("{}{} {}", indent, op_name, operand_label));
+                    lines.push(format!(
+                        "{}{} {}{}",
+                        indent, op_name, operand_label, trailing_comment
+                    ));
                 } else {
-                    lines.push(format!("{}{} 0x{:08X}", indent, op_name, operand));
+                    lines.push(format!(
+                        "{}{} 0x{:08X}{}",
+                        indent, op_name, operand, trailing_comment
+                    ));
                 }
             } else if inst.opcode.is_heap_operand() {
                 let rendered = if let Some(symbol) = heap_addr_to_symbol.get(&operand) {
@@ -191,12 +206,18 @@ pub fn disassemble_program_to_text(
                 } else {
                     generated_heap_symbol(operand)
                 };
-                lines.push(format!("{}{} {}", indent, op_name, rendered));
+                lines.push(format!(
+                    "{}{} {}{}",
+                    indent, op_name, rendered, trailing_comment
+                ));
             } else {
-                lines.push(format!("{}{} 0x{:08X}", indent, op_name, operand));
+                lines.push(format!(
+                    "{}{} 0x{:08X}{}",
+                    indent, op_name, operand, trailing_comment
+                ));
             }
         } else {
-            lines.push(format!("{}{}", indent, op_name));
+            lines.push(format!("{}{}{}", indent, op_name, trailing_comment));
         }
     }
 

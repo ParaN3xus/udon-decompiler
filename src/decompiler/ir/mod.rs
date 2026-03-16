@@ -4,7 +4,8 @@ mod control_flow_node;
 mod dominance;
 mod nodes;
 
-pub use builder::{IrBuilder, build_ir_functions};
+pub(crate) use builder::is_property_setter;
+pub use builder::{IrBuilder, build_extern_ir_expression, build_ir_functions};
 pub use control_flow_graph::ControlFlowGraph;
 pub use control_flow_node::ControlFlowNode;
 pub use dominance::{compute_dominance, mark_nodes_with_reachable_exits};

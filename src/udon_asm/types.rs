@@ -155,6 +155,12 @@ pub struct AsmBindTableDirective {
     pub addresses: Vec<u32>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AsmInstructionComment {
+    pub address: u32,
+    pub text: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Visibility {
     Public,

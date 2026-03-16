@@ -8,18 +8,11 @@ use super::context::DecompileContext;
 use super::ir::{IrClass, build_ir_functions};
 use super::transform::{ProgramTransformContext, build_default_pipeline};
 use super::variable::VariableTable;
-use crate::udon_asm::{AsmBindDirective, AsmBindTableDirective, OpCode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DecompilePipelineOutput {
     pub ir_class: IrClass,
     pub generated_code: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct AsmBindAnalysis {
-    pub binds: Vec<AsmBindDirective>,
-    pub bind_tables: Vec<AsmBindTableDirective>,
 }
 
 pub fn run_analysis_pipeline(ctx: &mut DecompileContext) -> Result<()> {
@@ -63,84 +56,5 @@ pub fn run_decompile_pipeline(ctx: &mut DecompileContext) -> Result<DecompilePip
     Ok(DecompilePipelineOutput {
         ir_class,
         generated_code,
-    })
-}
-
-pub fn collect_asm_bind_analysis(ctx: &DecompileContext) -> Result<AsmBindAnalysis> {
-    let mut bind_by_symbol = std::collections::BTreeMap::<String, u32>::new();
-    for (inst_id, address, instruction) in ctx.instructions.iter() {
-        if instruction.opcode != OpCode::Jump {
-            continue;
-        }
-
-        let Some(state) = ctx.stack_simulation.get_instruction_state(address) else {
-            continue;
-        };
-        let Some(top) = state.peek(0) else {
-            continue;
-        };
-        let Some(symbol_name) = ctx.symbol_name_by_address.get(&top.value) else {
-            continue;
-        };
-
-        let Some(next_address) = ctx
-            .instructions
-            .next_of(inst_id)
-            .and_then(|next| ctx.instructions.address_of(next))
-        else {
-            continue;
-        };
-        if ctx.heap_u32_literals.get(&top.value).copied() != Some(next_address) {
-            continue;
-        }
-
-        let target = instruction.numeric_operand();
-        let is_internal_call = ctx.entry_points.iter().any(|entry| {
-            let call_target = entry.entry_call_jump_target(ctx);
-            entry.address == target || call_target == target
-        });
-        if !is_internal_call {
-            continue;
-        }
-
-        match bind_by_symbol.insert(symbol_name.clone(), next_address) {
-            Some(existing) if existing != next_address => {
-                return Err(super::DecompileError::new(format!(
-                    "conflicting call-jump bind addresses for symbol '{}': 0x{:08X} vs 0x{:08X}",
-                    symbol_name, existing, next_address
-                )));
-            }
-            _ => {}
-        }
-    }
-
-    let mut bind_table_by_symbol = std::collections::BTreeMap::<String, Vec<u32>>::new();
-    for block in &ctx.basic_blocks.blocks {
-        let Some(switch_info) = block.switch_info.as_ref() else {
-            continue;
-        };
-        let Some(symbol_name) = ctx.symbol_name_by_address.get(&switch_info.table_operand) else {
-            continue;
-        };
-        match bind_table_by_symbol.insert(symbol_name.clone(), switch_info.targets.clone()) {
-            Some(existing) if existing != switch_info.targets => {
-                return Err(super::DecompileError::new(format!(
-                    "conflicting switch bind-table targets for symbol '{}'",
-                    symbol_name
-                )));
-            }
-            _ => {}
-        }
-    }
-
-    Ok(AsmBindAnalysis {
-        binds: bind_by_symbol
-            .into_iter()
-            .map(|(symbol, address)| AsmBindDirective { symbol, address })
-            .collect(),
-        bind_tables: bind_table_by_symbol
-            .into_iter()
-            .map(|(symbol, addresses)| AsmBindTableDirective { symbol, addresses })
-            .collect(),
     })
 }

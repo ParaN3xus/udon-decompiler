@@ -15,6 +15,52 @@ use super::nodes::{
 };
 use crate::decompiler::FunctionCfg;
 
+pub fn build_extern_ir_expression(
+    function_info: ExternFunctionInfo,
+    signature: String,
+    arguments: Vec<IrExpression>,
+) -> IrExpression {
+    match function_info.def_type {
+        FunctionDefinitionType::Field => IrExpression::PropertyAccess(IrPropertyAccessExpression {
+            function_info,
+            signature,
+            arguments,
+        }),
+        FunctionDefinitionType::Ctor => {
+            IrExpression::ConstructorCall(IrConstructorCallExpression {
+                function_info,
+                signature,
+                arguments,
+            })
+        }
+        FunctionDefinitionType::Operator => {
+            let operator = IrOperator::from_extern_signature(signature.as_str())
+                .unwrap_or_else(|| panic!("unsupported operator extern signature: {signature}"));
+            let arguments = if operator == IrOperator::ExplicitConversion {
+                let mut arguments = arguments;
+                arguments.insert(
+                    0,
+                    IrExpression::Raw(IrRawExpression {
+                        value: function_info.type_name.clone(),
+                    }),
+                );
+                arguments
+            } else {
+                arguments
+            };
+            IrExpression::OperatorCall(IrOperatorCallExpression {
+                arguments,
+                operator,
+            })
+        }
+        FunctionDefinitionType::Method => IrExpression::ExternalCall(IrExternalCallExpression {
+            function_info,
+            signature,
+            arguments,
+        }),
+    }
+}
+
 pub struct IrBuilder<'a> {
     ctx: &'a DecompileContext,
     function_cfg: &'a FunctionCfg,
@@ -194,51 +240,7 @@ impl<'a> IrBuilder<'a> {
         signature: String,
         arguments: Vec<IrExpression>,
     ) -> IrExpression {
-        match function_info.def_type {
-            FunctionDefinitionType::Field => {
-                IrExpression::PropertyAccess(IrPropertyAccessExpression {
-                    function_info,
-                    signature,
-                    arguments,
-                })
-            }
-            FunctionDefinitionType::Ctor => {
-                IrExpression::ConstructorCall(IrConstructorCallExpression {
-                    function_info,
-                    signature,
-                    arguments,
-                })
-            }
-            FunctionDefinitionType::Operator => {
-                let operator = IrOperator::from_extern_signature(signature.as_str())
-                    .unwrap_or_else(|| {
-                        panic!("unsupported operator extern signature: {signature}")
-                    });
-                let arguments = if operator == IrOperator::ExplicitConversion {
-                    let mut arguments = arguments;
-                    arguments.insert(
-                        0,
-                        IrExpression::Raw(IrRawExpression {
-                            value: function_info.type_name.clone(),
-                        }),
-                    );
-                    arguments
-                } else {
-                    arguments
-                };
-                IrExpression::OperatorCall(IrOperatorCallExpression {
-                    arguments,
-                    operator,
-                })
-            }
-            FunctionDefinitionType::Method => {
-                IrExpression::ExternalCall(IrExternalCallExpression {
-                    function_info,
-                    signature,
-                    arguments,
-                })
-            }
-        }
+        build_extern_ir_expression(function_info, signature, arguments)
     }
 
     fn build_call_arguments(&self, address: u32, parameter_count: usize) -> Vec<IrExpression> {
@@ -510,7 +512,7 @@ impl<'a> IrBuilder<'a> {
     }
 }
 
-fn is_property_setter(function_info: &ExternFunctionInfo) -> bool {
+pub(crate) fn is_property_setter(function_info: &ExternFunctionInfo) -> bool {
     function_info.def_type == FunctionDefinitionType::Field
         && function_info.function_name.starts_with("__set_")
 }

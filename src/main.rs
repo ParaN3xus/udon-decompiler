@@ -4,13 +4,16 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use tracing::{debug, info};
-use udon_decompiler::decompiler::{AsmBindAnalysis, DecompileContext, UdonModuleInfo};
+use udon_decompiler::decompiler::{DecompileContext, UdonModuleInfo};
 use udon_decompiler::logging::init_logging;
 use udon_decompiler::odin::UdonProgramBinary;
 use udon_decompiler::str_constants::{
     EXT_ASM, EXT_B64, EXT_CS, FILE_UDON_MODULE_INFO_JSON, INPUT_GLOB_ASM, INPUT_GLOB_B64,
 };
-use udon_decompiler::udon_asm::{assemble_b64_with_original, disassemble_program_to_text};
+use udon_decompiler::udon_asm::{
+    AsmBindAnalysis, AsmInstructionComment, assemble_b64_with_original,
+    collect_asm_bind_analysis, collect_asm_instruction_comments, disassemble_program_to_text,
+};
 use udon_decompiler::util::read_normalized_base64;
 
 #[derive(Parser, Debug)]
@@ -61,6 +64,7 @@ enum PreparedSingleInput {
     Dasm {
         program: UdonProgramBinary,
         bind_analysis: AsmBindAnalysis,
+        instruction_comments: Vec<AsmInstructionComment>,
         output_stem: String,
     },
     Asm {
@@ -260,6 +264,7 @@ fn process_single_file_inner(
             let PreparedSingleInput::Dasm {
                 program,
                 bind_analysis,
+                instruction_comments,
                 ..
             } = prepared
             else {
@@ -269,6 +274,7 @@ fn process_single_file_inner(
                 program,
                 &bind_analysis.binds,
                 &bind_analysis.bind_tables,
+                instruction_comments,
             )
             .with_context(|| {
                 format!(
@@ -340,9 +346,15 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
                     input_file.display()
                 )
             })?;
-            let bind_analysis = ctx.collect_asm_bind_analysis().with_context(|| {
+            let bind_analysis = collect_asm_bind_analysis(&ctx).with_context(|| {
                 format!(
                     "failed to collect disassembly binds from {}",
+                    input_file.display()
+                )
+            })?;
+            let instruction_comments = collect_asm_instruction_comments(&ctx).with_context(|| {
+                format!(
+                    "failed to collect disassembly comments from {}",
                     input_file.display()
                 )
             })?;
@@ -350,6 +362,7 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
             Ok(PreparedSingleInput::Dasm {
                 program,
                 bind_analysis,
+                instruction_comments,
                 output_stem,
             })
         }

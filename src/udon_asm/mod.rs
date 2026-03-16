@@ -1,4 +1,5 @@
 mod apply;
+mod analysis;
 mod codec;
 mod disassemble;
 mod literal;
@@ -18,9 +19,11 @@ use codec::{build_heap_symbol_to_addr_map, encode_instructions};
 pub use disassemble::disassemble_program_to_text;
 use parse::parse_asm_text;
 
+pub use analysis::{AsmBindAnalysis, collect_asm_bind_analysis, collect_asm_instruction_comments};
 pub use codec::{decode_bytecode_to_asm_instructions, encode_asm_instructions_to_bytecode};
 pub use types::{
-    AsmBindDirective, AsmBindTableDirective, AsmError, AsmInstruction, OpCode, OperandToken,
+    AsmBindDirective, AsmBindTableDirective, AsmError, AsmInstruction, AsmInstructionComment,
+    OpCode, OperandToken,
 };
 pub type Result<T> = types::Result<T>;
 pub(crate) use literal::{

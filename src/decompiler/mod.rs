@@ -16,6 +16,7 @@ pub use cfg::{
     build_cfgs_and_discover_entries,
 };
 pub use codegen::generate_csharp;
+pub(crate) use codegen::{render_expression, render_variable_expression};
 pub use context::{DecompileContext, DecompileHeapEntry, DecompileSymbol};
 pub use instruction_list::{InstructionId, InstructionList};
 pub use ir::{
@@ -27,14 +28,12 @@ pub use ir::{
     IrRawExpression, IrReturn, IrStatement, IrSwitch, IrVariableDeclarationStatement,
     IrVariableExpression, build_ir_functions, compute_dominance, mark_nodes_with_reachable_exits,
 };
+pub(crate) use ir::{build_extern_ir_expression, is_property_setter};
 pub use module_info::{
     ExternFunctionInfo, FunctionDefinitionType, ParameterType, UINT32_ARRAY_GET_METHOD_NAME,
     UdonModuleInfo,
 };
-pub use pipeline::{
-    AsmBindAnalysis, DecompilePipelineOutput, collect_asm_bind_analysis, run_analysis_pipeline,
-    run_decompile_pipeline,
-};
+pub use pipeline::{DecompilePipelineOutput, run_analysis_pipeline, run_decompile_pipeline};
 pub use transform::{
     BlockTransform, BlockTransformContext, IBlockTransform, IProgramTransform, IStatementTransform,
     ITransform, LoopingBlockTransform, ProgramTransformContext, StatementTransform,
