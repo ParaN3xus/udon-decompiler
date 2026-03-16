@@ -53,15 +53,16 @@ fn parse_markdown_code_fences(text: &str) -> Vec<(String, String)> {
     out
 }
 
-fn load_hex_from_case(case_path: &Path) -> Option<String> {
-    let text = fs::read_to_string(case_path).ok()?;
+fn load_hex_from_case(case_path: &Path) -> Result<String, String> {
+    let text =
+        fs::read_to_string(case_path).map_err(|e| format!("failed to read case markdown: {e}"))?;
     let blocks = parse_markdown_code_fences(&text);
     for (lang, content) in blocks {
         if lang.eq_ignore_ascii_case("hex") {
-            return Some(content);
+            return Ok(content);
         }
     }
-    None
+    Err("missing ```hex fence".to_string())
 }
 
 fn snapshot_name_for_case(case_path: &Path, root: &Path) -> String {
@@ -96,10 +97,15 @@ fn e2e_smoke() {
     let cases = collect_case_paths(&root);
     assert!(!cases.is_empty(), "no markdown cases found");
 
+    let total_cases = cases.len();
     let mut failures = Vec::<String>::new();
-    for case_path in cases {
-        let Some(hex_text) = load_hex_from_case(&case_path) else {
-            continue;
+    for (index, case_path) in cases.iter().enumerate() {
+        let hex_text = match load_hex_from_case(case_path) {
+            Ok(text) => text,
+            Err(e) => {
+                failures.push(format!("{}: {}", case_path.display(), e));
+                continue;
+            }
         };
 
         let file_name = case_path
@@ -116,7 +122,15 @@ fn e2e_smoke() {
 
         if let Err(e) = result {
             failures.push(format!("{}: {}", case_path.display(), e));
+            continue;
         }
+
+        eprintln!(
+            "[{}/{}] smoke ok: {}",
+            index + 1,
+            total_cases,
+            case_path.display()
+        );
     }
 
     assert!(
@@ -134,10 +148,10 @@ fn e2e_snapshot() {
     let cases = collect_case_paths(&root);
     assert!(!cases.is_empty(), "no markdown cases found");
 
-    for case_path in cases {
-        let Some(hex_text) = load_hex_from_case(&case_path) else {
-            continue;
-        };
+    let total_cases = cases.len();
+    for (index, case_path) in cases.iter().enumerate() {
+        let hex_text = load_hex_from_case(case_path)
+            .unwrap_or_else(|e| panic!("{}: {}", case_path.display(), e));
 
         let stem = case_path
             .file_stem()
@@ -154,5 +168,11 @@ fn e2e_snapshot() {
 
         let snapshot_name = snapshot_name_for_case(&case_path, &root);
         insta::assert_snapshot!(snapshot_name, output.generated_code);
+        eprintln!(
+            "[{}/{}] snapshot ok: {}",
+            index + 1,
+            total_cases,
+            case_path.display()
+        );
     }
 }
