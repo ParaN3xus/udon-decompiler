@@ -7,9 +7,8 @@ mod parse;
 mod text;
 mod types;
 
-use base64::Engine as _;
-
 use crate::odin::UdonProgramBinary;
+use crate::util::{decode_compressed_hex_text, encode_compressed_hex_bytes};
 
 use apply::{
     apply_bind_directives, apply_bind_table_directives, apply_entry_directives,
@@ -51,9 +50,10 @@ pub fn assemble_text_on_program(program: &mut UdonProgramBinary, asm_text: &str)
     Ok(())
 }
 
-pub fn assemble_b64_with_original(original_b64: &str, asm_text: &str) -> Result<String> {
-    let mut program = UdonProgramBinary::parse_base64(original_b64)?;
+pub fn assemble_hex_with_original(original_hex: &str, asm_text: &str) -> Result<String> {
+    let bytes = decode_compressed_hex_text(original_hex).map_err(|e| AsmError::new(e.to_string()))?;
+    let mut program = UdonProgramBinary::parse_bytes(&bytes)?;
     assemble_text_on_program(&mut program, asm_text)?;
     let bytes = program.to_bytes()?;
-    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
+    encode_compressed_hex_bytes(&bytes).map_err(|e| AsmError::new(e.to_string()))
 }

@@ -35,10 +35,12 @@ pub const TYPE_VRC_NETWORK_EVENT_TARGET: &str = "VRC.Udon.Common.Interfaces.Netw
 pub const TYPE_VRC_EVENT_TIMING: &str = "VRC.Udon.Common.Enums.EventTiming";
 pub const TYPE_VRC_TOKEN_TYPE: &str = "VRC.SDK3.Data.TokenType";
 
-pub const EXT_B64: &str = "b64";
+pub const EXT_HEX: &str = "hex";
+pub const EXT_ASSET: &str = "asset";
 pub const EXT_ASM: &str = "asm";
 pub const EXT_CS: &str = "cs";
-pub const INPUT_GLOB_B64: &str = "*.b64";
+pub const INPUT_GLOB_HEX: &str = "*.hex";
+pub const INPUT_GLOB_ASSET: &str = "*.asset";
 pub const INPUT_GLOB_ASM: &str = "*.asm";
 pub const CLANG_FORMAT_ASSUME_FILENAME_CS: &str = "_.cs";
 pub const FILE_UDON_MODULE_INFO_JSON: &str = "UdonModuleInfo.json";

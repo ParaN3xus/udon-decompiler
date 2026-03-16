@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use tracing::{debug, info};
@@ -9,7 +8,7 @@ use crate::str_constants::{CLASS_NAME_SYMBOL_NAME, TYPE_UNSERIALIZABLE, UNSERIAL
 use crate::udon_asm::{
     HeapLiteralValue, render_heap_literal, resolve_heap_literal_for_program_entry,
 };
-use crate::util::sanitize_output_stem;
+use crate::util::{read_program_bytes, sanitize_output_stem};
 
 use super::basic_block::BasicBlockCollection;
 use super::cfg::{FunctionCfg, StackSimulationResult};
@@ -90,9 +89,10 @@ impl DecompileContext {
 
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        info!(path = %path.display(), "loading decompile context from b64 file");
-        let raw = fs::read_to_string(path)?;
-        let program = UdonProgramBinary::parse_base64(&raw)?;
+        info!(path = %path.display(), "loading decompile context from program file");
+        let bytes = read_program_bytes(path)
+            .map_err(|e| super::DecompileError::new(e.to_string()))?;
+        let program = UdonProgramBinary::parse_bytes(&bytes)?;
         let mut ctx = Self::from_program(&program)?;
         ctx.input_path = Some(path.to_path_buf());
         ctx.set_input_file_name(

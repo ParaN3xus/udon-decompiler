@@ -8,13 +8,13 @@ use udon_decompiler::decompiler::{DecompileContext, UdonModuleInfo};
 use udon_decompiler::logging::init_logging;
 use udon_decompiler::odin::UdonProgramBinary;
 use udon_decompiler::str_constants::{
-    EXT_ASM, EXT_B64, EXT_CS, FILE_UDON_MODULE_INFO_JSON, INPUT_GLOB_ASM, INPUT_GLOB_B64,
+    EXT_ASM, EXT_ASSET, EXT_CS, EXT_HEX, FILE_UDON_MODULE_INFO_JSON, INPUT_GLOB_ASM,
 };
 use udon_decompiler::udon_asm::{
-    AsmBindAnalysis, AsmInstructionComment, assemble_b64_with_original,
+    AsmBindAnalysis, AsmInstructionComment, assemble_hex_with_original,
     collect_asm_bind_analysis, collect_asm_instruction_comments, disassemble_program_to_text,
 };
-use udon_decompiler::util::read_normalized_base64;
+use udon_decompiler::util::{read_program_bytes, read_compressed_program_bytes_from_asset};
 
 #[derive(Parser, Debug)]
 #[command(name = "udon-decompiler")]
@@ -31,17 +31,17 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Decompile b64 to C#.
+    /// Decompile .hex or .asset to C#.
     Dc {
         input: PathBuf,
         output: Option<PathBuf>,
     },
-    /// Disassemble b64 to asm text.
+    /// Disassemble .hex or .asset to asm text.
     Dasm {
         input: PathBuf,
         output: Option<PathBuf>,
     },
-    /// Assemble asm text back to b64.
+    /// Assemble asm text back to compressed .hex.
     Asm {
         input: PathBuf,
         output: Option<PathBuf>,
@@ -286,7 +286,7 @@ fn process_single_file_inner(
                 .file_name()
                 .map(|x| x.to_string_lossy().to_string())
                 .unwrap_or_else(|| input_file.display().to_string());
-            let asm_with_source = format!("; source-b64: {}\n{}", source_name, asm);
+            let asm_with_source = format!("; source-program: {}\n{}", source_name, asm);
             fs::write(output_file, asm_with_source)
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
             debug!("wrote disassembly output");
@@ -296,19 +296,34 @@ fn process_single_file_inner(
                 bail!("internal error: expected prepared asm input");
             };
             let template_path =
-                choose_b64_template_path(input_file, output_file, template, asm_text)?;
-            let original_b64 = read_normalized_base64(&template_path)?;
-            let assembled_b64 =
-                assemble_b64_with_original(&original_b64, asm_text).with_context(|| {
+                choose_hex_template_path(input_file, output_file, template, asm_text)?;
+            let assembled_hex = if is_asset_file(&template_path) {
+                let original_compressed = read_compressed_program_bytes_from_asset(&template_path)?;
+                let original_hex = original_compressed
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>();
+                assemble_hex_with_original(&original_hex, asm_text).with_context(|| {
+                    format!(
+                        "failed to assemble {} using asset template {}",
+                        input_file.display(),
+                        template_path.display()
+                    )
+                })?
+            } else {
+                let original_hex = std::fs::read_to_string(&template_path)
+                    .with_context(|| format!("failed to read {}", template_path.display()))?;
+                assemble_hex_with_original(&original_hex, asm_text).with_context(|| {
                     format!(
                         "failed to assemble {} using template {}",
                         input_file.display(),
                         template_path.display()
                     )
-                })?;
-            fs::write(output_file, assembled_b64)
+                })?
+            };
+            fs::write(output_file, assembled_hex)
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
-            debug!(template = %template_path.display(), "wrote assembled b64 output");
+            debug!(template = %template_path.display(), "wrote assembled hex output");
         }
     }
     Ok(())
@@ -326,9 +341,9 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
             Ok(PreparedSingleInput::Dc { ctx })
         }
         Mode::Dasm => {
-            let b64 = read_normalized_base64(input_file)?;
-            let program = UdonProgramBinary::parse_base64(&b64)
-                .with_context(|| format!("failed to parse b64 from {}", input_file.display()))?;
+            let bytes = read_program_bytes(input_file)?;
+            let program = UdonProgramBinary::parse_bytes(&bytes)
+                .with_context(|| format!("failed to parse program from {}", input_file.display()))?;
             let mut ctx = DecompileContext::from_program(&program).with_context(|| {
                 format!(
                     "failed to create decompile context from {}",
@@ -406,9 +421,9 @@ fn validate_template_kind_for_directory(mode: Mode, template: Option<&Path>) -> 
     Ok(())
 }
 
-fn choose_b64_template_path(
+fn choose_hex_template_path(
     input_asm: &Path,
-    output_b64: &Path,
+    output_hex: &Path,
     explicit_template: Option<&Path>,
     asm_text: &str,
 ) -> Result<PathBuf> {
@@ -417,53 +432,62 @@ fn choose_b64_template_path(
             return Ok(template.to_path_buf());
         }
         if template.exists() && template.is_dir() {
-            if let Some(hint_name) = extract_source_b64_hint(asm_text) {
+            if let Some(hint_name) = extract_source_program_hint(asm_text) {
                 let hinted = template.join(hint_name);
                 if hinted.exists() && hinted.is_file() {
                     return Ok(hinted);
                 }
             }
-            let by_stem = template.join(format!("{}.{}", input_file_stem(input_asm), EXT_B64));
+            let by_stem = template.join(format!("{}.{}", input_file_stem(input_asm), EXT_HEX));
             if by_stem.exists() && by_stem.is_file() {
                 return Ok(by_stem);
             }
+            let by_asset_stem = template.join(format!("{}.{}", input_file_stem(input_asm), EXT_ASSET));
+            if by_asset_stem.exists() && by_asset_stem.is_file() {
+                return Ok(by_asset_stem);
+            }
             bail!(
-                "template directory does not contain matching b64 for {} (tried hint and stem)",
+                "template directory does not contain matching hex/asset for {} (tried hint and stem)",
                 input_asm.display()
             );
         }
         bail!("template path does not exist: {}", template.display());
     }
 
-    if output_b64.exists() && output_b64.is_file() {
-        return Ok(output_b64.to_path_buf());
+    if output_hex.exists() && output_hex.is_file() {
+        return Ok(output_hex.to_path_buf());
     }
-    if let Some(hint_name) = extract_source_b64_hint(asm_text) {
+    if let Some(hint_name) = extract_source_program_hint(asm_text) {
         let hinted = input_asm.parent().unwrap_or(Path::new(".")).join(hint_name);
         if hinted.exists() && hinted.is_file() {
             return Ok(hinted);
         }
     }
-    let sibling = input_asm.with_extension(EXT_B64);
+    let sibling = input_asm.with_extension(EXT_HEX);
     if sibling.exists() && sibling.is_file() {
         return Ok(sibling);
     }
+    let sibling_asset = input_asm.with_extension(EXT_ASSET);
+    if sibling_asset.exists() && sibling_asset.is_file() {
+        return Ok(sibling_asset);
+    }
     bail!(
-        "asm requires a b64 template file. provide --template, or ensure existing output/sibling b64 is present"
+        "asm requires a hex or asset template file. provide --template, or ensure existing output/sibling hex/asset is present"
     );
 }
 
-fn extract_source_b64_hint(asm_text: &str) -> Option<String> {
+fn extract_source_program_hint(asm_text: &str) -> Option<String> {
     let first_line = asm_text.lines().next()?.trim();
-    let prefix = "; source-b64:";
-    if !first_line.starts_with(prefix) {
-        return None;
+    for prefix in ["; source-program:", "; source-hex:"] {
+        if first_line.starts_with(prefix) {
+            let value = first_line[prefix.len()..].trim();
+            if value.is_empty() {
+                return None;
+            }
+            return Some(value.to_string());
+        }
     }
-    let value = first_line[prefix.len()..].trim();
-    if value.is_empty() {
-        return None;
-    }
-    Some(value.to_string())
+    None
 }
 
 fn ensure_input_extension(mode: Mode, input_file: &Path) -> Result<()> {
@@ -473,7 +497,7 @@ fn ensure_input_extension(mode: Mode, input_file: &Path) -> Result<()> {
         .unwrap_or_default()
         .to_ascii_lowercase();
     let ok = match mode {
-        Mode::Dc | Mode::Dasm => ext == EXT_B64,
+        Mode::Dc | Mode::Dasm => ext == EXT_HEX || ext == EXT_ASSET,
         Mode::Asm => ext == EXT_ASM,
     };
     if ok {
@@ -503,7 +527,7 @@ fn collect_input_files(input_dir: &Path, mode: Mode) -> Result<Vec<PathBuf>> {
             .unwrap_or_default()
             .to_ascii_lowercase();
         let matched = match mode {
-            Mode::Dc | Mode::Dasm => ext == EXT_B64,
+            Mode::Dc | Mode::Dasm => ext == EXT_HEX || ext == EXT_ASSET,
             Mode::Asm => ext == EXT_ASM,
         };
         if matched {
@@ -531,7 +555,7 @@ fn default_output_filename(
             };
             format!("{output_stem}.{}", EXT_ASM)
         }
-        Mode::Asm => format!("{}.{}", input_file_stem(input_file), EXT_B64),
+        Mode::Asm => format!("{}.{}", input_file_stem(input_file), EXT_HEX),
     }
 }
 
@@ -547,7 +571,13 @@ fn input_file_stem(path: &Path) -> String {
 
 fn mode_input_glob_hint(mode: Mode) -> &'static str {
     match mode {
-        Mode::Dc | Mode::Dasm => INPUT_GLOB_B64,
+        Mode::Dc | Mode::Dasm => "*.{hex,asset}",
         Mode::Asm => INPUT_GLOB_ASM,
     }
+}
+
+fn is_asset_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|x| x.to_str())
+        .is_some_and(|x| x.eq_ignore_ascii_case(EXT_ASSET))
 }
