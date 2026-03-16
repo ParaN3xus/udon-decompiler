@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      UDON_MODULE_INFO: UdonModuleInfo.json
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cargo fmt
+        run: cargo fmt --check
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Yarn dependencies
+        run: yarn install --immutable
+
+      - name: Biome check
+        run: yarn biome check package.json scripts/case-md.ts
+
+      - name: Cargo build tests
+        run: cargo test -q --no-run
+
+      - name: Download UdonModuleInfo.json
+        shell: bash
+        env:
+          UDON_MODULE_INFO_URL: ${{ secrets.UDON_MODULE_INFO_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${UDON_MODULE_INFO_URL}" ]; then
+            echo "UDON_MODULE_INFO_URL is not set; skipping download."
+            exit 0
+          fi
+
+          if curl -fsSL "${UDON_MODULE_INFO_URL}" -o "${UDON_MODULE_INFO}"; then
+            echo "Downloaded ${UDON_MODULE_INFO} successfully."
+          else
+            echo "Failed to download ${UDON_MODULE_INFO}; continuing."
+          fi
+
+      - name: Install clang-format
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Cargo test
+        run: cargo test -q
