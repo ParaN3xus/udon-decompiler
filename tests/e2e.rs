@@ -58,7 +58,7 @@ fn load_hex_from_case(case_path: &Path) -> Result<String, String> {
         fs::read_to_string(case_path).map_err(|e| format!("failed to read case markdown: {e}"))?;
     let blocks = parse_markdown_code_fences(&text);
     for (lang, content) in blocks {
-        if lang.eq_ignore_ascii_case("hex") {
+        if lang == "hex" {
             return Ok(content);
         }
     }

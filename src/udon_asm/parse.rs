@@ -18,15 +18,15 @@ pub(crate) fn parse_asm_text(text: &str) -> Result<ParsedAsm> {
         }
         if trimmed.starts_with(';') {
             let body = trimmed.trim_start_matches(';').trim();
-            if body.eq_ignore_ascii_case("entry points") {
+            if body == "entry points" {
                 section_hint = Some(DirectiveSection::EntryPoints);
                 continue;
             }
-            if body.eq_ignore_ascii_case("heap") {
+            if body == "heap" {
                 section_hint = Some(DirectiveSection::Heap);
                 continue;
             }
-            if body.eq_ignore_ascii_case("binds") {
+            if body == "binds" {
                 section_hint = Some(DirectiveSection::Binds);
                 continue;
             }
@@ -150,7 +150,7 @@ fn parse_directive_line(
 ) -> Result<()> {
     let body = line.trim_start_matches(';').trim();
     if body.is_empty()
-        || body.eq_ignore_ascii_case("syntax")
+        || body == "syntax"
         || body.starts_with("heap-show ")
         || body.starts_with("heap-raw ")
         || body.starts_with("heap-example ")

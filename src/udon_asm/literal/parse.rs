@@ -25,7 +25,7 @@ pub(crate) fn parse_heap_init_directive(
     type_name: &str,
 ) -> Result<HeapLiteralValue> {
     let trimmed = text.trim();
-    if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_LITERAL) {
+    if trimmed == UNSERIALIZABLE_LITERAL {
         Ok(HeapLiteralValue::Unserializable)
     } else {
         parse_typed_heap_literal(type_name, trimmed, line_num)
@@ -38,7 +38,7 @@ fn parse_typed_heap_literal(
     trimmed: &str,
     line_num: usize,
 ) -> Result<HeapLiteralValue> {
-    if trimmed.eq_ignore_ascii_case("null") {
+    if trimmed == "null" {
         return Ok(HeapLiteralValue::Null);
     }
     let head = type_name_head(type_name);
@@ -555,13 +555,13 @@ fn is_supported_typed_scalar_or_enum(type_name: &str) -> bool {
 
 fn is_unserializable_placeholder_token(token: &str) -> bool {
     let trimmed = token.trim();
-    if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_LITERAL) {
+    if trimmed == UNSERIALIZABLE_LITERAL {
         return true;
     }
-    if trimmed.eq_ignore_ascii_case(UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL) {
+    if trimmed == UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL {
         return true;
     }
-    if trimmed.eq_ignore_ascii_case("null") {
+    if trimmed == "null" {
         return true;
     }
     if trimmed.starts_with("null") && trimmed.to_ascii_lowercase().contains("unserializable") {
@@ -782,13 +782,13 @@ fn parse_serialization_result_key_values(body: &str, sep: char) -> Option<(bool,
         let (key_raw, value_raw) = pair.split_once(sep)?;
         let key = key_raw.trim().trim_matches('"');
         let value = value_raw.trim();
-        if key.eq_ignore_ascii_case("success") {
+        if key == "success" {
             success = match value {
                 "true" => Some(true),
                 "false" => Some(false),
                 _ => None,
             };
-        } else if key.eq_ignore_ascii_case("byteCount") || key.eq_ignore_ascii_case("byte_count") {
+        } else if key == "byteCount" || key == "byte_count" {
             byte_count = value.parse::<i32>().ok();
         }
     }

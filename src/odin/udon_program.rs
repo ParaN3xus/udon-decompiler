@@ -1370,7 +1370,7 @@ fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str)
         let node = doc.node(node_id)?;
         if node
             .name()
-            .map(|x| x.value.eq_ignore_ascii_case(name))
+            .map(|x| x.value == name)
             .unwrap_or(false)
             && let Some(id) = first_float_node(doc, node_id)
         {
@@ -1434,7 +1434,7 @@ where
         let node = doc.node(node_id)?;
         if node
             .name()
-            .map(|x| x.value.eq_ignore_ascii_case(name))
+            .map(|x| x.value == name)
             .unwrap_or(false)
             && let Some(id) = first_node_matching(doc, node_id, &mut predicate)
         {
@@ -1541,7 +1541,7 @@ fn is_runtime_type_name(type_name: &str) -> bool {
         .split(',')
         .next()
         .map(str::trim)
-        .map(|head| head.eq_ignore_ascii_case(TYPE_SYSTEM_RUNTIME_TYPE))
+        .map(|head| head == TYPE_SYSTEM_RUNTIME_TYPE)
         .unwrap_or(false)
 }
 

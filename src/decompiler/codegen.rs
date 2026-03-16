@@ -531,7 +531,7 @@ fn render_variable_declaration(
 
 fn render_type_name(type_name: &str) -> String {
     let head = type_name.split(',').next().unwrap_or(type_name).trim();
-    if head.eq_ignore_ascii_case(TYPE_UNSERIALIZABLE) {
+    if head == TYPE_UNSERIALIZABLE {
         TYPE_SYSTEM_OBJECT.to_string()
     } else {
         normalize_csharp_type_name(head)

@@ -579,5 +579,5 @@ fn mode_input_glob_hint(mode: Mode) -> &'static str {
 fn is_asset_file(path: &Path) -> bool {
     path.extension()
         .and_then(|x| x.to_str())
-        .is_some_and(|x| x.eq_ignore_ascii_case(EXT_ASSET))
+        .is_some_and(|x| x == EXT_ASSET)
 }

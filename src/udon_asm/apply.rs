@@ -161,8 +161,7 @@ pub(crate) fn apply_heap_directives(
 
         match d.type_ref {
             TypeRefDirective::Name(ref name) => {
-                if !name.eq_ignore_ascii_case(TYPE_UNSERIALIZABLE)
-                    && !name.eq_ignore_ascii_case(TYPE_MISSING)
+                if name != TYPE_UNSERIALIZABLE && name != TYPE_MISSING
                 {
                     let current_inline = program.heap_dump_type_name_string_inline(heap_index)?;
                     if current_inline.is_some() {

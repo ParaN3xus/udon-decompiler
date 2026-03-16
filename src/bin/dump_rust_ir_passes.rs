@@ -122,7 +122,7 @@ fn load_code_fence(path: &Path, lang: &str) -> Result<String> {
         let raw = parts[idx];
         let mut lines = raw.lines();
         let block_lang = lines.next().unwrap_or_default().trim();
-        if block_lang.eq_ignore_ascii_case(lang) {
+        if block_lang == lang {
             return Ok(format!("{}\n", lines.collect::<Vec<_>>().join("\n")));
         }
     }

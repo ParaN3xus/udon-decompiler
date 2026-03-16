@@ -162,7 +162,7 @@ fn rewrite_expression(
 }
 
 fn parse_literal(type_name: &str, init_value: &str) -> Option<IrLiteralExpression> {
-    if init_value.eq_ignore_ascii_case(UNSERIALIZABLE_LITERAL) {
+    if init_value == UNSERIALIZABLE_LITERAL {
         return None;
     }
     let head = type_name.split(',').next().unwrap_or(type_name).trim();
