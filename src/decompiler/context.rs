@@ -8,7 +8,7 @@ use crate::str_constants::{CLASS_NAME_SYMBOL_NAME, TYPE_UNSERIALIZABLE, UNSERIAL
 use crate::udon_asm::{
     HeapLiteralValue, render_heap_literal, resolve_heap_literal_for_program_entry,
 };
-use crate::util::{read_program_bytes, sanitize_output_stem};
+use crate::util::{decode_compressed_hex_text, read_program_bytes, sanitize_output_stem};
 
 use super::basic_block::BasicBlockCollection;
 use super::cfg::{FunctionCfg, StackSimulationResult};
@@ -110,6 +110,20 @@ impl DecompileContext {
             "loading decompile context from base64 text"
         );
         let program = UdonProgramBinary::parse_base64(text)?;
+        let mut ctx = Self::from_program(&program)?;
+        ctx.set_input_file_name(input_file_name);
+        Ok(ctx)
+    }
+
+    pub fn from_compressed_hex_text(text: &str, input_file_name: Option<String>) -> Result<Self> {
+        debug!(
+            input_file_name = ?input_file_name,
+            input_len = text.len(),
+            "loading decompile context from compressed hex text"
+        );
+        let bytes = decode_compressed_hex_text(text)
+            .map_err(|e| super::DecompileError::new(e.to_string()))?;
+        let program = UdonProgramBinary::parse_bytes(&bytes)?;
         let mut ctx = Self::from_program(&program)?;
         ctx.set_input_file_name(input_file_name);
         Ok(ctx)

@@ -53,11 +53,11 @@ fn parse_markdown_code_fences(text: &str) -> Vec<(String, String)> {
     out
 }
 
-fn load_b64_from_case(case_path: &Path) -> Option<String> {
+fn load_hex_from_case(case_path: &Path) -> Option<String> {
     let text = fs::read_to_string(case_path).ok()?;
     let blocks = parse_markdown_code_fences(&text);
     for (lang, content) in blocks {
-        if lang.eq_ignore_ascii_case("b64") {
+        if lang.eq_ignore_ascii_case("hex") {
             return Some(content);
         }
     }
@@ -98,7 +98,7 @@ fn e2e_smoke() {
 
     let mut failures = Vec::<String>::new();
     for case_path in cases {
-        let Some(b64_text) = load_b64_from_case(&case_path) else {
+        let Some(hex_text) = load_hex_from_case(&case_path) else {
             continue;
         };
 
@@ -109,7 +109,7 @@ fn e2e_smoke() {
             .to_string();
 
         let result = (|| {
-            let mut ctx = DecompileContext::from_base64_text(&b64_text, Some(file_name))?;
+            let mut ctx = DecompileContext::from_compressed_hex_text(&hex_text, Some(file_name))?;
             let _ = ctx.run_decompile()?;
             Ok::<(), udon_decompiler::decompiler::DecompileError>(())
         })();
@@ -135,7 +135,7 @@ fn e2e_snapshot() {
     assert!(!cases.is_empty(), "no markdown cases found");
 
     for case_path in cases {
-        let Some(b64_text) = load_b64_from_case(&case_path) else {
+        let Some(hex_text) = load_hex_from_case(&case_path) else {
             continue;
         };
 
@@ -145,8 +145,11 @@ fn e2e_snapshot() {
             .unwrap_or("case")
             .to_string();
 
-        let mut ctx = DecompileContext::from_base64_text(&b64_text, Some(format!("{stem}.b64")))
-            .expect("load context from b64");
+        let mut ctx = DecompileContext::from_compressed_hex_text(
+            &hex_text,
+            Some(format!("{stem}.hex")),
+        )
+        .expect("load context from compressed hex");
         let output = ctx.run_decompile().expect("run pipeline");
 
         let snapshot_name = snapshot_name_for_case(&case_path, &root);

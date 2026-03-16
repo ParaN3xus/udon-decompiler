@@ -43,9 +43,9 @@ fn main() -> Result<()> {
     UdonModuleInfo::set_default_module_info_path(cli.module_info.clone())
         .map_err(|e| anyhow::anyhow!("failed to configure module info path: {}", e))?;
 
-    let b64_text = load_code_fence(&cli.case, "b64")?;
-    let mut ctx = DecompileContext::from_base64_text(
-        &b64_text,
+    let hex_text = load_code_fence(&cli.case, "hex")?;
+    let mut ctx = DecompileContext::from_compressed_hex_text(
+        &hex_text,
         cli.case
             .file_name()
             .and_then(|x| x.to_str())
