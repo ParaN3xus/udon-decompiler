@@ -11,9 +11,23 @@ use super::nodes::{
     IrAssignmentStatement, IrBlock, IrBlockContainer, IrConstructorCallExpression, IrContainerKind,
     IrExpression, IrExpressionStatement, IrExternalCallExpression, IrFunction, IrIf,
     IrInternalCallExpression, IrJump, IrLeave, IrOperator, IrOperatorCallExpression,
-    IrPropertyAccessExpression, IrRawExpression, IrStatement, IrSwitch, IrVariableExpression,
+    IrPropertyAccessExpression, IrRawExpression, IrReturn, IrStatement, IrSwitch,
+    IrVariableExpression,
 };
 use crate::decompiler::FunctionCfg;
+
+enum InternalCallKind {
+    Returning {
+        function_name: String,
+        entry_address: u32,
+        call_jump_target: u32,
+    },
+    Tail {
+        function_name: String,
+        entry_address: u32,
+        call_jump_target: u32,
+    },
+}
 
 pub fn build_extern_ir_expression(
     function_info: ExternFunctionInfo,
@@ -272,16 +286,31 @@ impl<'a> IrBuilder<'a> {
         address: u32,
         instruction: &crate::udon_asm::AsmInstruction,
     ) -> Vec<IrStatement> {
-        if let Some((entry, call_jump_target)) =
-            self.resolve_internal_call_entry(address, instruction)
-        {
-            return vec![IrStatement::Expression(IrExpressionStatement {
+        if let Some(call_kind) = self.resolve_internal_call_entry(address, instruction) {
+            let (function_name, entry_address, call_jump_target, should_return) = match call_kind {
+                InternalCallKind::Returning {
+                    function_name,
+                    entry_address,
+                    call_jump_target,
+                } => (function_name, entry_address, call_jump_target, false),
+                InternalCallKind::Tail {
+                    function_name,
+                    entry_address,
+                    call_jump_target,
+                } => (function_name, entry_address, call_jump_target, true),
+            };
+
+            let mut statements = vec![IrStatement::Expression(IrExpressionStatement {
                 expression: IrExpression::InternalCall(IrInternalCallExpression {
-                    function_name: Some(entry.name.clone()),
-                    entry_address: entry.address,
+                    function_name: Some(function_name),
+                    entry_address,
                     call_jump_target,
                 }),
             })];
+            if should_return {
+                statements.push(IrStatement::Return(IrReturn));
+            }
+            return statements;
         }
 
         let target_addr = instruction.numeric_operand();
@@ -461,31 +490,42 @@ impl<'a> IrBuilder<'a> {
         &self,
         address: u32,
         instruction: &crate::udon_asm::AsmInstruction,
-    ) -> Option<(&crate::decompiler::DecompileSymbol, u32)> {
+    ) -> Option<InternalCallKind> {
         if instruction.opcode != OpCode::Jump {
             return None;
         }
 
-        let state = self.require_instruction_state(address);
-        let top = state.peek(0)?;
+        let target = instruction.numeric_operand();
+        let entry = self.ctx.entry_points.iter().find(|entry| {
+            let call_target = entry.entry_call_jump_target(self.ctx);
+            entry.address == target || call_target == target
+        })?;
 
-        let instruction_id = self.ctx.instructions.id_at_address(address)?;
+        let state = self.require_instruction_state(address);
+
         // there might be a call jump at the end of the whole program,
         // that's why we don't simply add 8 to `address`
         let next_address = self
             .ctx
             .instructions
-            .next_of(instruction_id)
-            .and_then(|next| self.ctx.instructions.address_of(next))?;
-        if self.ctx.heap_u32_literals.get(&top.value).copied() != Some(next_address) {
-            return None;
+            .id_at_address(address)
+            .and_then(|instruction_id| self.ctx.instructions.next_of(instruction_id))
+            .and_then(|next| self.ctx.instructions.address_of(next));
+        if let Some(top) = state.peek(0)
+            && let Some(next_address) = next_address
+            && self.ctx.heap_u32_literals.get(&top.value).copied() == Some(next_address)
+        {
+            return Some(InternalCallKind::Returning {
+                function_name: entry.name.clone(),
+                entry_address: entry.address,
+                call_jump_target: target,
+            });
         }
 
-        let target = instruction.numeric_operand();
-
-        self.ctx.entry_points.iter().find_map(|entry| {
-            let call_target = entry.entry_call_jump_target(self.ctx);
-            (entry.address == target || call_target == target).then_some((entry, target))
+        Some(InternalCallKind::Tail {
+            function_name: entry.name.clone(),
+            entry_address: entry.address,
+            call_jump_target: target,
         })
     }
 
