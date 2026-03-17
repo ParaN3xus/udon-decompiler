@@ -1,0 +1,13 @@
+{
+  "name": "udon-decompiler-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cases:build-input": "node --experimental-strip-types scripts/case-md.ts build-input",
+    "cases:update-md": "node --experimental-strip-types scripts/case-md.ts update-md"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.7",
+    "@types/node": "^24.12.0"
+  }
+}

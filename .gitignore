@@ -17,6 +17,7 @@ Thumbs.db
 
 # Local files
 /local
+/node_modules
 
 # IDE Settings
 .vscode/launch.json
