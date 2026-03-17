@@ -10,47 +10,29 @@ use crate::str_constants::FILE_UDON_MODULE_INFO_JSON;
 
 use super::DecompileError;
 
-pub const UINT32_ARRAY_GET_METHOD_NAME: &str = "SystemUInt32Array.__Get__SystemInt32__SystemUInt32";
 static DEFAULT_MODULE_INFO_PATH: OnceLock<PathBuf> = OnceLock::new();
 static DEFAULT_MODULE_INFO_CACHE: OnceLock<Result<UdonModuleInfo, String>> = OnceLock::new();
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum FunctionDefinitionType {
+    #[serde(rename = "method")]
     Method,
+    #[serde(rename = "prop")]
     Field,
+    #[serde(rename = "ctor")]
     Ctor,
+    #[serde(rename = "op")]
     Operator,
 }
 
-impl FunctionDefinitionType {
-    // todo: modify editor script so there's no need to write from_str
-    fn from_str(value: &str) -> Option<Self> {
-        match value {
-            "method" => Some(Self::Method),
-            "prop" => Some(Self::Field),
-            "ctor" => Some(Self::Ctor),
-            "op" => Some(Self::Operator),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ParameterType {
+    #[serde(rename = "IN")]
     In,
+    #[serde(rename = "OUT")]
     Out,
+    #[serde(rename = "IN_OUT")]
     InOut,
-}
-
-impl ParameterType {
-    fn from_str(value: &str) -> Option<Self> {
-        match value {
-            "IN" => Some(Self::In),
-            "OUT" => Some(Self::Out),
-            "IN_OUT" => Some(Self::InOut),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,24 +89,13 @@ impl UdonModuleInfo {
         for (module_name, module_data) in decoded {
             let mut functions = HashMap::<String, FunctionMetadata>::new();
             for func in module_data.functions {
-                let Some(def_type) = FunctionDefinitionType::from_str(func.def_type.as_str())
-                else {
-                    continue;
-                };
-                let mut parameters = Vec::<ParameterType>::new();
-                for raw in func.parameters {
-                    let Some(parameter) = ParameterType::from_str(raw.as_str()) else {
-                        continue;
-                    };
-                    parameters.push(parameter);
-                }
                 functions.insert(
                     func.name.clone(),
                     FunctionMetadata {
-                        def_type,
+                        def_type: func.def_type,
                         is_static: func.is_static,
                         returns_void: func.returns_void,
-                        parameters,
+                        parameters: func.parameters,
                         original_name: func.original_name,
                     },
                 );
@@ -209,9 +180,9 @@ struct RawModuleMetadata {
 struct RawFunctionMetadata {
     name: String,
     #[serde(default)]
-    parameters: Vec<String>,
+    parameters: Vec<ParameterType>,
     #[serde(rename = "defType")]
-    def_type: String,
+    def_type: FunctionDefinitionType,
     #[serde(rename = "isStatic", default)]
     is_static: bool,
     #[serde(rename = "returnsVoid", default)]

@@ -6,8 +6,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using UnityEditor;
 using UnityEngine;
 using VRC.Udon.Common.Interfaces;
@@ -19,6 +21,15 @@ using VRC.Udon.Graph.NodeRegistries;
 
 public class UdonModuleInfoExtractor : EditorWindow
 {
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum FunctionDefinitionType
+    {
+        [EnumMember(Value = "method")] Method,
+        [EnumMember(Value = "prop")] Property,
+        [EnumMember(Value = "ctor")] Constructor,
+        [EnumMember(Value = "op")] Operator,
+    }
+
     [Serializable]
     public class ModuleDefinition
     {
@@ -32,7 +43,7 @@ public class UdonModuleInfoExtractor : EditorWindow
         public string name;
         public List<string> parameters;
         public string originalName;
-        public string defType;
+        public FunctionDefinitionType defType;
         public bool isStatic;
         public bool returnsVoid;
     }
@@ -79,31 +90,25 @@ public class UdonModuleInfoExtractor : EditorWindow
                     udonNodeDef.parameters.Select(param => param.parameterType.ToString())
                         .ToList();
 
-                string defType =
-                    funcName.StartsWith("__op_")      ? "op"
-                    : funcName.StartsWith("__ctor__") ? "ctor"
-                                                      :
-                                                      // todo: dictionary get/set has 3 params
-                        ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) &&
-                         parameters.Count >= 1 && parameters.Count <= 2)
-                        ? "prop"
-                        : "method";
+                FunctionDefinitionType defType =
+                    DetermineFunctionDefinitionType(funcName, parameters.Count);
 
                 string originalName = null;
                 var isStatic = false;
                 var returnsVoid = false;
 
                 int index = udonNodeDef.name.LastIndexOf(' ');
-                if (defType == "prop")
+                if (defType == FunctionDefinitionType.Property)
                 {
                     // __get_ or __set_
                     originalName = udonNodeDef.name[(index + 5)..];
                 }
-                if (defType == "method")
+                if (defType == FunctionDefinitionType.Method)
                 {
                     originalName = udonNodeDef.name[(index + 1)..];
                 }
-                if ((defType == "prop" || defType == "method") &&
+                if ((defType == FunctionDefinitionType.Property ||
+                     defType == FunctionDefinitionType.Method) &&
                     udonNodeDef.parameters.Count > 0)
                 {
                     isStatic = !(udonNodeDef.parameters.First().name == "instance" &&
@@ -133,6 +138,26 @@ public class UdonModuleInfoExtractor : EditorWindow
         AssetDatabase.Refresh();
         Debug.Log($"Module info saved to: {path}");
         Debug.Log($"Total modules extracted: {result.Count}");
+    }
+
+    private static FunctionDefinitionType DetermineFunctionDefinitionType(string funcName,
+                                                                          int parameterCount)
+    {
+        if (funcName.StartsWith("__op_"))
+        {
+            return FunctionDefinitionType.Operator;
+        }
+        if (funcName.StartsWith("__ctor__"))
+        {
+            return FunctionDefinitionType.Constructor;
+        }
+        // todo: dictionary get/set has 3 params
+        if ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) &&
+            parameterCount >= 1 && parameterCount <= 2)
+        {
+            return FunctionDefinitionType.Property;
+        }
+        return FunctionDefinitionType.Method;
     }
 
     private static Dictionary<string, UdonNodeDefinition> BuildRegistryLookup()
