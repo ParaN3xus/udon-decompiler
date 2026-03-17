@@ -76,14 +76,15 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     init_logging(&cli.log_level)
         .map_err(|e| anyhow::anyhow!("failed to initialize logging: {}", e))?;
+    info!(level = %cli.log_level, "logging initialized");
+
     let module_info_path = cli
         .module_info
         .clone()
         .unwrap_or_else(|| PathBuf::from(FILE_UDON_MODULE_INFO_JSON));
     UdonModuleInfo::set_default_module_info_path(module_info_path.clone())
         .map_err(|e| anyhow::anyhow!("failed to configure module info path: {}", e))?;
-    info!(level = %cli.log_level, "logging initialized");
-    info!(module_info = %module_info_path.display(), "module info path configured");
+    debug!(module_info = %module_info_path.display(), "module info path configured");
 
     match cli.command {
         Commands::Dc { input, output } => run(Mode::Dc, &input, output.as_deref(), None),

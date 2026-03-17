@@ -1,5 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
+use tracing::{debug, info};
+
 use super::context::DecompileContext;
 use super::indir_jump_analysis::collect_switch_target_block_starts;
 use super::instruction_list::InstructionList;
@@ -75,6 +77,8 @@ impl BasicBlockCollection {
         entry_points: &[u32],
         extra_block_starts: &[u32],
     ) -> Self {
+        debug!("identifying basic blocks...");
+
         let mut starts = find_block_starts(instructions, entry_points);
         for address in extra_block_starts {
             if instructions.id_at_address(*address).is_some() {
@@ -88,6 +92,8 @@ impl BasicBlockCollection {
         let blocks = split_into_blocks(instructions, &starts);
         let mut out = Self { blocks };
         out.build_edges(instructions);
+
+        info!("{} basic blocks identified", out.blocks.len());
         out
     }
 

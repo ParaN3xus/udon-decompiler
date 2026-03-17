@@ -4,7 +4,7 @@ use crate::str_constants::{
     SYMBOL_CONST_SYSTEM_UINT32_0, SYMBOL_RETURN_JUMP_U32, TYPE_SYSTEM_VOID,
 };
 use crate::udon_asm::OpCode;
-use tracing::warn;
+use tracing::{debug, info, warn};
 
 use super::basic_block::{BasicBlockCollection, BasicBlockType};
 use super::context::{DecompileContext, DecompileSymbol};
@@ -92,6 +92,8 @@ struct SimulationArtifacts {
 }
 
 pub fn build_cfgs_and_discover_entries(ctx: &mut DecompileContext) -> Result<CfgBuildOutput> {
+    debug!("running stack simulation, discovering functions and building control flow graphs...");
+
     let artifacts = simulate_and_discover(ctx)?;
     apply_semantic_edges(
         &mut ctx.basic_blocks,
@@ -102,6 +104,12 @@ pub fn build_cfgs_and_discover_entries(ctx: &mut DecompileContext) -> Result<Cfg
     assign_hidden_entry_names(ctx);
 
     let functions = build_function_cfgs(ctx);
+
+    info!(
+        "{} functions discovered with their cfgs built",
+        functions.len()
+    );
+
     Ok(CfgBuildOutput {
         functions,
         stack_simulation: artifacts.stack_results,
@@ -325,7 +333,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                         ctx.basic_blocks.blocks[block_id].switch_info = Some(info);
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Jump;
                     } else {
-                        warn!("Unrecognized JUMP_INDIRECT encountered at {addr:#06x}! Ignoring...");
+                        warn!("unrecognized JUMP_INDIRECT encountered at {addr:#06x}! ignoring...");
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Jump;
                     }
 

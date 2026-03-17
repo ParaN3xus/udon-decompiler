@@ -89,7 +89,7 @@ impl DecompileContext {
 
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        info!(path = %path.display(), "loading decompile context from program file");
+        debug!(path = %path.display(), "loading decompile context from program file");
         let bytes =
             read_program_bytes(path).map_err(|e| super::DecompileError::new(e.to_string()))?;
         let program = UdonProgramBinary::parse_bytes(&bytes)?;
@@ -215,6 +215,7 @@ impl DecompileContext {
     pub fn run_analysis(&mut self) -> Result<()> {
         super::pipeline::run_analysis_pipeline(self)
     }
+
     pub fn rebuild_symbol_address_maps_from_variables(&mut self) {
         self.symbol_name_by_address = self.variables.symbol_name_by_address_map();
         self.symbol_type_by_address = self.variables.symbol_type_by_address_map();
@@ -247,6 +248,8 @@ impl DecompileContext {
         if trimmed.is_empty() {
             return None;
         }
+
+        info!("class name inferred: {}", trimmed);
         Some(trimmed.to_string())
     }
 

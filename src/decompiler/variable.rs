@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use tracing::{debug, info};
+
 use crate::str_constants::{
     SYMBOL_PREFIX_CONST, SYMBOL_PREFIX_GINTNL, SYMBOL_PREFIX_GLOBAL, SYMBOL_PREFIX_INTNL,
     SYMBOL_PREFIX_LCL, SYMBOL_PREFIX_THIS, SYMBOL_THIS, SYMBOL_THIS_GAME_OBJECT,
@@ -37,6 +39,8 @@ impl VariableTable {
         heap_entries: &[DecompileHeapEntry],
         symbols: &[DecompileSymbol],
     ) -> Self {
+        debug!("identifying variables from heap...");
+
         let symbol_by_address = symbols
             .iter()
             .map(|x| (x.address, x))
@@ -71,6 +75,8 @@ impl VariableTable {
             out.by_address.insert(heap.address, out.variables.len());
             out.variables.push(record);
         }
+
+        info!("{} variables identified from heap", out.variables.len());
         out
     }
 

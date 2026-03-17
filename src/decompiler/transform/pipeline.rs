@@ -1,3 +1,5 @@
+use tracing::{debug, info};
+
 use crate::decompiler::Result;
 use crate::decompiler::ir::IrFunction;
 
@@ -36,6 +38,8 @@ impl TransformPipeline {
         functions: &mut [IrFunction],
         context: &mut ProgramTransformContext<'_>,
     ) -> Result<()> {
+        debug!("running IR transform pipeline...");
+
         for function in functions.iter_mut() {
             run_il_transforms(function, &self.il_transforms, context)?;
         }
@@ -45,6 +49,7 @@ impl TransformPipeline {
             transform.run(functions, context)?;
         }
 
+        info!("IR transformed.");
         Ok(())
     }
 }

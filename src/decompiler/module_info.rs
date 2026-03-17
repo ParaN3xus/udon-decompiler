@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use serde::Deserialize;
+use tracing::info;
 
 use crate::str_constants::FILE_UDON_MODULE_INFO_JSON;
 
@@ -136,6 +137,7 @@ impl UdonModuleInfo {
                 },
             );
         }
+        info!("successfully loaded module info");
         Ok(out)
     }
 

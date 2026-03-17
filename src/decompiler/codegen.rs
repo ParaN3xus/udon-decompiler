@@ -1,3 +1,6 @@
+use tracing::{debug, info};
+
+use crate::decompiler::clang_format::format_csharp;
 use crate::decompiler::context::DecompileContext;
 use crate::decompiler::ir::{
     IrAssignmentStatement, IrBlock, IrBlockContainer, IrClass, IrExpression, IrExpressionStatement,
@@ -6,7 +9,6 @@ use crate::decompiler::ir::{
     IrStatement, IrSwitch,
 };
 use crate::decompiler::{ParameterType, Result, VariableRecord};
-use crate::decompiler::clang_format::format_csharp;
 use crate::str_constants::{
     TYPE_SYSTEM_BOOLEAN, TYPE_SYSTEM_BYTE, TYPE_SYSTEM_DOUBLE, TYPE_SYSTEM_INT16,
     TYPE_SYSTEM_INT32, TYPE_SYSTEM_INT64, TYPE_SYSTEM_OBJECT, TYPE_SYSTEM_SBYTE,
@@ -17,6 +19,8 @@ use crate::str_constants::{
 use crate::udon_asm::generated_heap_symbol;
 
 pub fn generate_csharp(ctx: &DecompileContext, class_ir: &IrClass) -> Result<String> {
+    debug!("generating C# code for {}...", class_ir.class_name);
+
     let mut class_lines = Vec::<String>::new();
     class_lines.push(format!(
         "public class {} : UdonSharpBehaviour",
@@ -73,6 +77,8 @@ pub fn generate_csharp(ctx: &DecompileContext, class_ir: &IrClass) -> Result<Str
     } else {
         out.extend(class_lines);
     }
+
+    info!("c# code for {} generated!", class_ir.class_name);
 
     format_csharp(out.join("\n").as_str())
 }

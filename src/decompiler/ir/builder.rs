@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
+use tracing::{debug, info};
+
 use crate::decompiler::basic_block::{BasicBlock, BasicBlockType};
 use crate::decompiler::cfg::StackFrame;
 use crate::decompiler::context::DecompileContext;
@@ -558,9 +560,13 @@ pub(crate) fn is_property_setter(function_info: &ExternFunctionInfo) -> bool {
 }
 
 pub fn build_ir_functions(ctx: &DecompileContext) -> Vec<IrFunction> {
+    debug!("building IrFunctions...");
+
     let mut functions = Vec::<IrFunction>::new();
     for function_cfg in &ctx.cfg_functions {
         functions.push(IrBuilder::new(ctx, function_cfg).build());
     }
+
+    info!("{} IrFunctions built", functions.len());
     functions
 }
