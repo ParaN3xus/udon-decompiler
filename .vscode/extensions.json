@@ -1,0 +1,14 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "dustypomerleau.rust-syntax",
+        "fill-labs.dependi",
+        "biomejs.biome",
+        "myriad-dreamin.tinymist",
+        "myriad-dreamin.tinymist-vscode-html",
+        "xaver.clang-format",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "github.vscode-github-actions"
+    ]
+}

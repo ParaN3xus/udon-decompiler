@@ -5,7 +5,6 @@
 Cargo.lock
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -15,9 +14,11 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
+# Node
+/node_modules
+
 # Local files
 /local
-/node_modules
 
 # IDE Settings
 .vscode/launch.json
