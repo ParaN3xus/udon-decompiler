@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use udon_decompiler::decompiler::DecompileContext;
+
+static CLANG_FORMAT_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 fn cases_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -11,6 +14,28 @@ fn cases_root() -> PathBuf {
 
 fn repo_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn clang_format_path() -> &'static PathBuf {
+    CLANG_FORMAT_PATH.get_or_init(|| {
+        let executable = if cfg!(windows) {
+            "clang-format.cmd"
+        } else {
+            "clang-format"
+        };
+        let path = repo_root()
+            .join("node_modules")
+            .join(".bin")
+            .join(executable);
+
+        assert!(
+            path.is_file(),
+            "missing clang-format executable: {}",
+            path.display()
+        );
+
+        path
+    })
 }
 
 fn display_case_path(case_path: &Path) -> String {
@@ -128,6 +153,7 @@ fn e2e_smoke() {
 
         let result = (|| {
             let mut ctx = DecompileContext::from_compressed_hex_text(&hex_text, Some(file_name))?;
+            ctx.set_clang_format_override(Some(clang_format_path().clone()));
             let _ = ctx.run_decompile()?;
             Ok::<(), udon_decompiler::decompiler::DecompileError>(())
         })();
@@ -174,6 +200,7 @@ fn e2e_snapshot() {
         let mut ctx =
             DecompileContext::from_compressed_hex_text(&hex_text, Some(format!("{stem}.hex")))
                 .expect("load context from compressed hex");
+        ctx.set_clang_format_override(Some(clang_format_path().clone()));
         let output = ctx.run_decompile().expect("run pipeline");
 
         let snapshot_name = snapshot_name_for_case(case_path, &root);

@@ -147,6 +147,17 @@ jobs:
         with:
           targets: ${{ matrix.rust-target }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Yarn dependencies
+        run: yarn install --immutable
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -161,14 +172,22 @@ jobs:
         run: |
           set -euo pipefail
 
+          CLANG_FORMAT_PATH="$(node -e "process.stdout.write(require('clang-format-node').clangFormatPath)")"
+          LLVM_LICENSE_URL="https://raw.githubusercontent.com/llvm/llvm-project/main/LICENSE.TXT"
+          TARGET_DIR="dist/${{ matrix.name }}"
+
           cargo build --release --locked --target ${{ matrix.rust-target }} --bin udon-decompiler
-          cp "target/${{ matrix.rust-target }}/release/${{ matrix.rust-binary }}" "dist/${{ matrix.name }}/${{ matrix.rust-binary }}"
+          cp "target/${{ matrix.rust-target }}/release/${{ matrix.rust-binary }}" "${TARGET_DIR}/${{ matrix.rust-binary }}"
 
           dotnet publish tools/UdonProgramDumper/UdonProgramDumper.csproj \
             -c Release \
             -r ${{ matrix.dotnet-rid }} \
             -p:PublishAot=true
-          cp "tools/UdonProgramDumper/bin/Release/net10.0/${{ matrix.dotnet-rid }}/publish/${{ matrix.dumper-binary }}" "dist/${{ matrix.name }}/${{ matrix.dumper-binary }}"
+          cp "tools/UdonProgramDumper/bin/Release/net10.0/${{ matrix.dotnet-rid }}/publish/${{ matrix.dumper-binary }}" "${TARGET_DIR}/${{ matrix.dumper-binary }}"
+
+          cp "${CLANG_FORMAT_PATH}" "${TARGET_DIR}/$(basename "${CLANG_FORMAT_PATH}")"
+          cp LICENSE "${TARGET_DIR}/LICENSE"
+          curl -fsSL "${LLVM_LICENSE_URL}" -o "${TARGET_DIR}/LLVM_LICENSE"
 
       - name: Upload artifact directory
         uses: actions/upload-artifact@v4

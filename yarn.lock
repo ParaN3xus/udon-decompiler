@@ -68,6 +68,11 @@
   dependencies:
     undici-types "~7.16.0"
 
+clang-format-node@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/clang-format-node/-/clang-format-node-3.0.0.tgz#8240bfc5a4fefb4e59faee9a4e792db854b834f5"
+  integrity sha512-fXs7bGFiJv/KbAHWlxMsZPnxdbAUeawJ6JcY0cuouQgqid9V28NJRz6kkbXdiZCvTvopkyeevViAlnHYTKryyQ==
+
 undici-types@~7.16.0:
   version "7.16.0"
   resolved "https://registry.npmjs.org/undici-types/-/undici-types-7.16.0.tgz"

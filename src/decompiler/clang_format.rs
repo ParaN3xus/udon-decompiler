@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
 
@@ -6,17 +7,18 @@ use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::decompiler::{DecompileError, Result};
-use crate::str_constants::CLANG_FORMAT_ASSUME_FILENAME_CS;
+use crate::str_constants::{CLANG_FORMAT_ASSUME_FILENAME_CS, CLANG_FORMAT_PATH_ENV_VAR};
 
 const EMBEDDED_CLANG_FORMAT_STYLE: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.clang-format"));
 
 static CLANG_FORMAT_STYLE_JSON: OnceLock<String> = OnceLock::new();
 
-pub(crate) fn format_csharp(code: &str) -> Result<String> {
+pub(crate) fn format_csharp(code: &str, override_path: Option<&Path>) -> Result<String> {
     let style = embedded_clang_format_style_json()?;
+    let clang_format = resolve_clang_format_program(override_path);
 
-    let mut child = Command::new("clang-format")
+    let mut child = Command::new(&clang_format)
         .arg(format!(
             "--assume-filename={}",
             CLANG_FORMAT_ASSUME_FILENAME_CS
@@ -27,9 +29,7 @@ pub(crate) fn format_csharp(code: &str) -> Result<String> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| match error.kind() {
-            std::io::ErrorKind::NotFound => {
-                DecompileError::new("clang-format not found on PATH. Install it or adjust PATH.")
-            }
+            std::io::ErrorKind::NotFound => DecompileError::new(format!("clang-format not found.")),
             _ => DecompileError::new(format!("failed to start clang-format: {error}")),
         })?;
 
@@ -56,6 +56,41 @@ pub(crate) fn format_csharp(code: &str) -> Result<String> {
 
     String::from_utf8(output.stdout)
         .map_err(|error| DecompileError::new(format!("clang-format output is not utf-8: {error}")))
+}
+
+fn resolve_clang_format_program(override_path: Option<&Path>) -> PathBuf {
+    if let Some(override_path) = override_path {
+        return override_path.to_path_buf();
+    }
+
+    if let Some(from_env) = std::env::var_os(CLANG_FORMAT_PATH_ENV_VAR)
+        && !from_env.is_empty()
+    {
+        return PathBuf::from(from_env);
+    }
+
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(exe_dir) = current_exe.parent() {
+            if let Some(local) = find_local_clang_format(exe_dir) {
+                return local;
+            }
+        }
+    }
+
+    PathBuf::from(clang_format_program_name())
+}
+
+fn find_local_clang_format(exe_dir: &Path) -> Option<PathBuf> {
+    let candidate = exe_dir.join(clang_format_program_name());
+    candidate.is_file().then_some(candidate)
+}
+
+fn clang_format_program_name() -> &'static str {
+    if cfg!(windows) {
+        "clang-format.exe"
+    } else {
+        "clang-format"
+    }
 }
 
 fn embedded_clang_format_style_json() -> Result<&'static str> {

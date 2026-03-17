@@ -46,6 +46,7 @@ pub const INPUT_GLOB_ASM: &str = "*.asm";
 pub const ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES: &str =
     "serializedProgramCompressedBytes";
 pub const CLANG_FORMAT_ASSUME_FILENAME_CS: &str = "_.cs";
+pub const CLANG_FORMAT_PATH_ENV_VAR: &str = "CLANG_FORMAT";
 pub const FILE_UDON_MODULE_INFO_JSON: &str = "UdonModuleInfo.json";
 pub const CLASS_NAME_SYMBOL_NAME: &str = "__refl_typename";
 pub const DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME: &str = "Decompiled_Program";
