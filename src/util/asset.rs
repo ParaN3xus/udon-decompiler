@@ -6,15 +6,21 @@ use unity_asset_yaml::python_like_api::PythonLikeUnityDocument;
 use super::hex::decode_gzip_bytes;
 
 pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> {
-    let doc = PythonLikeUnityDocument::load_yaml(path, false)
-        .map_err(|e| anyhow::anyhow!("failed to load Unity asset yaml {}: {}", path.display(), e))?;
+    let doc = PythonLikeUnityDocument::load_yaml(path, false).map_err(|e| {
+        anyhow::anyhow!("failed to load Unity asset yaml {}: {}", path.display(), e)
+    })?;
     let entry = doc
-        .get(Some("MonoBehaviour"), Some(&["serializedProgramCompressedBytes"]))
-        .map_err(|e| anyhow::anyhow!(
-            "failed to find serializedProgramCompressedBytes in {}: {}",
-            path.display(),
-            e
-        ))?;
+        .get(
+            Some("MonoBehaviour"),
+            Some(&["serializedProgramCompressedBytes"]),
+        )
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "failed to find serializedProgramCompressedBytes in {}: {}",
+                path.display(),
+                e
+            )
+        })?;
 
     if let Some(text) = entry.get_string("serializedProgramCompressedBytes") {
         let normalized = text
@@ -22,7 +28,10 @@ pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> 
             .filter(|c| !c.is_whitespace())
             .collect::<String>();
         if normalized.is_empty() {
-            bail!("serializedProgramCompressedBytes is empty in {}", path.display());
+            bail!(
+                "serializedProgramCompressedBytes is empty in {}",
+                path.display()
+            );
         }
         let mut out = Vec::<u8>::with_capacity(normalized.len() / 2);
         if normalized.len() % 2 != 0 {

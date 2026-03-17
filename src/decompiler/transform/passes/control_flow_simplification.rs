@@ -10,8 +10,11 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct ControlFlowSimplification;
 
 impl ITransform for ControlFlowSimplification {
-
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
+    fn run(
+        &self,
+        function: &mut IrFunction,
+        _context: &mut TransformContext<'_, '_>,
+    ) -> Result<()> {
         for _ in 0..32 {
             let mut changed = false;
             if simplify_branch_chains(function) {

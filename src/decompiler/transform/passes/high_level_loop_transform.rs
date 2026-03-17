@@ -8,7 +8,6 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct HighLevelLoopTransform;
 
 impl ITransform for HighLevelLoopTransform {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let mut state = LoopTransformState::from_context(context);
         rewrite_container(&mut function.body, &mut state);

@@ -10,9 +10,9 @@ use crate::udon_asm::{
 };
 use crate::util::{decode_compressed_hex_text, read_program_bytes, sanitize_output_stem};
 
+use super::DecompilePipelineOutput;
 use super::basic_block::BasicBlockCollection;
 use super::cfg::{FunctionCfg, StackSimulationResult};
-use super::DecompilePipelineOutput;
 use super::variable::VariableTable;
 use super::{InstructionList, Result};
 
@@ -90,8 +90,8 @@ impl DecompileContext {
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         info!(path = %path.display(), "loading decompile context from program file");
-        let bytes = read_program_bytes(path)
-            .map_err(|e| super::DecompileError::new(e.to_string()))?;
+        let bytes =
+            read_program_bytes(path).map_err(|e| super::DecompileError::new(e.to_string()))?;
         let program = UdonProgramBinary::parse_bytes(&bytes)?;
         let mut ctx = Self::from_program(&program)?;
         ctx.input_path = Some(path.to_path_buf());

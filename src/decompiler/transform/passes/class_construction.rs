@@ -5,7 +5,6 @@ use crate::decompiler::transform::pass_base::{IProgramTransform, ProgramTransfor
 pub struct IrClassConstructionTransform;
 
 impl IProgramTransform for IrClassConstructionTransform {
-
     fn run(
         &self,
         functions: &mut [IrFunction],

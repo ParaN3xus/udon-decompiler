@@ -8,7 +8,6 @@ use crate::decompiler::variable::VariableScope;
 pub struct PromoteGlobals;
 
 impl IProgramTransform for PromoteGlobals {
-
     fn run(
         &self,
         functions: &mut [IrFunction],

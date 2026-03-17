@@ -10,7 +10,6 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct CollectVariables;
 
 impl ITransform for CollectVariables {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let mut used = BTreeSet::<u32>::new();
         for block in &function.body.blocks {
@@ -56,10 +55,7 @@ impl ITransform for CollectVariables {
 
 fn collect_statement_variables(statement: &IrStatement, used: &mut BTreeSet<u32>) {
     match statement {
-        IrStatement::Assignment(IrAssignmentStatement {
-            target,
-            value,
-        }) => {
+        IrStatement::Assignment(IrAssignmentStatement { target, value }) => {
             collect_assignment_target_variables(target, used);
             collect_expression_variables(value, used);
         }

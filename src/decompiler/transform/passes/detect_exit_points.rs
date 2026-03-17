@@ -59,8 +59,11 @@ impl DetectExitPoints {
 }
 
 impl ITransform for DetectExitPoints {
-
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
+    fn run(
+        &self,
+        function: &mut IrFunction,
+        _context: &mut TransformContext<'_, '_>,
+    ) -> Result<()> {
         let mut state = DetectState::new(function.body.id, self.can_introduce_exit_for_return);
         let _ = state.visit_container(&mut function.body, CurrentExit::NoExit);
         Ok(())
@@ -133,7 +136,10 @@ impl DetectState {
                                 target_container_id: container.id,
                             }),
                         );
-                        debug_assert!(replaced, "invalid statement path recorded in DetectExitPoints");
+                        debug_assert!(
+                            replaced,
+                            "invalid statement path recorded in DetectExitPoints"
+                        );
                     }
                 }
             }
@@ -191,10 +197,7 @@ impl DetectState {
     ) -> Option<IrStatement> {
         match statement {
             IrStatement::BlockContainer(container) => {
-                self.visit_container(
-                    container,
-                    current_exit.unwrap_or(CurrentExit::NoExit),
-                )
+                self.visit_container(container, current_exit.unwrap_or(CurrentExit::NoExit))
             }
             IrStatement::If(IrIf {
                 true_statement,

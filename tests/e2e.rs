@@ -159,11 +159,9 @@ fn e2e_snapshot() {
             .unwrap_or("case")
             .to_string();
 
-        let mut ctx = DecompileContext::from_compressed_hex_text(
-            &hex_text,
-            Some(format!("{stem}.hex")),
-        )
-        .expect("load context from compressed hex");
+        let mut ctx =
+            DecompileContext::from_compressed_hex_text(&hex_text, Some(format!("{stem}.hex")))
+                .expect("load context from compressed hex");
         let output = ctx.run_decompile().expect("run pipeline");
 
         let snapshot_name = snapshot_name_for_case(&case_path, &root);

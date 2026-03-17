@@ -138,9 +138,7 @@ pub(crate) fn encode_instructions(
     Ok((label_to_addr, out))
 }
 
-pub fn encode_asm_instructions_to_bytecode(
-    instructions: &[AsmInstruction],
-) -> Result<Vec<u8>> {
+pub fn encode_asm_instructions_to_bytecode(instructions: &[AsmInstruction]) -> Result<Vec<u8>> {
     let mut out = Vec::<u8>::new();
     for inst in instructions {
         if !inst.labels.is_empty() {

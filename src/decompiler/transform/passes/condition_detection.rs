@@ -13,7 +13,6 @@ use crate::decompiler::transform::passes::detect_exit_points::DetectExitPoints;
 pub struct ConditionDetection;
 
 impl ITransform for ConditionDetection {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let function_body_id = function.body.id;
         let mut state = ConditionDetectionState::from_context(context);
@@ -228,10 +227,10 @@ fn process_block(
                         true_exit_inst = None;
                         changed = true;
 
-                            if target_block.statements.len() == 1
-                                && let Some(IrStatement::If(nested_if)) =
-                                    target_block.statements.first().cloned()
-                                && nested_if.false_statement.is_none()
+                        if target_block.statements.len() == 1
+                            && let Some(IrStatement::If(nested_if)) =
+                                target_block.statements.first().cloned()
+                            && nested_if.false_statement.is_none()
                         {
                             if_inst.condition = logic_and(if_inst.condition, nested_if.condition);
                             if_inst.true_statement = nested_if.true_statement;

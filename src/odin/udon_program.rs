@@ -1368,10 +1368,7 @@ fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str)
             continue;
         }
         let node = doc.node(node_id)?;
-        if node
-            .name()
-            .map(|x| x.value == name)
-            .unwrap_or(false)
+        if node.name().map(|x| x.value == name).unwrap_or(false)
             && let Some(id) = first_float_node(doc, node_id)
         {
             return Some(id);
@@ -1432,10 +1429,7 @@ where
             continue;
         }
         let node = doc.node(node_id)?;
-        if node
-            .name()
-            .map(|x| x.value == name)
-            .unwrap_or(false)
+        if node.name().map(|x| x.value == name).unwrap_or(false)
             && let Some(id) = first_node_matching(doc, node_id, &mut predicate)
         {
             return Some(id);

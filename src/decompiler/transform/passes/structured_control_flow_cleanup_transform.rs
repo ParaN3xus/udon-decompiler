@@ -10,7 +10,6 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct StructuredControlFlowCleanupTransform;
 
 impl ITransform for StructuredControlFlowCleanupTransform {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let mut state = CleanupState::from_context(context);
         let known_blocks = collect_all_block_addresses(&function.body);

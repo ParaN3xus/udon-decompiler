@@ -10,8 +10,11 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct CollectLabelUsage;
 
 impl ITransform for CollectLabelUsage {
-
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
+    fn run(
+        &self,
+        function: &mut IrFunction,
+        _context: &mut TransformContext<'_, '_>,
+    ) -> Result<()> {
         reset_flags(&mut function.body);
 
         let mut label_targets = HashSet::<u32>::new();

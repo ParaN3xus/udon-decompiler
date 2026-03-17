@@ -11,10 +11,10 @@ use udon_decompiler::str_constants::{
     EXT_ASM, EXT_ASSET, EXT_CS, EXT_HEX, FILE_UDON_MODULE_INFO_JSON, INPUT_GLOB_ASM,
 };
 use udon_decompiler::udon_asm::{
-    AsmBindAnalysis, AsmInstructionComment, assemble_hex_with_original,
-    collect_asm_bind_analysis, collect_asm_instruction_comments, disassemble_program_to_text,
+    AsmBindAnalysis, AsmInstructionComment, assemble_hex_with_original, collect_asm_bind_analysis,
+    collect_asm_instruction_comments, disassemble_program_to_text,
 };
-use udon_decompiler::util::{read_program_bytes, read_compressed_program_bytes_from_asset};
+use udon_decompiler::util::{read_compressed_program_bytes_from_asset, read_program_bytes};
 
 #[derive(Parser, Debug)]
 #[command(name = "udon-decompiler")]
@@ -342,8 +342,9 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
         }
         Mode::Dasm => {
             let bytes = read_program_bytes(input_file)?;
-            let program = UdonProgramBinary::parse_bytes(&bytes)
-                .with_context(|| format!("failed to parse program from {}", input_file.display()))?;
+            let program = UdonProgramBinary::parse_bytes(&bytes).with_context(|| {
+                format!("failed to parse program from {}", input_file.display())
+            })?;
             let mut ctx = DecompileContext::from_program(&program).with_context(|| {
                 format!(
                     "failed to create decompile context from {}",
@@ -367,12 +368,13 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
                     input_file.display()
                 )
             })?;
-            let instruction_comments = collect_asm_instruction_comments(&ctx).with_context(|| {
-                format!(
-                    "failed to collect disassembly comments from {}",
-                    input_file.display()
-                )
-            })?;
+            let instruction_comments =
+                collect_asm_instruction_comments(&ctx).with_context(|| {
+                    format!(
+                        "failed to collect disassembly comments from {}",
+                        input_file.display()
+                    )
+                })?;
             let output_stem = ctx.infer_output_stem_for_file();
             Ok(PreparedSingleInput::Dasm {
                 program,
@@ -442,7 +444,8 @@ fn choose_hex_template_path(
             if by_stem.exists() && by_stem.is_file() {
                 return Ok(by_stem);
             }
-            let by_asset_stem = template.join(format!("{}.{}", input_file_stem(input_asm), EXT_ASSET));
+            let by_asset_stem =
+                template.join(format!("{}.{}", input_file_stem(input_asm), EXT_ASSET));
             if by_asset_stem.exists() && by_asset_stem.is_file() {
                 return Ok(by_asset_stem);
             }

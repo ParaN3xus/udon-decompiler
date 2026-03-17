@@ -29,14 +29,13 @@ pub fn decode_compressed_hex_text(text: &str) -> Result<Vec<u8>> {
 
     let mut compressed = Vec::<u8>::with_capacity(normalized.len() / 2);
     for index in (0..normalized.len()).step_by(2) {
-        let byte =
-            u8::from_str_radix(&normalized[index..index + 2], 16).with_context(|| {
-                format!(
-                    "invalid hex byte '{}' at offset {}",
-                    &normalized[index..index + 2],
-                    index,
-                )
-            })?;
+        let byte = u8::from_str_radix(&normalized[index..index + 2], 16).with_context(|| {
+            format!(
+                "invalid hex byte '{}' at offset {}",
+                &normalized[index..index + 2],
+                index,
+            )
+        })?;
         compressed.push(byte);
     }
 

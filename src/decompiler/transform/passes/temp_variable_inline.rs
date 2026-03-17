@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::decompiler::{Result, VariableRecord};
 use crate::decompiler::ir::{
     IrAssignmentStatement, IrBlock, IrBlockContainer, IrConstructorCallExpression, IrExpression,
     IrExpressionStatement, IrExternalCallExpression, IrFunction, IrHighLevelDoWhile,
@@ -9,11 +8,11 @@ use crate::decompiler::ir::{
 };
 use crate::decompiler::transform::ir_utils::{get_block_terminator, iter_block_targets};
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
+use crate::decompiler::{Result, VariableRecord};
 
 pub struct TempVariableInline;
 
 impl ITransform for TempVariableInline {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let mut successor_cache = HashMap::<u32, HashMap<u32, Vec<u32>>>::new();
         let variables = context
@@ -103,8 +102,7 @@ fn try_inline_adjacent(
             return false;
         };
 
-        let IrStatement::Assignment(IrAssignmentStatement { target, value }) = prev_stmt
-        else {
+        let IrStatement::Assignment(IrAssignmentStatement { target, value }) = prev_stmt else {
             return false;
         };
         let Some(target_address) = assignment_target_variable_address(target) else {
@@ -351,7 +349,8 @@ fn count_reads_in_statement(statement: &IrStatement, address: u32) -> usize {
 fn count_writes_in_statement(statement: &IrStatement, address: u32) -> usize {
     match statement {
         IrStatement::Assignment(IrAssignmentStatement { target, .. }) => usize::from(
-            assignment_target_variable_address(target).is_some_and(|target_address| target_address == address),
+            assignment_target_variable_address(target)
+                .is_some_and(|target_address| target_address == address),
         ),
         IrStatement::If(IrIf {
             true_statement,

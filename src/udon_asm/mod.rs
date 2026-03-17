@@ -1,5 +1,5 @@
-mod apply;
 mod analysis;
+mod apply;
 mod codec;
 mod disassemble;
 mod literal;
@@ -51,7 +51,8 @@ pub fn assemble_text_on_program(program: &mut UdonProgramBinary, asm_text: &str)
 }
 
 pub fn assemble_hex_with_original(original_hex: &str, asm_text: &str) -> Result<String> {
-    let bytes = decode_compressed_hex_text(original_hex).map_err(|e| AsmError::new(e.to_string()))?;
+    let bytes =
+        decode_compressed_hex_text(original_hex).map_err(|e| AsmError::new(e.to_string()))?;
     let mut program = UdonProgramBinary::parse_bytes(&bytes)?;
     assemble_text_on_program(&mut program, asm_text)?;
     let bytes = program.to_bytes()?;

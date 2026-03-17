@@ -11,7 +11,6 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct LoopDetection;
 
 impl ITransform for LoopDetection {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let function_body_id = function.body.id;
         let mut state = LoopDetectionState::from_context(function, context);

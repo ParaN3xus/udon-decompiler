@@ -10,8 +10,11 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct HighLevelSwitchTransform;
 
 impl ITransform for HighLevelSwitchTransform {
-
-    fn run(&self, function: &mut IrFunction, _context: &mut TransformContext<'_, '_>) -> Result<()> {
+    fn run(
+        &self,
+        function: &mut IrFunction,
+        _context: &mut TransformContext<'_, '_>,
+    ) -> Result<()> {
         rewrite_container(&mut function.body);
         Ok(())
     }

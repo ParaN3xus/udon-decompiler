@@ -8,7 +8,6 @@ use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 pub struct HighLevelLoopStatementTransform;
 
 impl ITransform for HighLevelLoopStatementTransform {
-
     fn run(&self, function: &mut IrFunction, context: &mut TransformContext<'_, '_>) -> Result<()> {
         let mut state = LoopStatementState::from_context(function, context);
         rewrite_container(&mut function.body, &mut state);
@@ -111,10 +110,7 @@ fn lift_container(container: IrBlockContainer, state: &mut LoopStatementState) -
     }
 }
 
-fn lift_infinite_loop(
-    container: IrBlockContainer,
-    state: &mut LoopStatementState,
-) -> IrStatement {
+fn lift_infinite_loop(container: IrBlockContainer, state: &mut LoopStatementState) -> IrStatement {
     let Some(entry) = container.entry_block().cloned() else {
         return IrStatement::BlockContainer(container);
     };
