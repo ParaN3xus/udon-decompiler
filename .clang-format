@@ -1,5 +1,5 @@
 Language: CSharp
 BasedOnStyle: Google
 IndentWidth: 4
-ColumnLimit: 160
+ColumnLimit: 96
 BreakBeforeBraces: Allman
