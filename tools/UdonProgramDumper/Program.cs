@@ -24,7 +24,7 @@ internal static class App
                 var result = DumpProgramsFromBundle(input);
                 Console.WriteLine(
                     $"[{Path.GetFileName(input)}] dumped {result.DumpedCount} program(s) " +
-                    $"from {result.AssetsFileCount} asset file(s) to {result.OutputDirectory}");
+                    $"to {result.OutputDirectory}");
             }
             catch (Exception ex)
             {
@@ -137,7 +137,7 @@ internal static class App
                 "No SerializedUdonProgramAsset objects were found in the bundle.");
         }
 
-        return new DumpResult(outputDirectory, dumpCount, assetsFileCount);
+        return new DumpResult(outputDirectory, dumpCount);
     }
 
     private static bool IsSerializedUdonProgramAsset(
@@ -334,5 +334,5 @@ internal static class App
         Console.WriteLine($"Usage: {fileName} <world1.vrcw> [world2.vrcw] ...");
     }
 
-    private sealed record DumpResult(string OutputDirectory, int DumpedCount, int AssetsFileCount);
+    private sealed record DumpResult(string OutputDirectory, int DumpedCount);
 }
