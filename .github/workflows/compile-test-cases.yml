@@ -30,16 +30,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node and Yarn
+        uses: ./.github/actions/setup-node-yarn
         with:
-          node-version: "24"
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install Yarn dependencies
-        run: yarn install --immutable
+          node_version: "24"
 
       - name: Setup VRChat Project
         uses: ./.github/actions/setup-vrchat-project

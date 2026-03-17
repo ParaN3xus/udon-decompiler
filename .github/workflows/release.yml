@@ -67,16 +67,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node and Yarn
+        uses: ./.github/actions/setup-node-yarn
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install Yarn dependencies
-        run: yarn install --immutable
+          node_version: ${{ env.NODE_VERSION }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -147,16 +141,10 @@ jobs:
         with:
           targets: ${{ matrix.rust-target }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node and Yarn
+        uses: ./.github/actions/setup-node-yarn
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install Yarn dependencies
-        run: yarn install --immutable
+          node_version: ${{ env.NODE_VERSION }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4

@@ -31,16 +31,10 @@ jobs:
       - name: Cargo clippy
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node and Yarn
+        uses: ./.github/actions/setup-node-yarn
         with:
-          node-version: "24"
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install Yarn dependencies
-        run: yarn install --immutable
+          node_version: "24"
 
       - name: Biome check
         run: yarn biome check
