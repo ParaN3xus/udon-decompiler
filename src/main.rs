@@ -164,7 +164,11 @@ fn cli_process_directory(
 
     let output_dir = match output {
         Some(path) => path.to_path_buf(),
-        None => input_dir.with_file_name(format!("{}-decompiled", input_file_stem(input_dir))),
+        None => input_dir.with_file_name(format!(
+            "{}-{}",
+            input_file_stem(input_dir),
+            default_output_dir_suffix(mode)
+        )),
     };
 
     if output_dir.exists() && output_dir.is_file() {
@@ -576,6 +580,14 @@ fn mode_input_glob_hint(mode: Mode) -> &'static str {
     match mode {
         Mode::Dc | Mode::Dasm => "*.{hex,asset}",
         Mode::Asm => INPUT_GLOB_ASM,
+    }
+}
+
+fn default_output_dir_suffix(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Dc => "decompiled",
+        Mode::Dasm => "disassembled",
+        Mode::Asm => "decompiled",
     }
 }
 
