@@ -9,11 +9,6 @@ internal static partial class Program
     private static DumpResult DumpProgramsFromBundle(string inputPath)
     {
         var fullInputPath = Path.GetFullPath(inputPath);
-        if (!File.Exists(fullInputPath))
-        {
-            throw new FileNotFoundException("Input file does not exist.", fullInputPath);
-        }
-
         var outputDirectory = BuildOutputDirectory(fullInputPath);
         Directory.CreateDirectory(outputDirectory);
 
