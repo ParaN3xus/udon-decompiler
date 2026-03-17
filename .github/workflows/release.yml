@@ -63,7 +63,7 @@ jobs:
       ref: ${{ steps.push.outputs.ref }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -132,7 +132,7 @@ jobs:
             dumper-binary: UdonProgramDumper.exe
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.bump-version.outputs.ref || needs.prepare.outputs.ref }}
 
@@ -147,7 +147,7 @@ jobs:
           node_version: ${{ env.NODE_VERSION }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -190,7 +190,7 @@ jobs:
           cp "tools/UdonProgramDumper/bin/Release/net10.0/${{ matrix.dotnet-rid }}/publish/${{ matrix.dumper-binary }}" "${TARGET_DIR}/${{ matrix.dumper-binary }}"
 
       - name: Upload artifact directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.name }}
           path: dist/${{ matrix.name }}
@@ -206,7 +206,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: release-assets
 

@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node and Yarn
         uses: ./.github/actions/setup-node-yarn
@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload Build Log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-log
           path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}

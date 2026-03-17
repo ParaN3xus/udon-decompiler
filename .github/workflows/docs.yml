@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Download font assets
         run: |
           mkdir -p assets/fonts
@@ -24,7 +24,7 @@ jobs:
           curl -L -o maplemono.zip https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN-unhinted.zip && unzip -o maplemono.zip -d assets/fonts/ && rm maplemono.zip
 
       - name: Set Node.js 22.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
 

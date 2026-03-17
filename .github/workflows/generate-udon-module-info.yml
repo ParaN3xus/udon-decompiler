@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup VRChat Project
         uses: ./.github/actions/setup-vrchat-project
@@ -54,7 +54,7 @@ jobs:
           fi
 
       - name: Upload UdonModuleInfo.json as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: UdonModuleInfo.json
           path: ${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json
@@ -72,7 +72,7 @@ jobs:
 
       - name: Upload Build Log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-log
           path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}
