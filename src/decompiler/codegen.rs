@@ -80,7 +80,10 @@ pub fn generate_csharp(ctx: &DecompileContext, class_ir: &IrClass) -> Result<Str
 
     info!("c# code for {} generated!", class_ir.class_name);
 
-    format_csharp(out.join("\n").as_str(), ctx.clang_format_override.as_deref())
+    format_csharp(
+        out.join("\n").as_str(),
+        ctx.clang_format_override.as_deref(),
+    )
 }
 fn append_function(out: &mut Vec<String>, function: &IrFunction, ctx: &DecompileContext) {
     out.push(format!(

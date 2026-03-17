@@ -29,7 +29,9 @@ pub(crate) fn format_csharp(code: &str, override_path: Option<&Path>) -> Result<
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| match error.kind() {
-            std::io::ErrorKind::NotFound => DecompileError::new(format!("clang-format not found.")),
+            std::io::ErrorKind::NotFound => {
+                DecompileError::new("clang-format not found.".to_string())
+            }
             _ => DecompileError::new(format!("failed to start clang-format: {error}")),
         })?;
 
@@ -69,12 +71,11 @@ fn resolve_clang_format_program(override_path: Option<&Path>) -> PathBuf {
         return PathBuf::from(from_env);
     }
 
-    if let Ok(current_exe) = std::env::current_exe() {
-        if let Some(exe_dir) = current_exe.parent() {
-            if let Some(local) = find_local_clang_format(exe_dir) {
-                return local;
-            }
-        }
+    if let Ok(current_exe) = std::env::current_exe()
+        && let Some(exe_dir) = current_exe.parent()
+        && let Some(local) = find_local_clang_format(exe_dir)
+    {
+        return local;
     }
 
     PathBuf::from(clang_format_program_name())
