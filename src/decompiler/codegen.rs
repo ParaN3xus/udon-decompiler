@@ -575,13 +575,12 @@ fn render_external_call_expression(
         .iter()
         .map(|x| render_expression(x, ctx))
         .collect::<Vec<_>>();
-    let method = call.function_info.original_name.clone().expect(
-        format!(
+    let method = call.function_info.original_name.clone().unwrap_or_else(|| {
+        panic!(
             "Invalid function {}! originalName expected!",
             call.function_info.signature
         )
-        .as_str(),
-    );
+    });
 
     if call.function_info.is_static {
         let rendered_args = render_call_args(call, &args, 0);
@@ -607,13 +606,12 @@ fn render_property_access_expression(
         .iter()
         .map(|x| render_expression(x, ctx))
         .collect::<Vec<_>>();
-    let property = call.function_info.original_name.clone().expect(
-        format!(
+    let property = call.function_info.original_name.clone().unwrap_or_else(|| {
+        panic!(
             "Invalid function {}! originalName expected!",
             call.function_info.signature
         )
-        .as_str(),
-    );
+    });
     if call.function_info.is_static || args.is_empty() {
         let owner = render_type_name(call.function_info.type_name.as_str());
         return format!("{owner}.{property}");

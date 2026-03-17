@@ -303,35 +303,32 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     let operand = inst.numeric_operand();
                     if is_return_jump_operand(operand, &ctx.symbol_name_by_address) {
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Return;
-                    } else {
-                        if let Some(info) = resolve_switch_info_for_jump_indirect(
-                            ctx,
-                            global_inst_id,
-                            operand,
-                            &ctx.symbol_name_by_address,
-                            &ctx.symbol_type_by_address,
-                            Some(module_info),
-                        ) {
-                            for target in &info.targets {
-                                enqueue_edge(
-                                    ctx,
-                                    &mut out,
-                                    &mut pending,
-                                    block_id,
-                                    *target,
-                                    &stack_state,
-                                    &heap_state,
-                                )?;
-                            }
-                            ctx.basic_blocks.blocks[block_id].switch_info = Some(info);
-                            ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Jump;
-                        } else {
-                            warn!(
-                                "Unrecognized JUMP_INDIRECT encountered at {addr:#06x}! Ignoring..."
-                            );
-                            ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Jump;
+                    } else if let Some(info) = resolve_switch_info_for_jump_indirect(
+                        ctx,
+                        global_inst_id,
+                        operand,
+                        &ctx.symbol_name_by_address,
+                        &ctx.symbol_type_by_address,
+                        Some(module_info),
+                    ) {
+                        for target in &info.targets {
+                            enqueue_edge(
+                                ctx,
+                                &mut out,
+                                &mut pending,
+                                block_id,
+                                *target,
+                                &stack_state,
+                                &heap_state,
+                            )?;
                         }
+                        ctx.basic_blocks.blocks[block_id].switch_info = Some(info);
+                        ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Jump;
+                    } else {
+                        warn!("Unrecognized JUMP_INDIRECT encountered at {addr:#06x}! Ignoring...");
+                        ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Jump;
                     }
+
                     break;
                 }
                 OpCode::Extern => {

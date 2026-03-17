@@ -164,7 +164,7 @@ fn e2e_snapshot() {
                 .expect("load context from compressed hex");
         let output = ctx.run_decompile().expect("run pipeline");
 
-        let snapshot_name = snapshot_name_for_case(&case_path, &root);
+        let snapshot_name = snapshot_name_for_case(case_path, &root);
         insta::assert_snapshot!(snapshot_name, output.generated_code);
         eprintln!(
             "[{}/{}] snapshot ok: {}",

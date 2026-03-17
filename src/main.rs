@@ -59,7 +59,7 @@ enum Mode {
 
 enum PreparedSingleInput {
     Dc {
-        ctx: DecompileContext,
+        ctx: Box<DecompileContext>,
     },
     Dasm {
         program: UdonProgramBinary,
@@ -338,7 +338,7 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
                     input_file.display()
                 )
             })?;
-            Ok(PreparedSingleInput::Dc { ctx })
+            Ok(PreparedSingleInput::Dc { ctx: Box::new(ctx) })
         }
         Mode::Dasm => {
             let bytes = read_program_bytes(input_file)?;
@@ -482,8 +482,8 @@ fn choose_hex_template_path(
 fn extract_source_program_hint(asm_text: &str) -> Option<String> {
     let first_line = asm_text.lines().next()?.trim();
     for prefix in ["; source-program:", "; source-hex:"] {
-        if first_line.starts_with(prefix) {
-            let value = first_line[prefix.len()..].trim();
+        if let Some(stripped) = first_line.strip_prefix(prefix) {
+            let value = stripped.trim();
             if value.is_empty() {
                 return None;
             }
