@@ -1,0 +1,1505 @@
+---
+source: tests/e2e.rs
+expression: output.generated_code
+---
+// Decompiled Udon Program
+// This is pseudo-code and may not compile directly
+
+public class NetworkingManager : UdonSharpBehaviour
+{
+    System.Int32[] playerIDsSynced = new System.Int32[] { -1, -1, -1, -1 };
+    UnityEngine.Vector3[] ballsPSynced =
+        new UnityEngine.Vector3[] { null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */ };
+    UnityEngine.Vector3 cueBallVSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3 cueBallWSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    System.UInt16 stateIdSynced = 0;
+    System.UInt16 ballsPocketedSynced = 0;
+    System.Byte teamIdSynced = 0;
+    System.Int32 timerStartSynced = 0;
+    System.Byte foulStateSynced = 0;
+    System.Boolean isTableOpenSynced = false;
+    System.Byte teamColorSynced = 0;
+    System.Byte winningTeamSynced = 0;
+    System.Byte gameStateSynced = 0;
+    System.Byte turnStateSynced = 0;
+    System.Byte gameModeSynced = 0;
+    System.Byte timerSynced = 0;
+    System.Byte tableModelSynced = 0;
+    System.Byte physicsSynced = 0;
+    System.Boolean teamsSynced = false;
+    System.Boolean noGuidelineSynced = false;
+    System.Boolean noLockingSynced = false;
+    System.Byte[] fourBallScoresSynced = new System.Byte[] { 0, 0 };
+    System.Byte fourBallCueBallSynced = 0;
+    System.Byte isUrgentSynced = 0;
+    System.Boolean colorTurnSynced = false;
+    VRC.Udon.UdonBehaviour playerSlot = null;
+    VRC.Udon.UdonBehaviour table = null;
+    System.Boolean hasBufferedMessages = false;
+    System.Boolean delayedDeserialization = false;
+    System.UInt32 gameStateLength = 230;
+    VRC.Udon.UdonBehaviour __0_table___param = null;
+    VRC.Udon.UdonBehaviour __0_slot__param = null;
+    System.Int32 __0_CountPlayers__ret = 0;
+    System.Boolean __0_urgent__param = false;
+    System.UInt32 __0_winnerId__param = 0;
+    UnityEngine.Vector3[] __0_ballsP__param = null;
+    System.UInt32 __0_ballsPocketed__param = 0;
+    System.Byte[] __0_fbScores__param = null;
+    System.Boolean __0_colorTurnLocal__param = false;
+    System.UInt32 __0_teamId__param = 0;
+    System.UInt32 __1_teamId__param = 0;
+    System.Boolean __0_Scratch__param = false;
+    System.Boolean __0_objBlocked__param = false;
+    System.UInt32 __0_teamColor__param = 0;
+    UnityEngine.Vector3 __0_cueBallV__param = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3 __0_cueBallW__param = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3[] __1_ballsP__param = null;
+    System.UInt32 __0_defaultBallsPocketed__param = 0;
+    UnityEngine.Vector3[] __0_ballPositions__param = null;
+    System.Int32 __0___0__OnJoinTeam__ret = 0;
+    System.Int32 __2_teamId__param = 0;
+    System.Int32 __0_playerId__param = 0;
+    System.Int32 __1_playerId__param = 0;
+    System.Boolean __0_teamsEnabled__param = false;
+    System.Boolean __0_noGuidelineEnabled__param = false;
+    System.Boolean __0_noLockingEnabled__param = false;
+    System.Byte __0_newTimer__param = 0;
+    System.UInt32 __0_newTableModel__param = 0;
+    System.UInt32 __0_newPhysics__param = 0;
+    System.UInt32 __0_newGameMode__param = 0;
+    System.Int32 __0_playedId__param = 0;
+    System.Int32 __0_stateIdLocal__param = 0;
+    UnityEngine.Vector3[] __0_newBallsP__param = null;
+    System.UInt32 __1_ballsPocketed__param = 0;
+    System.Byte[] __0_newScores__param = null;
+    System.UInt32 __0_gameMode__param = 0;
+    System.UInt32 __3_teamId__param = 0;
+    System.UInt32 __0_foulState__param = 0;
+    System.Boolean __0_isTableOpen__param = false;
+    System.UInt32 __1_teamColor__param = 0;
+    System.UInt32 __0_fourBallCueBall__param = 0;
+    System.Byte __0_turnStateLocal__param = 0;
+    UnityEngine.Vector3 __1_cueBallV__param = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3 __1_cueBallW__param = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    System.Boolean __0_colorTurn__param = false;
+    System.Byte __1_newPhysics__param = 0;
+    System.Byte __1_newTableModel__param = 0;
+    System.Byte[] __0_data__param = null;
+    System.Int32 __0_pos__param = 0;
+    System.UInt16 __0_v__param = 0;
+    System.UInt16 __0___0_decodeU16__ret = 0;
+    System.Byte[] __1_data__param = null;
+    System.Int32 __1_pos__param = 0;
+    UnityEngine.Vector3 __0___0_decodeVec3Full__ret = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    System.Byte[] __3_data__param = null;
+    System.Int32 __0_start__param = 0;
+    System.Single __1_range__param = 0.0f;
+    System.Byte[] __5_data__param = null;
+    System.Int32 __3_pos__param = 0;
+    System.Single __1_v__param = 0.0f;
+    System.Single __0___0_bytesToFloat__ret = 0.0f;
+    System.Byte[] __6_data__param = null;
+    System.Int32 __4_pos__param = 0;
+    System.Byte[] __7_data__param = null;
+    System.Int32 __5_pos__param = 0;
+    UnityEngine.Vector3 __1_vec__param = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3 __0___0_bytesToVec3__ret = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    System.Byte[] __8_data__param = null;
+    System.Int32 __1_start__param = 0;
+    System.String __0_gameStateStr__param = null;
+    System.String __3_gameStateStr__param = null;
+    System.String __2_gameStateStr__param = null;
+    System.String __1_gameStateStr__param = null;
+    System.Boolean __0___0_isValidBase64__ret = false;
+    System.String __0_value__param = null;
+    System.String __0__EncodeGameState__ret = null;
+    System.Base64FormattingOptions __const_SystemBase64FormattingOptions_0 = null /* unserializable */;
+    System.Boolean __0___0_isInvalidBase64Char__ret = false;
+    System.Char __1_value__param = null /* unserializable */;
+    VRC.SDKBase.VRCPlayerApi onOwnershipTransferredPlayer = null;
+    VRC.SDKBase.VRCPlayerApi onPlayerLeftPlayer = null;
+
+    public void __0__Init()
+    {
+        System.Int32 __lcl_i_SystemInt32_0 = 0;
+
+        table = __0_table___param;
+        __lcl_i_SystemInt32_0 = 0;
+        while (__lcl_i_SystemInt32_0 < ballsPSynced.Length)
+        {
+            ballsPSynced.Set(__lcl_i_SystemInt32_0, __0_table___param.GetProgramVariable("balls").Get(__lcl_i_SystemInt32_0).transform.localPosition);
+            __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+        }
+        __lcl_i_SystemInt32_0 = 0;
+        while (__lcl_i_SystemInt32_0 < 4)
+        {
+            playerSlot.SetProgramVariable("__0_networkingManager___param", this);
+            playerSlot.SendCustomEvent("__0__Init");
+            __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+        }
+        return;
+    }
+
+    public void __0__OnPlayerSlotChanged()
+    {
+        VRC.SDKBase.VRCPlayerApi __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0 = null;
+        System.Int32 __lcl_slotOwnerID_SystemInt32_0 = 0;
+        System.Boolean __lcl_changedSlot_SystemBoolean_0 = false;
+        System.Int32 __lcl_numPlayersPrev_SystemInt32_0 = 0;
+        System.Int32 __lcl_numPlayers_SystemInt32_0 = 0;
+        System.Boolean __intnl_SystemBoolean_5 = false;
+        System.Int32 __lcl_i_SystemInt32_1 = 0;
+
+        if (!(System.Convert.ToInt32(gameStateSynced) == 0) && VRC.SDKBase.Networking.LocalPlayer.IsOwner(this.gameObject))
+        {
+            __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.GetOwner(__0_slot__param.gameObject);
+            if (VRC.SDKBase.Utilities.IsValid(__lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0))
+            {
+                __lcl_slotOwnerID_SystemInt32_0 = __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0.playerId;
+                __lcl_changedSlot_SystemBoolean_0 = false;
+                __lcl_numPlayersPrev_SystemInt32_0 = 0;
+                __lcl_i_SystemInt32_1 = 0;
+                while (__lcl_i_SystemInt32_1 < 4)
+                {
+                    if (playerIDsSynced.Get(__lcl_i_SystemInt32_1) != -1)
+                    {
+                        __lcl_numPlayersPrev_SystemInt32_0 = __lcl_numPlayersPrev_SystemInt32_0 + 1;
+                    }
+                    if (playerIDsSynced.Get(__lcl_i_SystemInt32_1) == __lcl_slotOwnerID_SystemInt32_0 &&
+                        __lcl_i_SystemInt32_1 != System.Convert.ToInt32(System.Convert.ToByte(__0_slot__param.GetProgramVariable("slot"))))
+                    {
+                        playerIDsSynced.Set(__lcl_i_SystemInt32_1, -1);
+                        __lcl_changedSlot_SystemBoolean_0 = true;
+                    }
+                    __lcl_i_SystemInt32_1 = __lcl_i_SystemInt32_1 + 1;
+                }
+                if (__0_slot__param.GetProgramVariable("leave"))
+                {
+                    playerIDsSynced.Set(System.Convert.ToInt32(System.Convert.ToByte(__0_slot__param.GetProgramVariable("slot"))), -1);
+                }
+                else
+                {
+                    playerIDsSynced.Set(System.Convert.ToInt32(System.Convert.ToByte(__0_slot__param.GetProgramVariable("slot"))),
+                                        __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0.playerId);
+                }
+                function_0();
+                __lcl_numPlayers_SystemInt32_0 = __0_CountPlayers__ret;
+                __intnl_SystemBoolean_5 = __lcl_numPlayersPrev_SystemInt32_0 != __lcl_numPlayers_SystemInt32_0;
+                if (!__intnl_SystemBoolean_5)
+                {
+                    __intnl_SystemBoolean_5 = __lcl_changedSlot_SystemBoolean_0;
+                }
+                if (__intnl_SystemBoolean_5)
+                {
+                    if (__lcl_numPlayers_SystemInt32_0 == 0)
+                    {
+                        winningTeamSynced = 0;
+                        if (!table.GetProgramVariable("gameLive"))
+                        {
+                            gameStateSynced = 0;
+                        }
+                    }
+                    __0_urgent__param = false;
+                    function_2();
+                }
+            }
+        }
+        return;
+    }
+
+    public void _onDeserialization()
+    {
+        VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_0 = null;
+
+        delayedDeserialization = false;
+        if (table.GetProgramVariable("localPlayerDistant"))
+        {
+            delayedDeserialization = true;
+        }
+        else
+        {
+            if (table.GetProgramVariable("isLocalSimulationRunning"))
+            {
+                if (System.Convert.ToInt32(isUrgentSynced) == 0)
+                {
+                    delayedDeserialization = true;
+                    return;
+                }
+                if (System.Convert.ToInt32(isUrgentSynced) == 2)
+                {
+                    table.SetProgramVariable("isLocalSimulationRunning", false);
+                }
+            }
+            __intnl_VRCUdonUdonBehaviour_0 = table;
+            table.SendCustomEvent("_OnRemoteDeserialization");
+        }
+        return;
+    }
+
+    public void __0__OnGameWin()
+    {
+        System.Int32 __lcl_i_SystemInt32_2 = 0;
+
+        gameStateSynced = 3;
+        winningTeamSynced = System.Convert.ToByte(__0_winnerId__param);
+        __lcl_i_SystemInt32_2 = 0;
+        while (__lcl_i_SystemInt32_2 < 4)
+        {
+            playerIDsSynced.Set(__lcl_i_SystemInt32_2, -1);
+            __lcl_i_SystemInt32_2 = __lcl_i_SystemInt32_2 + 1;
+        }
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void _OnGameReset()
+    {
+        System.Int32 __lcl_i_SystemInt32_3 = 0;
+
+        gameStateSynced = 0;
+        winningTeamSynced = 2;
+        __lcl_i_SystemInt32_3 = 0;
+        while (__lcl_i_SystemInt32_3 < 4)
+        {
+            playerIDsSynced.Set(__lcl_i_SystemInt32_3, -1);
+            __lcl_i_SystemInt32_3 = __lcl_i_SystemInt32_3 + 1;
+        }
+        __0_urgent__param = true;
+        function_2();
+        return;
+    }
+
+    public void __0__OnSimulationEnded()
+    {
+        System.Array.Copy(__0_ballsP__param, ballsPSynced, 16);
+        System.Array.Copy(__0_fbScores__param, fourBallScoresSynced, 2);
+        ballsPocketedSynced = System.Convert.ToUInt16(__0_ballsPocketed__param);
+        colorTurnSynced = __0_colorTurnLocal__param;
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnTurnPass()
+    {
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        teamIdSynced = System.Convert.ToByte(__0_teamId__param);
+        turnStateSynced = 0;
+        foulStateSynced = 0;
+        timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+        function_1();
+        if (table.GetProgramVariable("isSnooker6Red"))
+        {
+            fourBallCueBallSynced = 0;
+        }
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void _OnTurnTie()
+    {
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        teamIdSynced = System.Convert.ToByte(UnityEngine.Random.Range(0, 2));
+        turnStateSynced = 2;
+        timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+        foulStateSynced = 3;
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnTurnFoul()
+    {
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        teamIdSynced = System.Convert.ToByte(__1_teamId__param);
+        turnStateSynced = 2;
+        timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+        if (table.GetProgramVariable("isSnooker6Red"))
+        {
+            if (__0_Scratch__param)
+            {
+                foulStateSynced = 3;
+            }
+            else
+            {
+                if (__0_objBlocked__param)
+                {
+                    foulStateSynced = 5;
+                }
+                else
+                {
+                    foulStateSynced = 4;
+                }
+            }
+            if (System.Convert.ToInt32(fourBallCueBallSynced) > 3)
+            {
+                fourBallCueBallSynced = 0;
+            }
+            else
+            {
+                fourBallCueBallSynced = System.Convert.ToByte(fourBallCueBallSynced + 1);
+            }
+        }
+        else
+        {
+            if (__0_objBlocked__param)
+            {
+                foulStateSynced = 1;
+            }
+            else
+            {
+                foulStateSynced = 2;
+            }
+        }
+        function_1();
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void _OnTurnContinue()
+    {
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        turnStateSynced = 0;
+        foulStateSynced = 0;
+        timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnTableClosed()
+    {
+        isTableOpenSynced = false;
+        teamColorSynced = System.Convert.ToByte(__0_teamColor__param);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnHitBall()
+    {
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        turnStateSynced = 1;
+        cueBallVSynced = __0_cueBallV__param;
+        cueBallWSynced = __0_cueBallW__param;
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnRepositionBalls()
+    {
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        System.Array.Copy(__1_ballsP__param, ballsPSynced, 16);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void _OnLobbyOpened()
+    {
+        System.Int32 __lcl_i_SystemInt32_4 = 0;
+
+        winningTeamSynced = 0;
+        gameStateSynced = 1;
+        stateIdSynced = 0;
+        __lcl_i_SystemInt32_4 = 0;
+        while (__lcl_i_SystemInt32_4 < 4)
+        {
+            playerIDsSynced.Set(__lcl_i_SystemInt32_4, -1);
+            __lcl_i_SystemInt32_4 = __lcl_i_SystemInt32_4 + 1;
+        }
+        playerIDsSynced.Set(0, VRC.SDKBase.Networking.LocalPlayer.playerId);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void _OnLobbyClosed()
+    {
+        System.Int32 __lcl_i_SystemInt32_5 = 0;
+
+        __lcl_i_SystemInt32_5 = 0;
+        while (__lcl_i_SystemInt32_5 < 4)
+        {
+            playerIDsSynced.Set(__lcl_i_SystemInt32_5, -1);
+            __lcl_i_SystemInt32_5 = __lcl_i_SystemInt32_5 + 1;
+        }
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnGameStart()
+    {
+        System.Boolean __intnl_SystemBoolean_20 = false;
+
+        stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+        gameStateSynced = 2;
+        ballsPocketedSynced = System.Convert.ToUInt16(__0_defaultBallsPocketed__param);
+        if (table.GetProgramVariable("isSnooker6Red"))
+        {
+            foulStateSynced = 3;
+        }
+        else
+        {
+            foulStateSynced = 1;
+        }
+        __intnl_SystemBoolean_20 = table.GetProgramVariable("is8Ball");
+        if (!__intnl_SystemBoolean_20)
+        {
+            __intnl_SystemBoolean_20 = table.GetProgramVariable("is9Ball");
+        }
+        if (__intnl_SystemBoolean_20)
+        {
+            colorTurnSynced = true;
+        }
+        else
+        {
+            colorTurnSynced = false;
+        }
+        turnStateSynced = 0;
+        isTableOpenSynced = true;
+        teamIdSynced = 0;
+        fourBallCueBallSynced = 0;
+        cueBallVSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+        cueBallWSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+        timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+        System.Array.Copy(__0_ballPositions__param, ballsPSynced, 16);
+        System.Array.Clear(fourBallScoresSynced, 0, 2);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnJoinTeam()
+    {
+        System.Boolean __intnl_SystemBoolean_23 = false;
+        System.Boolean __intnl_SystemBoolean_24 = false;
+
+        if (__2_teamId__param == 0)
+        {
+            if (playerIDsSynced.Get(0) == -1)
+            {
+                playerSlot.SetProgramVariable("__0_slot___param", 0);
+                playerSlot.SendCustomEvent("__0_JoinSlot");
+                __0___0__OnJoinTeam__ret = 0;
+                return;
+            }
+            __intnl_SystemBoolean_23 = teamsSynced;
+            if (__intnl_SystemBoolean_23)
+            {
+                __intnl_SystemBoolean_23 = playerIDsSynced.Get(2) == -1;
+            }
+            if (__intnl_SystemBoolean_23)
+            {
+                playerSlot.SetProgramVariable("__0_slot___param", 2);
+                playerSlot.SendCustomEvent("__0_JoinSlot");
+                __0___0__OnJoinTeam__ret = 2;
+                return;
+            }
+        }
+        else
+        {
+            if (__2_teamId__param == 1)
+            {
+                if (playerIDsSynced.Get(1) == -1)
+                {
+                    playerSlot.SetProgramVariable("__0_slot___param", 1);
+                    playerSlot.SendCustomEvent("__0_JoinSlot");
+                    __0___0__OnJoinTeam__ret = 1;
+                    return;
+                }
+                __intnl_SystemBoolean_24 = teamsSynced;
+                if (__intnl_SystemBoolean_24)
+                {
+                    __intnl_SystemBoolean_24 = playerIDsSynced.Get(3) == -1;
+                }
+                if (__intnl_SystemBoolean_24)
+                {
+                    playerSlot.SetProgramVariable("__0_slot___param", 3);
+                    playerSlot.SendCustomEvent("__0_JoinSlot");
+                    __0___0__OnJoinTeam__ret = 3;
+                    return;
+                }
+            }
+        }
+        __0___0__OnJoinTeam__ret = -1;
+        return;
+    }
+
+    public void __0__OnLeaveLobby()
+    {
+        System.Int32 __intnl_SystemInt32_20 = 0;
+
+        __intnl_SystemInt32_20 = __0_playerId__param;
+        playerSlot.SetProgramVariable("__1_slot___param", __0_playerId__param);
+        playerSlot.SendCustomEvent("__0_LeaveSlot");
+        return;
+    }
+
+    public void __0__OnKickLobby()
+    {
+        if (!(playerIDsSynced.Get(__1_playerId__param) == -1))
+        {
+            playerIDsSynced.Set(__1_playerId__param, -1);
+            __0_urgent__param = false;
+            function_2();
+        }
+        return;
+    }
+
+    public void __0__OnTeamsChanged()
+    {
+        System.Int32 __lcl_i_SystemInt32_6 = 0;
+
+        teamsSynced = __0_teamsEnabled__param;
+        if (!__0_teamsEnabled__param)
+        {
+            __lcl_i_SystemInt32_6 = 2;
+            while (__lcl_i_SystemInt32_6 < 4)
+            {
+                playerIDsSynced.Set(__lcl_i_SystemInt32_6, -1);
+                function_0();
+                if (__0_CountPlayers__ret == 0)
+                {
+                    gameStateSynced = 0;
+                }
+                __lcl_i_SystemInt32_6 = __lcl_i_SystemInt32_6 + 1;
+            }
+        }
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnNoGuidelineChanged()
+    {
+        noGuidelineSynced = __0_noGuidelineEnabled__param;
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnNoLockingChanged()
+    {
+        noLockingSynced = __0_noLockingEnabled__param;
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnTimerChanged()
+    {
+        timerSynced = __0_newTimer__param;
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnTableModelChanged()
+    {
+        tableModelSynced = System.Convert.ToByte(__0_newTableModel__param);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnPhysicsChanged()
+    {
+        physicsSynced = System.Convert.ToByte(__0_newPhysics__param);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void __0__OnGameModeChanged()
+    {
+        gameModeSynced = System.Convert.ToByte(__0_newGameMode__param);
+        __0_urgent__param = false;
+        function_2();
+        return;
+    }
+
+    public void validatePlayers()
+    {
+        System.Boolean __lcl_playerRemoved_SystemBoolean_0 = false;
+        System.Boolean __intnl_SystemBoolean_28 = false;
+        System.Int32 __lcl_i_SystemInt32_7 = 0;
+        VRC.SDKBase.VRCPlayerApi __lcl_plyr_VRCSDKBaseVRCPlayerApi_0 = null;
+
+        __lcl_playerRemoved_SystemBoolean_0 = false;
+        __lcl_i_SystemInt32_7 = 0;
+        while (__lcl_i_SystemInt32_7 < 4)
+        {
+            if (!(playerIDsSynced.Get(__lcl_i_SystemInt32_7) == -1))
+            {
+                __lcl_plyr_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerById(playerIDsSynced.Get(__lcl_i_SystemInt32_7));
+                if (__lcl_plyr_VRCSDKBaseVRCPlayerApi_0 == null)
+                {
+                    __lcl_playerRemoved_SystemBoolean_0 = true;
+                    playerIDsSynced.Set(__lcl_i_SystemInt32_7, -1);
+                }
+            }
+            __lcl_i_SystemInt32_7 = __lcl_i_SystemInt32_7 + 1;
+        }
+        function_0();
+        __intnl_SystemBoolean_28 = __0_CountPlayers__ret == 0;
+        if (__intnl_SystemBoolean_28)
+        {
+            __intnl_SystemBoolean_28 = !table.GetProgramVariable("gameLive");
+        }
+        if (__intnl_SystemBoolean_28)
+        {
+            gameStateSynced = 0;
+        }
+        if (__lcl_playerRemoved_SystemBoolean_0)
+        {
+            __0_urgent__param = false;
+            function_2();
+        }
+        return;
+    }
+
+    void function_0()
+    {
+        System.Int32 __lcl_result_SystemInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_8 = 0;
+
+        __lcl_result_SystemInt32_0 = 0;
+        __lcl_i_SystemInt32_8 = 0;
+        while (__lcl_i_SystemInt32_8 < 4)
+        {
+            if (playerIDsSynced.Get(__lcl_i_SystemInt32_8) != -1)
+            {
+                __lcl_result_SystemInt32_0 = __lcl_result_SystemInt32_0 + 1;
+            }
+            __lcl_i_SystemInt32_8 = __lcl_i_SystemInt32_8 + 1;
+        }
+        __0_CountPlayers__ret = __lcl_result_SystemInt32_0;
+        return;
+    }
+
+    public void __0_removePlayer()
+    {
+        System.Boolean __lcl_playerRemoved_SystemBoolean_1 = false;
+        System.Boolean __intnl_SystemBoolean_33 = false;
+        System.Int32 __lcl_i_SystemInt32_9 = 0;
+
+        __lcl_playerRemoved_SystemBoolean_1 = false;
+        __lcl_i_SystemInt32_9 = 0;
+        while (__lcl_i_SystemInt32_9 < 4)
+        {
+            if (playerIDsSynced.Get(__lcl_i_SystemInt32_9) == __0_playedId__param)
+            {
+                __lcl_playerRemoved_SystemBoolean_1 = true;
+                playerIDsSynced.Set(__lcl_i_SystemInt32_9, -1);
+            }
+            __lcl_i_SystemInt32_9 = __lcl_i_SystemInt32_9 + 1;
+        }
+        function_0();
+        __intnl_SystemBoolean_33 = __0_CountPlayers__ret == 0;
+        if (__intnl_SystemBoolean_33)
+        {
+            __intnl_SystemBoolean_33 = !table.GetProgramVariable("gameLive");
+        }
+        if (__intnl_SystemBoolean_33)
+        {
+            gameStateSynced = 0;
+        }
+        if (__lcl_playerRemoved_SystemBoolean_1)
+        {
+            __0_urgent__param = false;
+            function_2();
+        }
+        return;
+    }
+
+    public void __0__ForceLoadFromState()
+    {
+        stateIdSynced = System.Convert.ToUInt16(__0_stateIdLocal__param);
+        System.Array.Copy(__0_newBallsP__param, ballsPSynced, 16);
+        ballsPocketedSynced = System.Convert.ToUInt16(__1_ballsPocketed__param);
+        System.Array.Copy(__0_newScores__param, fourBallScoresSynced, 2);
+        gameModeSynced = System.Convert.ToByte(__0_gameMode__param);
+        teamIdSynced = System.Convert.ToByte(__3_teamId__param);
+        foulStateSynced = System.Convert.ToByte(__0_foulState__param);
+        isTableOpenSynced = __0_isTableOpen__param;
+        teamColorSynced = System.Convert.ToByte(__1_teamColor__param);
+        turnStateSynced = __0_turnStateLocal__param;
+        cueBallVSynced = __1_cueBallV__param;
+        cueBallWSynced = __1_cueBallW__param;
+        fourBallCueBallSynced = System.Convert.ToByte(__0_fourBallCueBall__param);
+        timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+        colorTurnSynced = __0_colorTurn__param;
+        __0_urgent__param = true;
+        function_2();
+        return;
+    }
+
+    public void __0__OnGlobalSettingsChanged()
+    {
+        if (VRC.SDKBase.Networking.LocalPlayer.IsOwner(this.gameObject))
+        {
+            physicsSynced = __1_newPhysics__param;
+            tableModelSynced = __1_newTableModel__param;
+            __0_urgent__param = false;
+            function_2();
+        }
+        return;
+    }
+
+    void function_1()
+    {
+        System.Boolean __intnl_SystemBoolean_36 = false;
+        UnityEngine.Vector3 __lcl_temp_UnityEngineVector3_0 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+
+        __intnl_SystemBoolean_36 = System.Convert.ToInt32(gameModeSynced) != 2;
+        if (__intnl_SystemBoolean_36)
+        {
+            __intnl_SystemBoolean_36 = System.Convert.ToInt32(gameModeSynced) != 3;
+        }
+        if (!__intnl_SystemBoolean_36)
+        {
+            fourBallCueBallSynced = System.Convert.ToByte(fourBallCueBallSynced ^ 1);
+            __lcl_temp_UnityEngineVector3_0 = ballsPSynced.Get(0);
+            ballsPSynced.Set(0, ballsPSynced.Get(13));
+            ballsPSynced.Set(13, __lcl_temp_UnityEngineVector3_0);
+        }
+        return;
+    }
+
+    void function_2()
+    {
+        System.Int32 __intnl_SystemInt32_29 = 0;
+
+        if (__0_urgent__param)
+        {
+            __intnl_SystemInt32_29 = 2;
+        }
+        else
+        {
+            __intnl_SystemInt32_29 = 0;
+        }
+        isUrgentSynced = System.Convert.ToByte(__intnl_SystemInt32_29);
+        hasBufferedMessages = true;
+        return;
+    }
+
+    public void _FlushBuffer()
+    {
+        if (hasBufferedMessages)
+        {
+            hasBufferedMessages = false;
+            VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer, this.gameObject);
+            this.RequestSerialization();
+            _onDeserialization();
+        }
+        return;
+    }
+
+    public void _OnPlayerPrepareShoot()
+    {
+        this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "OnPlayerPrepareShoot");
+        return;
+    }
+
+    public void OnPlayerPrepareShoot()
+    {
+        VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_1 = null;
+
+        __intnl_VRCUdonUdonBehaviour_1 = table;
+        table.SendCustomEvent("_OnPlayerPrepareShoot");
+        return;
+    }
+
+    void function_3()
+    {
+        __0_data__param.Set(__0_pos__param, System.Convert.ToByte(System.Convert.ToInt32(__0_v__param) && 255));
+        __0_data__param.Set(__0_pos__param + 1, System.Convert.ToByte(System.Convert.ToUInt32(__0_v__param) >> 8 && 255));
+        return;
+    }
+
+    void function_4()
+    {
+        __0___0_decodeU16__ret = System.Convert.ToUInt16(System.Convert.ToUInt32(__1_data__param.Get(__1_pos__param)) ||
+                                                         System.Convert.ToUInt32(__1_data__param.Get(__1_pos__param + 1)) << 8);
+        return;
+    }
+
+    void function_5()
+    {
+        System.UInt16 __lcl__x_SystemUInt16_0 = 0;
+        System.UInt16 __lcl__y_SystemUInt16_0 = 0;
+        System.Int32 __intnl_SystemInt32_36 = 0;
+        System.UInt16 __lcl__z_SystemUInt16_0 = 0;
+        System.Int32 __intnl_SystemInt32_37 = 0;
+        System.Single __lcl_x_SystemSingle_0 = 0.0f;
+        System.Single __lcl_y_SystemSingle_0 = 0.0f;
+        System.Single __lcl_z_SystemSingle_0 = 0.0f;
+
+        __1_data__param = __3_data__param;
+        __1_pos__param = __0_start__param;
+        function_4();
+        __lcl__x_SystemUInt16_0 = __0___0_decodeU16__ret;
+        __intnl_SystemInt32_36 = __0_start__param + 2;
+        __1_data__param = __3_data__param;
+        __1_pos__param = __intnl_SystemInt32_36;
+        function_4();
+        __lcl__y_SystemUInt16_0 = __0___0_decodeU16__ret;
+        __intnl_SystemInt32_37 = __0_start__param + 4;
+        __1_data__param = __3_data__param;
+        __1_pos__param = __intnl_SystemInt32_37;
+        function_4();
+        __lcl__z_SystemUInt16_0 = __0___0_decodeU16__ret;
+        __lcl_x_SystemSingle_0 = (System.Convert.ToSingle(__lcl__x_SystemUInt16_0) - 32767.0f) / 32767.0f * __1_range__param;
+        __lcl_y_SystemSingle_0 = (System.Convert.ToSingle(__lcl__y_SystemUInt16_0) - 32767.0f) / 32767.0f * __1_range__param;
+        __lcl_z_SystemSingle_0 = (System.Convert.ToSingle(__lcl__z_SystemUInt16_0) - 32767.0f) / 32767.0f * __1_range__param;
+        __0___0_decodeVec3Full__ret = new UnityEngine.Vector3(__lcl_x_SystemSingle_0, __lcl_y_SystemSingle_0, __lcl_z_SystemSingle_0);
+        return;
+    }
+
+    void function_6()
+    {
+        System.Byte[] __lcl_bytes_SystemByteArray_0 = null;
+
+        __lcl_bytes_SystemByteArray_0 = System.BitConverter.GetBytes(__1_v__param);
+        System.Array.Copy(__lcl_bytes_SystemByteArray_0, 0, __5_data__param, __3_pos__param, 4);
+        return;
+    }
+
+    public void __0_bytesToFloat()
+    {
+        System.Byte[] __lcl_floatBytes_SystemByteArray_0 = null;
+
+        __lcl_floatBytes_SystemByteArray_0 = new System.Byte[](4);
+        System.Array.Copy(__6_data__param, __4_pos__param, __lcl_floatBytes_SystemByteArray_0, 0, 4);
+        __0___0_bytesToFloat__ret = System.BitConverter.ToSingle(__lcl_floatBytes_SystemByteArray_0, 0);
+        return;
+    }
+
+    void function_7()
+    {
+        System.Single __intnl_SystemSingle_30 = 0.0f;
+        System.Int32 __intnl_SystemInt32_38 = 0;
+        System.Single __intnl_SystemSingle_31 = 0.0f;
+        System.Int32 __intnl_SystemInt32_39 = 0;
+        System.Single __intnl_SystemSingle_32 = 0.0f;
+
+        __intnl_SystemSingle_30 = __1_vec__param.x;
+        __5_data__param = __7_data__param;
+        __3_pos__param = __5_pos__param;
+        __1_v__param = __intnl_SystemSingle_30;
+        function_6();
+        __intnl_SystemInt32_38 = __5_pos__param + 4;
+        __intnl_SystemSingle_31 = __1_vec__param.y;
+        __5_data__param = __7_data__param;
+        __3_pos__param = __intnl_SystemInt32_38;
+        __1_v__param = __intnl_SystemSingle_31;
+        function_6();
+        __intnl_SystemInt32_39 = __5_pos__param + 8;
+        __intnl_SystemSingle_32 = __1_vec__param.z;
+        __5_data__param = __7_data__param;
+        __3_pos__param = __intnl_SystemInt32_39;
+        __1_v__param = __intnl_SystemSingle_32;
+        function_6();
+        return;
+    }
+
+    void function_8()
+    {
+        System.Single __lcl_x_SystemSingle_1 = 0.0f;
+        System.Single __lcl_y_SystemSingle_1 = 0.0f;
+        System.Int32 __intnl_SystemInt32_40 = 0;
+        System.Single __lcl_z_SystemSingle_1 = 0.0f;
+        System.Int32 __intnl_SystemInt32_41 = 0;
+
+        __6_data__param = __8_data__param;
+        __4_pos__param = __1_start__param;
+        __0_bytesToFloat();
+        __lcl_x_SystemSingle_1 = __0___0_bytesToFloat__ret;
+        __intnl_SystemInt32_40 = __1_start__param + 4;
+        __6_data__param = __8_data__param;
+        __4_pos__param = __intnl_SystemInt32_40;
+        __0_bytesToFloat();
+        __lcl_y_SystemSingle_1 = __0___0_bytesToFloat__ret;
+        __intnl_SystemInt32_41 = __1_start__param + 8;
+        __6_data__param = __8_data__param;
+        __4_pos__param = __intnl_SystemInt32_41;
+        __0_bytesToFloat();
+        __lcl_z_SystemSingle_1 = __0___0_bytesToFloat__ret;
+        __0___0_bytesToVec3__ret = new UnityEngine.Vector3(__lcl_x_SystemSingle_1, __lcl_y_SystemSingle_1, __lcl_z_SystemSingle_1);
+        return;
+    }
+
+    public void __0__OnLoadGameState()
+    {
+        if (__0_gameStateStr__param.StartsWith("v3:"))
+        {
+            __3_gameStateStr__param = __0_gameStateStr__param.Substring(3);
+            function_11();
+        }
+        else
+        {
+            if (__0_gameStateStr__param.StartsWith("v2:"))
+            {
+                __2_gameStateStr__param = __0_gameStateStr__param.Substring(3);
+                function_10();
+            }
+            else
+            {
+                if (__0_gameStateStr__param.StartsWith("v1:"))
+                {
+                    __1_gameStateStr__param = __0_gameStateStr__param.Substring(3);
+                    function_9();
+                }
+                else
+                {
+                    __1_gameStateStr__param = __0_gameStateStr__param;
+                    function_9();
+                }
+            }
+        }
+        return;
+    }
+
+    void function_9()
+    {
+        System.Byte[] __lcl_gameState_SystemByteArray_0 = null;
+        System.UInt32 __lcl_spec_SystemUInt32_0 = 0;
+        System.UInt32 __lcl_state_SystemUInt32_0 = 0;
+        System.Int32 __intnl_SystemInt32_47 = 0;
+        System.Int32 __intnl_SystemInt32_48 = 0;
+        System.UInt32 __lcl_timerSetting_SystemUInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_10 = 0;
+        UnityEngine.Vector3[] __intnl_UnityEngineVector3Array_0 = null;
+
+        __0_value__param = __1_gameStateStr__param;
+        isValidBase64();
+        if (__0___0_isValidBase64__ret)
+        {
+            __lcl_gameState_SystemByteArray_0 = System.Convert.FromBase64String(__1_gameStateStr__param);
+            if (!(__lcl_gameState_SystemByteArray_0.Length != 84))
+            {
+                stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+                __lcl_i_SystemInt32_10 = 0;
+                while (__lcl_i_SystemInt32_10 < 16)
+                {
+                    __intnl_SystemInt32_47 = __lcl_i_SystemInt32_10 * 4;
+                    __3_data__param = __lcl_gameState_SystemByteArray_0;
+                    __0_start__param = __intnl_SystemInt32_47;
+                    __1_range__param = 2.5f;
+                    __intnl_UnityEngineVector3Array_0 = ballsPSynced;
+                    function_5();
+                    __intnl_UnityEngineVector3Array_0.Set(__lcl_i_SystemInt32_10, __0___0_decodeVec3Full__ret);
+                    __lcl_i_SystemInt32_10 = __lcl_i_SystemInt32_10 + 1;
+                }
+                __3_data__param = __lcl_gameState_SystemByteArray_0;
+                __0_start__param = 64;
+                __1_range__param = 50.0f;
+                function_5();
+                cueBallVSynced = __0___0_decodeVec3Full__ret;
+                __3_data__param = __lcl_gameState_SystemByteArray_0;
+                __0_start__param = 70;
+                __1_range__param = 500.0f;
+                function_5();
+                cueBallWSynced = __0___0_decodeVec3Full__ret;
+                __1_data__param = __lcl_gameState_SystemByteArray_0;
+                __1_pos__param = 76;
+                function_4();
+                __lcl_spec_SystemUInt32_0 = System.Convert.ToUInt32(__0___0_decodeU16__ret);
+                __1_data__param = __lcl_gameState_SystemByteArray_0;
+                __1_pos__param = 78;
+                function_4();
+                __lcl_state_SystemUInt32_0 = System.Convert.ToUInt32(__0___0_decodeU16__ret);
+                if ((__lcl_state_SystemUInt32_0 && 1) == 1)
+                {
+                    __intnl_SystemInt32_47 = 1;
+                }
+                else
+                {
+                    __intnl_SystemInt32_47 = 0;
+                }
+                turnStateSynced = System.Convert.ToByte(__intnl_SystemInt32_47);
+                teamIdSynced = System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 2) >> 1);
+                if ((__lcl_state_SystemUInt32_0 && 4) == 4)
+                {
+                    __intnl_SystemInt32_48 = 1;
+                }
+                else
+                {
+                    __intnl_SystemInt32_48 = 0;
+                }
+                foulStateSynced = System.Convert.ToByte(__intnl_SystemInt32_48);
+                isTableOpenSynced = (__lcl_state_SystemUInt32_0 && 8) == 8;
+                teamColorSynced = System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 16) >> 4);
+                gameModeSynced = System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 1792) >> 8);
+                __lcl_timerSetting_SystemUInt32_0 = (__lcl_state_SystemUInt32_0 && 24576) >> 13;
+                if (__lcl_timerSetting_SystemUInt32_0 >= 0 && __lcl_timerSetting_SystemUInt32_0 <= 3)
+                {
+                    switch (System.Convert.ToInt32(__lcl_timerSetting_SystemUInt32_0))
+                    {
+                        case 1:
+                            timerSynced = 60;
+                            break;
+                        case 2:
+                            timerSynced = 30;
+                            break;
+                        case 3:
+                            timerSynced = 15;
+                            break;
+                        default:
+                            timerSynced = 0;
+                            break;
+                    }
+                }
+                timerStartSynced = VRC.SDKBase.Networking.GetServerTimeInMilliseconds();
+                teamsSynced = (__lcl_state_SystemUInt32_0 && 32768) == 32768;
+                if (System.Convert.ToInt32(gameModeSynced) == 2)
+                {
+                    fourBallScoresSynced.Set(0, System.Convert.ToByte(__lcl_spec_SystemUInt32_0 && 15));
+                    fourBallScoresSynced.Set(1, System.Convert.ToByte((__lcl_spec_SystemUInt32_0 && 15) >> 4));
+                    if ((__lcl_spec_SystemUInt32_0 && 256) == 256)
+                    {
+                        gameModeSynced = 3;
+                    }
+                }
+                else
+                {
+                    ballsPocketedSynced = System.Convert.ToUInt16(__lcl_spec_SystemUInt32_0);
+                }
+                __0_urgent__param = true;
+                function_2();
+            }
+        }
+        return;
+    }
+
+    void function_10()
+    {
+        System.Byte[] __lcl_gameState_SystemByteArray_1 = null;
+        System.Int32 __intnl_SystemInt32_53 = 0;
+        System.Int32 __lcl_i_SystemInt32_11 = 0;
+        UnityEngine.Vector3[] __intnl_UnityEngineVector3Array_1 = null;
+
+        __0_value__param = __2_gameStateStr__param;
+        isValidBase64();
+        if (__0___0_isValidBase64__ret)
+        {
+            __lcl_gameState_SystemByteArray_1 = System.Convert.FromBase64String(__2_gameStateStr__param);
+            if (!(__lcl_gameState_SystemByteArray_1.Length != 123))
+            {
+                stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+                __lcl_i_SystemInt32_11 = 0;
+                while (__lcl_i_SystemInt32_11 < 16)
+                {
+                    __intnl_SystemInt32_53 = __lcl_i_SystemInt32_11 * 6;
+                    __3_data__param = __lcl_gameState_SystemByteArray_1;
+                    __0_start__param = __intnl_SystemInt32_53;
+                    __1_range__param = 2.5f;
+                    __intnl_UnityEngineVector3Array_1 = ballsPSynced;
+                    function_5();
+                    __intnl_UnityEngineVector3Array_1.Set(__lcl_i_SystemInt32_11, __0___0_decodeVec3Full__ret);
+                    __lcl_i_SystemInt32_11 = __lcl_i_SystemInt32_11 + 1;
+                }
+                __3_data__param = __lcl_gameState_SystemByteArray_1;
+                __0_start__param = 96;
+                __1_range__param = 50.0f;
+                function_5();
+                cueBallVSynced = __0___0_decodeVec3Full__ret;
+                __3_data__param = __lcl_gameState_SystemByteArray_1;
+                __0_start__param = 102;
+                __1_range__param = 500.0f;
+                function_5();
+                cueBallWSynced = __0___0_decodeVec3Full__ret;
+                __1_data__param = __lcl_gameState_SystemByteArray_1;
+                __1_pos__param = 108;
+                function_4();
+                ballsPocketedSynced = __0___0_decodeU16__ret;
+                teamIdSynced = __lcl_gameState_SystemByteArray_1.Get(110);
+                foulStateSynced = __lcl_gameState_SystemByteArray_1.Get(111);
+                isTableOpenSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(112)) != 0;
+                teamColorSynced = __lcl_gameState_SystemByteArray_1.Get(113);
+                turnStateSynced = __lcl_gameState_SystemByteArray_1.Get(114);
+                gameModeSynced = __lcl_gameState_SystemByteArray_1.Get(115);
+                timerSynced = __lcl_gameState_SystemByteArray_1.Get(117);
+                teamsSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(118)) != 0;
+                fourBallScoresSynced.Set(0, __lcl_gameState_SystemByteArray_1.Get(119));
+                fourBallScoresSynced.Set(1, __lcl_gameState_SystemByteArray_1.Get(120));
+                fourBallCueBallSynced = __lcl_gameState_SystemByteArray_1.Get(121);
+                colorTurnSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(122)) != 0;
+                __0_urgent__param = true;
+                function_2();
+            }
+        }
+        return;
+    }
+
+    void function_11()
+    {
+        System.Byte[] __lcl_gameState_SystemByteArray_2 = null;
+        System.Int32 __lcl_encodePos_SystemInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_12 = 0;
+        UnityEngine.Vector3[] __intnl_UnityEngineVector3Array_2 = null;
+
+        __0_value__param = __3_gameStateStr__param;
+        isValidBase64();
+        if (__0___0_isValidBase64__ret)
+        {
+            __lcl_gameState_SystemByteArray_2 = System.Convert.FromBase64String(__3_gameStateStr__param);
+            if (!(System.Convert.ToInt64(__lcl_gameState_SystemByteArray_2.Length) != System.Convert.ToInt64(gameStateLength)))
+            {
+                stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
+                __lcl_encodePos_SystemInt32_0 = 0;
+                __lcl_i_SystemInt32_12 = 0;
+                while (__lcl_i_SystemInt32_12 < 16)
+                {
+                    __8_data__param = __lcl_gameState_SystemByteArray_2;
+                    __1_start__param = __lcl_encodePos_SystemInt32_0;
+                    __intnl_UnityEngineVector3Array_2 = ballsPSynced;
+                    function_8();
+                    __intnl_UnityEngineVector3Array_2.Set(__lcl_i_SystemInt32_12, __0___0_bytesToVec3__ret);
+                    __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 12;
+                    __lcl_i_SystemInt32_12 = __lcl_i_SystemInt32_12 + 1;
+                }
+                __8_data__param = __lcl_gameState_SystemByteArray_2;
+                __1_start__param = __lcl_encodePos_SystemInt32_0;
+                function_8();
+                cueBallVSynced = __0___0_bytesToVec3__ret;
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 12;
+                __8_data__param = __lcl_gameState_SystemByteArray_2;
+                __1_start__param = __lcl_encodePos_SystemInt32_0;
+                function_8();
+                cueBallWSynced = __0___0_bytesToVec3__ret;
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 12;
+                __1_data__param = __lcl_gameState_SystemByteArray_2;
+                __1_pos__param = __lcl_encodePos_SystemInt32_0;
+                function_4();
+                ballsPocketedSynced = __0___0_decodeU16__ret;
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 2;
+                teamIdSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                foulStateSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                isTableOpenSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0)) != 0;
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                teamColorSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                turnStateSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                gameModeSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                timerSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                teamsSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0)) != 0;
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                fourBallScoresSynced.Set(0, __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0));
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                fourBallScoresSynced.Set(1, __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0));
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                fourBallCueBallSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
+                colorTurnSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0)) != 0;
+                __0_urgent__param = true;
+                function_2();
+            }
+        }
+        return;
+    }
+
+    public void _EncodeGameState()
+    {
+        System.Byte[] __lcl_gameState_SystemByteArray_3 = null;
+        System.Int32 __lcl_encodePos_SystemInt32_1 = 0;
+        System.UInt16 __intnl_SystemUInt16_3 = 0;
+        System.Int32 __intnl_SystemInt32_62 = 0;
+        System.Int32 __intnl_SystemInt32_63 = 0;
+        System.Int32 __intnl_SystemInt32_64 = 0;
+        System.Int32 __lcl_i_SystemInt32_13 = 0;
+        UnityEngine.Vector3 __intnl_UnityEngineVector3_2 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+
+        __lcl_gameState_SystemByteArray_3 = new System.Byte[](System.Convert.ToInt32(gameStateLength));
+        __lcl_encodePos_SystemInt32_1 = 0;
+        __lcl_i_SystemInt32_13 = 0;
+        while (__lcl_i_SystemInt32_13 < 16)
+        {
+            __intnl_UnityEngineVector3_2 = ballsPSynced.Get(__lcl_i_SystemInt32_13);
+            __7_data__param = __lcl_gameState_SystemByteArray_3;
+            __5_pos__param = __lcl_encodePos_SystemInt32_1;
+            __1_vec__param = __intnl_UnityEngineVector3_2;
+            function_7();
+            __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 12;
+            __lcl_i_SystemInt32_13 = __lcl_i_SystemInt32_13 + 1;
+        }
+        __7_data__param = __lcl_gameState_SystemByteArray_3;
+        __5_pos__param = __lcl_encodePos_SystemInt32_1;
+        __1_vec__param = cueBallVSynced;
+        function_7();
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 12;
+        __7_data__param = __lcl_gameState_SystemByteArray_3;
+        __5_pos__param = __lcl_encodePos_SystemInt32_1;
+        __1_vec__param = cueBallWSynced;
+        function_7();
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 12;
+        __intnl_SystemUInt16_3 = System.Convert.ToUInt16(System.Convert.ToUInt32(ballsPocketedSynced) && 65535);
+        __0_data__param = __lcl_gameState_SystemByteArray_3;
+        __0_pos__param = __lcl_encodePos_SystemInt32_1;
+        __0_v__param = __intnl_SystemUInt16_3;
+        function_3();
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 2;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, teamIdSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, foulStateSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        if (isTableOpenSynced)
+        {
+            __intnl_SystemInt32_62 = 1;
+        }
+        else
+        {
+            __intnl_SystemInt32_62 = 0;
+        }
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, System.Convert.ToByte(__intnl_SystemInt32_62));
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, teamColorSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, turnStateSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, gameModeSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, timerSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        if (teamsSynced)
+        {
+            __intnl_SystemInt32_63 = 1;
+        }
+        else
+        {
+            __intnl_SystemInt32_63 = 0;
+        }
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, System.Convert.ToByte(__intnl_SystemInt32_63));
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, fourBallScoresSynced.Get(0));
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, fourBallScoresSynced.Get(1));
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, fourBallCueBallSynced);
+        __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
+        if (colorTurnSynced)
+        {
+            __intnl_SystemInt32_64 = 1;
+        }
+        else
+        {
+            __intnl_SystemInt32_64 = 0;
+        }
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, System.Convert.ToByte(__intnl_SystemInt32_64));
+        __0__EncodeGameState__ret = "v3:" + System.Convert.ToBase64String(__lcl_gameState_SystemByteArray_3, __const_SystemBase64FormattingOptions_0);
+        return;
+    }
+
+    void isValidBase64()
+    {
+        System.Boolean __intnl_SystemBoolean_52 = false;
+        System.Boolean __intnl_SystemBoolean_53 = false;
+        System.Boolean __intnl_SystemBoolean_54 = false;
+        System.Boolean __intnl_SystemBoolean_55 = false;
+        System.Boolean __intnl_SystemBoolean_56 = false;
+        System.Boolean __intnl_SystemBoolean_57 = false;
+        System.Int32 __lcl_index_SystemInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_14 = 0;
+
+        __intnl_SystemBoolean_57 = __0_value__param == null;
+        if (!__intnl_SystemBoolean_57)
+        {
+            __intnl_SystemBoolean_57 = __0_value__param.Length == 0;
+        }
+        __intnl_SystemBoolean_56 = __intnl_SystemBoolean_57;
+        if (!__intnl_SystemBoolean_56)
+        {
+            __intnl_SystemBoolean_56 = __0_value__param.Length % 4 != 0;
+        }
+        __intnl_SystemBoolean_55 = __intnl_SystemBoolean_56;
+        if (!__intnl_SystemBoolean_55)
+        {
+            __intnl_SystemBoolean_55 = __0_value__param.Contains(" ");
+        }
+        __intnl_SystemBoolean_54 = __intnl_SystemBoolean_55;
+        if (!__intnl_SystemBoolean_54)
+        {
+            __intnl_SystemBoolean_54 = __0_value__param.Contains("\t");
+        }
+        __intnl_SystemBoolean_53 = __intnl_SystemBoolean_54;
+        if (!__intnl_SystemBoolean_53)
+        {
+            __intnl_SystemBoolean_53 = __0_value__param.Contains("\r");
+        }
+        __intnl_SystemBoolean_52 = __intnl_SystemBoolean_53;
+        if (!__intnl_SystemBoolean_52)
+        {
+            __intnl_SystemBoolean_52 = __0_value__param.Contains("\n");
+        }
+        if (__intnl_SystemBoolean_52)
+        {
+            __0___0_isValidBase64__ret = false;
+        }
+        else
+        {
+            __lcl_index_SystemInt32_0 = __0_value__param.Length - 1;
+            if (System.Convert.ToInt32(__0_value__param.ToCharArray(__lcl_index_SystemInt32_0, 1).Get(0)) == 61)
+            {
+                __lcl_index_SystemInt32_0 = __lcl_index_SystemInt32_0 - 1;
+            }
+            if (System.Convert.ToInt32(__0_value__param.ToCharArray(__lcl_index_SystemInt32_0, 1).Get(0)) == 61)
+            {
+                __lcl_index_SystemInt32_0 = __lcl_index_SystemInt32_0 - 1;
+            }
+            __lcl_i_SystemInt32_14 = 0;
+            while (__lcl_i_SystemInt32_14 <= __lcl_index_SystemInt32_0)
+            {
+                __1_value__param = __0_value__param.ToCharArray(__lcl_i_SystemInt32_14, 1).Get(0);
+                isInvalidBase64Char();
+                if (__0___0_isInvalidBase64Char__ret)
+                {
+                    __0___0_isValidBase64__ret = false;
+                    return;
+                }
+                __lcl_i_SystemInt32_14 = __lcl_i_SystemInt32_14 + 1;
+            }
+            __0___0_isValidBase64__ret = true;
+        }
+        return;
+    }
+
+    void isInvalidBase64Char()
+    {
+        System.Int32 __lcl_intValue_SystemInt32_0 = 0;
+        System.Boolean __intnl_SystemBoolean_61 = false;
+        System.Boolean __intnl_SystemBoolean_62 = false;
+        System.Boolean __intnl_SystemBoolean_63 = false;
+        System.Boolean __intnl_SystemBoolean_64 = false;
+
+        __lcl_intValue_SystemInt32_0 = System.Convert.ToInt32(__1_value__param);
+        __intnl_SystemBoolean_61 = __lcl_intValue_SystemInt32_0 >= 48;
+        if (__intnl_SystemBoolean_61)
+        {
+            __intnl_SystemBoolean_61 = __lcl_intValue_SystemInt32_0 <= 57;
+        }
+        if (__intnl_SystemBoolean_61)
+        {
+            __0___0_isInvalidBase64Char__ret = false;
+        }
+        else
+        {
+            __intnl_SystemBoolean_62 = __lcl_intValue_SystemInt32_0 >= 65;
+            if (__intnl_SystemBoolean_62)
+            {
+                __intnl_SystemBoolean_62 = __lcl_intValue_SystemInt32_0 <= 90;
+            }
+            if (__intnl_SystemBoolean_62)
+            {
+                __0___0_isInvalidBase64Char__ret = false;
+            }
+            else
+            {
+                __intnl_SystemBoolean_63 = __lcl_intValue_SystemInt32_0 >= 97;
+                if (__intnl_SystemBoolean_63)
+                {
+                    __intnl_SystemBoolean_63 = __lcl_intValue_SystemInt32_0 <= 122;
+                }
+                if (__intnl_SystemBoolean_63)
+                {
+                    __0___0_isInvalidBase64Char__ret = false;
+                }
+                else
+                {
+                    __intnl_SystemBoolean_64 = __lcl_intValue_SystemInt32_0 != 43;
+                    if (__intnl_SystemBoolean_64)
+                    {
+                        __intnl_SystemBoolean_64 = __lcl_intValue_SystemInt32_0 != 47;
+                    }
+                    __0___0_isInvalidBase64Char__ret = __intnl_SystemBoolean_64;
+                }
+            }
+        }
+        return;
+    }
+
+    public void _onOwnershipTransferred()
+    {
+        VRC.SDKBase.VRCPlayerApi __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0 = null;
+        System.Boolean __intnl_SystemBoolean_66 = false;
+        System.Boolean __intnl_SystemBoolean_67 = false;
+        System.Boolean __intnl_SystemBoolean_68 = false;
+        VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_2 = null;
+
+        if (onOwnershipTransferredPlayer.isLocal)
+        {
+            validatePlayers();
+            __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0 =
+                VRC.SDKBase.VRCPlayerApi.GetPlayerById(System.Convert.ToInt32(table.GetProgramVariable("simulationOwnerID")));
+            __intnl_SystemBoolean_67 = table.GetProgramVariable("isLocalSimulationRunning");
+            if (!__intnl_SystemBoolean_67)
+            {
+                __intnl_SystemBoolean_67 = table.GetProgramVariable("waitingForUpdate");
+            }
+            __intnl_SystemBoolean_66 = __intnl_SystemBoolean_67;
+            if (!__intnl_SystemBoolean_66)
+            {
+                __intnl_SystemBoolean_66 = delayedDeserialization;
+            }
+            if (__intnl_SystemBoolean_66)
+            {
+                if (delayedDeserialization)
+                {
+                    table.SetProgramVariable("__4_msg__param", "Simulation changed ownership: New owner is in LoD mode, simulation end may be delayed");
+                    table.SendCustomEvent("__0__LogInfo");
+                    __intnl_VRCUdonUdonBehaviour_2 = table;
+                    table.SendCustomEvent("checkDistanceLoD");
+                    _onDeserialization();
+                }
+                __intnl_SystemBoolean_68 = !VRC.SDKBase.Utilities.IsValid(__lcl_simOwner_VRCSDKBaseVRCPlayerApi_0);
+                if (!__intnl_SystemBoolean_68)
+                {
+                    __intnl_SystemBoolean_68 =
+                        __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0.playerId == System.Convert.ToInt32(table.GetProgramVariable("simulationOwnerID"));
+                }
+                if (__intnl_SystemBoolean_68)
+                {
+                    table.SetProgramVariable("isLocalSimulationOurs", true);
+                    if (table.GetProgramVariable("isLocalSimulationRunning"))
+                    {
+                        table.SetProgramVariable("__4_msg__param", "Simulation changed ownership: Owner quit during sim");
+                        table.SendCustomEvent("__0__LogInfo");
+                    }
+                    else
+                    {
+                        table.SetProgramVariable("__0_forceScratch__param", false);
+                        table.SetProgramVariable("__0_forceRun__param", true);
+                        table.SendCustomEvent("__0__TriggerSimulationEnded");
+                        table.SetProgramVariable("__4_msg__param", "Simulation changed ownership: Owner probably lagged out during sim");
+                        table.SendCustomEvent("__0__LogInfo");
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    public void _onPlayerLeft()
+    {
+        if (VRC.SDKBase.Networking.LocalPlayer.IsOwner(this.gameObject))
+        {
+            __0_playedId__param = onPlayerLeftPlayer.playerId;
+            __0_removePlayer();
+        }
+        return;
+    }
+}

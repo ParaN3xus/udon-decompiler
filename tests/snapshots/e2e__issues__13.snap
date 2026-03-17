@@ -1,0 +1,1370 @@
+---
+source: tests/e2e.rs
+expression: output.generated_code
+---
+// Decompiled Udon Program
+// This is pseudo-code and may not compile directly
+
+public class NPC : UdonSharpBehaviour
+{
+    VRC.Udon.UdonBehaviour npcAction = null;
+    VRC.Udon.UdonBehaviour npcConvo = null;
+    VRC.Udon.UdonBehaviour npcDelivery = null;
+    VRC.Udon.UdonBehaviour npcHurt = null;
+    VRC.Udon.UdonBehaviour npcMood = null;
+    VRC.Udon.UdonBehaviour npcRoam = null;
+    VRC.Udon.UdonBehaviour npcSounds = null;
+    VRC.Udon.UdonBehaviour npcSpecial = null;
+    VRC.Udon.UdonBehaviour npcUpdate = null;
+    UnityEngine.Animator animator = null;
+    VRC.Udon.UdonBehaviour AI = null;
+    System.Int32 Role = 0;
+    UnityEngine.Component[] npcDebugs = new UnityEngine.Component[] {};
+    UnityEngine.GameObject[] TogglableObjects = new UnityEngine.GameObject[] {};
+    VRC.SDKBase.VRCPlayerApi localPlayer = null;
+    System.Boolean ready = false;
+    System.String param = null;
+    System.Single lastLocalGreetTime = 0.0f;
+    System.Single LOCAL_GREET_COOLDOWN = 45.0f;
+    System.Single P_GREET_WHEN_FOLLOWING = 1.0f;
+    System.Single P_GREET_WHEN_WALKING = 1.0f;
+    System.Single lastActionTime = 0.0f;
+    System.Single lastPerformanceTime = 0.0f;
+    System.Single lastSitTime = 0.0f;
+    System.Int32 LeaveHour = 0;
+    System.Int32[] actionWeights = new System.Int32[] { 6, 10, 5, 1, 0, 8, 1 };
+    System.Int32 State = 0;
+    System.Int32 _specialState = 0;
+    System.Boolean __0_get_IsBusy__ret = false;
+    System.Int32 __0_get_SpecialState__ret = 0;
+    System.Int32 __0_get_CombinedState__ret = 0;
+    System.Boolean __0_get_IsUninterruptable__ret = false;
+    System.Int32 __0_value__param = 0;
+    System.Int32 _old__specialState = 0;
+    System.Int32 __0_newState__param = 0;
+    UnityEngine.Vector3 __0__NPCRoam_Destination__ret = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    System.Boolean __0_newOn__param = false;
+    System.Boolean __0__NPCConvo_Active__ret = false;
+    System.String[] __0_lines__param = null;
+    System.Int32 __0_response__param = 0;
+    VRC.Udon.UdonBehaviour __0__NPCMood__ret = null;
+    System.Int32 __0__NPCMood_Mood__ret = 0;
+    System.Boolean __0__NPCMood_IsAngry__ret = false;
+    System.Boolean __0__NPCMood_IsSad__ret = false;
+    System.Boolean __0__NPCMood_HatesYou__ret = false;
+    System.Int32 __0__NPCMood_Response__ret = 0;
+    System.Boolean __1_newOn__param = false;
+    VRC.SDKBase.VRCPlayerApi __0__NPCUpdate_FocusPlayer__ret = null;
+    System.String __0_clip__param = null;
+    UnityEngine.AudioClip __1_clip__param = null;
+    System.Single __0_delay__param = 0.0f;
+    System.Single __1_delay__param = 0.0f;
+    System.Single __2_delay__param = 0.0f;
+    VRC.SDKBase.VRCPlayerApi __0_player__param = null;
+    System.Boolean __0_follow__param = false;
+    VRC.Udon.UdonBehaviour __0__NPCConvo__ret = null;
+    System.Boolean __0___0__NPCConvo_StartDeliverMessage__ret = false;
+    System.String __0_m__param = null;
+    VRC.SDKBase.VRCPlayerApi __0_recipient__param = null;
+    VRC.SDKBase.VRCPlayerApi __0_sender__param = null;
+    VRC.SDK3.Components.VRCPickup __0_item__param = null;
+    UnityEngine.Animator __0__Animator__ret = null;
+    System.Boolean __2_newOn__param = false;
+    System.Int32 __0__intnlparam = 0;
+    System.Int32[] __1__intnlparam = null;
+    System.String __2__intnlparam = null;
+    System.Int32 __3__intnlparam = 0;
+    VRC.SDKBase.VRCPlayerApi __4__intnlparam = null;
+    System.Boolean __0_completeReset__param = false;
+    System.Boolean __temp_SystemBoolean_0 = false;
+    System.Object __temp_SystemObject_0 = null;
+    System.Int32 __temp_SystemInt32_0 = 0;
+    UnityEngine.AI.NavMeshAgent __temp_UnityEngineAINavMeshAgent_0 = null;
+    VRC.SDKBase.VRCPlayerApi __temp_VRCSDKBaseVRCPlayerApi_0 = null;
+    UnityEngine.Vector3 __temp_UnityEngineVector3_0 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3 __temp_UnityEngineVector3_1 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.GameObject __temp_UnityEngineGameObject_0 = null;
+    System.Single __temp_SystemSingle_0 = 0.0f;
+    System.Int32 __temp_SystemInt32_1 = 0;
+    VRC.Udon.UdonBehaviour __temp_VRCUdonUdonBehaviour_0 = null;
+    UnityEngine.Transform __temp_UnityEngineTransform_0 = null;
+    UnityEngine.Object __temp_UnityEngineObject_0 = null;
+    UnityEngine.Object __temp_UnityEngineObject_1 = null;
+    System.Single __temp_SystemSingle_1 = 0.0f;
+    System.DateTime __temp_SystemDateTime_0 = null /* unserializable */;
+    TMPro.TextMeshProUGUI __temp_TMProTextMeshProUGUI_0 = null;
+    System.String __temp_SystemString_0 = null;
+    VRC.SDKBase.VRCPlayerApi __temp_VRCSDKBaseVRCPlayerApi_1 = null;
+    VRC.SDK3.Components.VRCObjectSync __temp_VRCSDK3ComponentsVRCObjectSync_0 = null;
+    UnityEngine.Transform __temp_UnityEngineTransform_1 = null;
+    UnityEngine.Quaternion __temp_UnityEngineQuaternion_0 = new UnityEngine.Quaternion(0.0f, 0.0f, 0.0f, 0.0f);
+    System.String[] __temp_SystemStringArray_0 = null;
+    VRC.SDKBase.VRCPlayerApi[] __temp_VRCSDKBaseVRCPlayerApiArray_0 = null;
+    System.Double __temp_SystemDouble_0 = 0.0;
+    System.Object __temp_SystemObject = null;
+    System.Single __temp_SystemSingle = 0.0f;
+    System.Double __temp_SystemDouble = 0.0;
+    System.Int32 __lcl_prevState_SystemInt32_0 = 0;
+
+    public void get_IsBusy()
+    {
+        System.Boolean __intnl_SystemBoolean_0 = false;
+        System.Boolean __intnl_SystemBoolean_1 = false;
+        System.Boolean __intnl_SystemBoolean_2 = false;
+        System.Boolean __intnl_SystemBoolean_3 = false;
+        System.Boolean __intnl_SystemBoolean_4 = false;
+
+        get_SpecialState();
+        __intnl_SystemBoolean_4 = __0_get_SpecialState__ret == 9;
+        if (!__intnl_SystemBoolean_4)
+        {
+            __intnl_SystemBoolean_4 = State == 4;
+        }
+        __intnl_SystemBoolean_3 = __intnl_SystemBoolean_4;
+        if (!__intnl_SystemBoolean_3)
+        {
+            __intnl_SystemBoolean_3 = State == 8;
+        }
+        __intnl_SystemBoolean_2 = __intnl_SystemBoolean_3;
+        if (!__intnl_SystemBoolean_2)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_2 = __0_get_CombinedState__ret == 12;
+        }
+        __intnl_SystemBoolean_1 = __intnl_SystemBoolean_2;
+        if (!__intnl_SystemBoolean_1)
+        {
+            npcConvo.SendCustomEvent("get_IsDelivering");
+            __temp_SystemBoolean_0 = npcConvo.GetProgramVariable("__0_get_IsDelivering__ret");
+            __intnl_SystemBoolean_1 = __temp_SystemBoolean_0;
+        }
+        __intnl_SystemBoolean_0 = __intnl_SystemBoolean_1;
+        if (!__intnl_SystemBoolean_0)
+        {
+            get_IsUninterruptable();
+            __intnl_SystemBoolean_0 = __0_get_IsUninterruptable__ret;
+        }
+        __0_get_IsBusy__ret = __intnl_SystemBoolean_0;
+        return;
+    }
+
+    public void get_IsUninterruptable()
+    {
+        System.Boolean __intnl_SystemBoolean_6 = false;
+        System.Boolean __intnl_SystemBoolean_7 = false;
+        System.Boolean __intnl_SystemBoolean_8 = false;
+
+        get_CombinedState();
+        __intnl_SystemBoolean_8 = __0_get_CombinedState__ret == 9;
+        if (!__intnl_SystemBoolean_8)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_8 = __0_get_CombinedState__ret == 13;
+        }
+        __intnl_SystemBoolean_7 = __intnl_SystemBoolean_8;
+        if (!__intnl_SystemBoolean_7)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_7 = __0_get_CombinedState__ret == 14;
+        }
+        __intnl_SystemBoolean_6 = __intnl_SystemBoolean_7;
+        if (!__intnl_SystemBoolean_6)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_6 = __0_get_CombinedState__ret == 15;
+        }
+        __0_get_IsUninterruptable__ret = __intnl_SystemBoolean_6;
+        return;
+    }
+
+    public void _RecalculateState()
+    {
+        System.Int32 __lcl_newState_SystemInt32_0 = 0;
+        System.Int32 __lcl_focusState_SystemInt32_0 = 0;
+        System.Boolean __lcl_agentIsEnabled_SystemBoolean_0 = false;
+        System.Boolean __intnl_SystemBoolean_10 = false;
+        System.Boolean __lcl_inConvo_SystemBoolean_0 = false;
+
+        __lcl_newState_SystemInt32_0 = 0;
+        npcUpdate.SendCustomEvent("get_FocusState");
+        __temp_SystemObject_0 = npcUpdate.GetProgramVariable("__0_get_FocusState__ret");
+        __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemObject_0);
+        __lcl_focusState_SystemInt32_0 = __temp_SystemInt32_0;
+        __temp_UnityEngineAINavMeshAgent_0 = npcUpdate.GetProgramVariable("Agent");
+        __lcl_agentIsEnabled_SystemBoolean_0 = __temp_UnityEngineAINavMeshAgent_0.enabled;
+        npcRoam.SendCustomEvent("get_Following");
+        __temp_SystemBoolean_0 = npcRoam.GetProgramVariable("__0_get_Following__ret");
+        if (__temp_SystemBoolean_0)
+        {
+            __temp_VRCSDKBaseVRCPlayerApi_0 = npcUpdate.GetProgramVariable("FocusPlayer");
+            __intnl_SystemBoolean_10 = VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
+            if (__intnl_SystemBoolean_10)
+            {
+                __temp_VRCSDKBaseVRCPlayerApi_0 = npcUpdate.GetProgramVariable("FocusPlayer");
+                __intnl_SystemBoolean_10 = __temp_VRCSDKBaseVRCPlayerApi_0.isLocal;
+            }
+            if (__intnl_SystemBoolean_10)
+            {
+                __lcl_newState_SystemInt32_0 = 7;
+            }
+            else
+            {
+                __lcl_newState_SystemInt32_0 = 8;
+            }
+        }
+        else
+        {
+            if (__lcl_focusState_SystemInt32_0 != 0)
+            {
+                npcConvo.SendCustomEvent("get_Active");
+                __lcl_inConvo_SystemBoolean_0 = npcConvo.GetProgramVariable("__0_get_Active__ret");
+                __temp_SystemBoolean_0 = __lcl_focusState_SystemInt32_0 == 1;
+                if (__temp_SystemBoolean_0)
+                {
+                    if (__lcl_inConvo_SystemBoolean_0)
+                    {
+                        __lcl_newState_SystemInt32_0 = 3;
+                    }
+                    else
+                    {
+                        if (__lcl_agentIsEnabled_SystemBoolean_0)
+                        {
+                            __lcl_newState_SystemInt32_0 = 5;
+                        }
+                        else
+                        {
+                            __lcl_newState_SystemInt32_0 = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    if (__lcl_inConvo_SystemBoolean_0)
+                    {
+                        __lcl_newState_SystemInt32_0 = 4;
+                    }
+                    else
+                    {
+                        if (__lcl_agentIsEnabled_SystemBoolean_0)
+                        {
+                            __lcl_newState_SystemInt32_0 = 6;
+                        }
+                        else
+                        {
+                            __lcl_newState_SystemInt32_0 = 0;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                npcRoam.SendCustomEvent("get_Destination");
+                __temp_UnityEngineVector3_0 = npcRoam.GetProgramVariable("__0_get_Destination__ret");
+                __temp_UnityEngineVector3_1 = null;
+                if (__temp_UnityEngineVector3_0 != __temp_UnityEngineVector3_1)
+                {
+                    __lcl_newState_SystemInt32_0 = 1;
+                }
+                else
+                {
+                    __lcl_newState_SystemInt32_0 = 0;
+                }
+            }
+        }
+        State = __lcl_newState_SystemInt32_0;
+        return;
+    }
+
+    public void _onVarChange__specialState()
+    {
+        __0_value__param = _specialState;
+        _specialState = _old__specialState;
+        __lcl_prevState_SystemInt32_0 = _specialState;
+        _specialState = __0_value__param;
+        __temp_SystemBoolean_0 = __0_value__param == 2;
+        animator.SetBool("IsPerforming", __temp_SystemBoolean_0);
+        __temp_SystemBoolean_0 = __0_value__param == 11;
+        animator.SetBool("IsSitting", __temp_SystemBoolean_0);
+        __temp_UnityEngineGameObject_0 = npcUpdate.GetProgramVariable("IK");
+        __temp_SystemBoolean_0 = __0_value__param != 12;
+        __temp_UnityEngineGameObject_0.SetActive(__temp_SystemBoolean_0);
+        npcUpdate.SendCustomEvent("_UpdateCrystal");
+        __temp_SystemBoolean_0 = __0_value__param == 0;
+        if (__temp_SystemBoolean_0)
+        {
+            npcMood.SendCustomEvent("_ResetConvoMood");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 12;
+        if (__temp_SystemBoolean_0)
+        {
+            npcMood.SendCustomEvent("_SetConvoMoodNeutral");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 2;
+        if (__temp_SystemBoolean_0)
+        {
+            lastPerformanceTime = UnityEngine.Time.time;
+            npcSpecial.SendCustomEvent("_StartPerformanceAll");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 11;
+        if (__temp_SystemBoolean_0)
+        {
+            lastSitTime = UnityEngine.Time.time;
+        }
+        __temp_SystemBoolean_0 = __lcl_prevState_SystemInt32_0 == 11;
+        if (__temp_SystemBoolean_0)
+        {
+            npcRoam.SetProgramVariable("standingUpCounter", 0);
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 14;
+        if (__temp_SystemBoolean_0)
+        {
+            npcSpecial.SendCustomEvent("_Defeated");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 15;
+        if (__temp_SystemBoolean_0)
+        {
+            npcRoam.SendCustomEvent("_Leaving");
+        }
+        return;
+    }
+
+    public void __0_set_SpecialState()
+    {
+        __lcl_prevState_SystemInt32_0 = _specialState;
+        _specialState = __0_value__param;
+        __temp_SystemBoolean_0 = __0_value__param == 2;
+        animator.SetBool("IsPerforming", __temp_SystemBoolean_0);
+        __temp_SystemBoolean_0 = __0_value__param == 11;
+        animator.SetBool("IsSitting", __temp_SystemBoolean_0);
+        __temp_UnityEngineGameObject_0 = npcUpdate.GetProgramVariable("IK");
+        __temp_SystemBoolean_0 = __0_value__param != 12;
+        __temp_UnityEngineGameObject_0.SetActive(__temp_SystemBoolean_0);
+        npcUpdate.SendCustomEvent("_UpdateCrystal");
+        __temp_SystemBoolean_0 = __0_value__param == 0;
+        if (__temp_SystemBoolean_0)
+        {
+            npcMood.SendCustomEvent("_ResetConvoMood");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 12;
+        if (__temp_SystemBoolean_0)
+        {
+            npcMood.SendCustomEvent("_SetConvoMoodNeutral");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 2;
+        if (__temp_SystemBoolean_0)
+        {
+            lastPerformanceTime = UnityEngine.Time.time;
+            npcSpecial.SendCustomEvent("_StartPerformanceAll");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 11;
+        if (__temp_SystemBoolean_0)
+        {
+            lastSitTime = UnityEngine.Time.time;
+        }
+        __temp_SystemBoolean_0 = __lcl_prevState_SystemInt32_0 == 11;
+        if (__temp_SystemBoolean_0)
+        {
+            npcRoam.SetProgramVariable("standingUpCounter", 0);
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 14;
+        if (__temp_SystemBoolean_0)
+        {
+            npcSpecial.SendCustomEvent("_Defeated");
+        }
+        __temp_SystemBoolean_0 = __0_value__param == 15;
+        if (__temp_SystemBoolean_0)
+        {
+            npcRoam.SendCustomEvent("_Leaving");
+        }
+        return;
+    }
+
+    public void get_SpecialState()
+    {
+        __0_get_SpecialState__ret = _specialState;
+        return;
+    }
+
+    public void get_CombinedState()
+    {
+        get_SpecialState();
+        __temp_SystemBoolean_0 = __0_get_SpecialState__ret != 0;
+        if (__temp_SystemBoolean_0)
+        {
+            get_SpecialState();
+            __0_get_CombinedState__ret = __0_get_SpecialState__ret;
+        }
+        else
+        {
+            __0_get_CombinedState__ret = State;
+        }
+        return;
+    }
+
+    public void __0__SetSpecialState()
+    {
+        get_SpecialState();
+        __temp_SystemBoolean_0 = __0_get_SpecialState__ret == __0_newState__param;
+        if (!__temp_SystemBoolean_0)
+        {
+            VRC.SDKBase.Networking.SetOwner(localPlayer, this.gameObject);
+            __0_value__param = __0_newState__param;
+            __0_set_SpecialState();
+            this.RequestSerialization();
+        }
+        return;
+    }
+
+    public void _StartPerformance()
+    {
+        __0_newState__param = 2;
+        __0__SetSpecialState();
+        return;
+    }
+
+    public void _start()
+    {
+        ready = true;
+        localPlayer = VRC.SDKBase.Networking.LocalPlayer;
+        __temp_SystemSingle_0 = UnityEngine.Time.realtimeSinceStartup;
+        __temp_SystemSingle_0 = __temp_SystemSingle_0 * 1000000.0f;
+        __temp_SystemInt32_0 = UnityEngine.Mathf.CeilToInt(__temp_SystemSingle_0);
+        __temp_SystemInt32_1 = this.gameObject.GetInstanceID();
+        __temp_SystemInt32_0 = __temp_SystemInt32_0 + __temp_SystemInt32_1;
+        UnityEngine.Random.InitState(__temp_SystemInt32_0);
+        this.SendCustomEventDelayedSeconds("_InitAllDelayedEvents", 6.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void _InitAllDelayedEvents()
+    {
+        System.Int32 __intnl_SystemInt32_5 = 0;
+        System.Int32 __intnl_SystemInt32_6 = 0;
+
+        _InitDelayedEvents();
+        npcAction.SendCustomEvent("_InitDelayedEvents");
+        npcConvo.SendCustomEvent("_InitDelayedEvents");
+        __intnl_SystemInt32_5 = npcDebugs.Length;
+        __intnl_SystemInt32_6 = 0;
+        while (true)
+        {
+            __temp_SystemBoolean_0 = __intnl_SystemInt32_6 < __intnl_SystemInt32_5;
+            if (__temp_SystemBoolean_0)
+            {
+                __temp_VRCUdonUdonBehaviour_0 = npcDebugs.Get(__intnl_SystemInt32_6);
+                __temp_VRCUdonUdonBehaviour_0.SendCustomEvent("_InitDelayedEvents");
+                __intnl_SystemInt32_6 = __intnl_SystemInt32_6 + 1;
+                continue;
+            }
+            break;
+        }
+        npcMood.SendCustomEvent("_InitDelayedEvents");
+        npcRoam.SendCustomEvent("_InitDelayedEvents");
+        npcSounds.SendCustomEvent("_InitDelayedEvents");
+        npcUpdate.SendCustomEvent("_InitDelayedEvents");
+        return;
+    }
+
+    public void _InitDelayedEvents()
+    {
+        this.SendCustomEventDelayedSeconds("_CycleNextAction", 10.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_FixIfBorked", 10.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void _NPCAction_Perform()
+    {
+        npcAction.SendCustomEvent("_Perform");
+        return;
+    }
+
+    public void _NPCRoam_Destination()
+    {
+        npcRoam.SendCustomEvent("get_Destination");
+        __temp_UnityEngineVector3_0 = npcRoam.GetProgramVariable("__0_get_Destination__ret");
+        __0__NPCRoam_Destination__ret = __temp_UnityEngineVector3_0;
+        return;
+    }
+
+    public void __0__NPCUpdate_ToggleNPCs()
+    {
+        npcUpdate.SetProgramVariable("__0_newOn__param", __0_newOn__param);
+        npcUpdate.SendCustomEvent("__0__ToggleNPC");
+        return;
+    }
+
+    public void _NPCConvo_Active()
+    {
+        npcConvo.SendCustomEvent("get_Active");
+        __temp_SystemBoolean_0 = npcConvo.GetProgramVariable("__0_get_Active__ret");
+        __0__NPCConvo_Active__ret = __temp_SystemBoolean_0;
+        return;
+    }
+
+    public void _NPCSpecial_MakeDrink()
+    {
+        npcSpecial.SendCustomEvent("_MakeDrink");
+        return;
+    }
+
+    public void __0__NPCConvo_Say()
+    {
+        npcConvo.SetProgramVariable("__0_newLines__param", __0_lines__param);
+        npcConvo.SetProgramVariable("__0_response__param", __0_response__param);
+        npcConvo.SendCustomEvent("__0__Say");
+        return;
+    }
+
+    public void _NPCMood()
+    {
+        __0__NPCMood__ret = npcMood;
+        return;
+    }
+
+    public void _NPCMood_Mood()
+    {
+        npcMood.SendCustomEvent("get_Mood");
+        __temp_SystemObject_0 = npcMood.GetProgramVariable("__0_get_Mood__ret");
+        __0__NPCMood_Mood__ret = System.Convert.ToInt32(__temp_SystemObject_0);
+        return;
+    }
+
+    public void _NPCMood_IsAngry()
+    {
+        npcMood.SendCustomEvent("get_IsAngry");
+        __temp_SystemBoolean_0 = npcMood.GetProgramVariable("__0_get_IsAngry__ret");
+        __0__NPCMood_IsAngry__ret = __temp_SystemBoolean_0;
+        return;
+    }
+
+    public void _NPCMood_IsSad()
+    {
+        npcMood.SendCustomEvent("get_IsSad");
+        __temp_SystemBoolean_0 = npcMood.GetProgramVariable("__0_get_IsSad__ret");
+        __0__NPCMood_IsSad__ret = __temp_SystemBoolean_0;
+        return;
+    }
+
+    public void _NPCMood_HatesYou()
+    {
+        npcMood.SendCustomEvent("get_HatesYou");
+        __temp_SystemBoolean_0 = npcMood.GetProgramVariable("__0_get_HatesYou__ret");
+        __0__NPCMood_HatesYou__ret = __temp_SystemBoolean_0;
+        return;
+    }
+
+    public void _NPCMood_Response()
+    {
+        npcMood.SendCustomEvent("get_Response");
+        __temp_SystemObject_0 = npcMood.GetProgramVariable("__0_get_Response__ret");
+        __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemObject_0);
+        __0__NPCMood_Response__ret = __temp_SystemInt32_0;
+        return;
+    }
+
+    public void __0__NPCRoam_Stop()
+    {
+        npcRoam.SetProgramVariable("__0_stopFollowing__param", __1_newOn__param);
+        npcRoam.SendCustomEvent("__0__Stop");
+        return;
+    }
+
+    public void _NPCUpdate_FocusPlayer()
+    {
+        __0__NPCUpdate_FocusPlayer__ret = npcUpdate.GetProgramVariable("FocusPlayer");
+        return;
+    }
+
+    public void _NPCConvo_EndConvo()
+    {
+        npcConvo.SendCustomEvent("_EndConvo");
+        return;
+    }
+
+    public void _NPCUpdate_EndFocus()
+    {
+        npcUpdate.SendCustomEvent("_EndFocus");
+        return;
+    }
+
+    public void __0__NPCAction_Play()
+    {
+        npcAction.SetProgramVariable("__0_clipName__param", __0_clip__param);
+        npcAction.SendCustomEvent("__0__Play");
+        return;
+    }
+
+    public void _NPCAction_GenericResponse()
+    {
+        npcAction.SendCustomEvent("_GenericResponse");
+        return;
+    }
+
+    public void _NPCSounds_Affirmative()
+    {
+        npcSounds.SendCustomEvent("_Affirmative");
+        return;
+    }
+
+    public void __0__NPCSounds_PlayVisemes()
+    {
+        npcSounds.SetProgramVariable("__1_clip__param", __1_clip__param);
+        npcSounds.SendCustomEvent("__0__PlayVisemes");
+        return;
+    }
+
+    public void _NPCSpecial_FindPickupToTidy()
+    {
+        npcSpecial.SendCustomEvent("_FindPickupToTidy");
+        return;
+    }
+
+    public void __0__NPCUpdate__CheckIfStillFollowingMe_Delayed()
+    {
+        npcUpdate.SendCustomEventDelayedSeconds("_CheckIfStillFollowingMe", __0_delay__param, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void __0__NPCSpecial_PAEnd_Delayed()
+    {
+        npcSpecial.SendCustomEventDelayedSeconds("_PAEnd", __1_delay__param, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void __0__NPCSpecial_StartPAAnimation()
+    {
+        npcSpecial.SendCustomEventDelayedSeconds("_StartPAAnimation", __2_delay__param, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void __0__NPCRoam_GoToPlayer()
+    {
+        npcRoam.SetProgramVariable("__0_player__param", __0_player__param);
+        npcRoam.SetProgramVariable("__0_follow__param", __0_follow__param);
+        npcRoam.SendCustomEvent("__0__GoToPlayer");
+        __temp_UnityEngineTransform_0 = npcRoam.GetProgramVariable("__0___0__GoToPlayer__ret");
+        return;
+    }
+
+    public void _NPCRoam_CheckOtherNPC()
+    {
+        npcRoam.SendCustomEvent("_CheckOtherNPC");
+        return;
+    }
+
+    public void _NPCConvo()
+    {
+        __0__NPCConvo__ret = npcConvo;
+        return;
+    }
+
+    public void __0__NPCConvo_StartDeliverMessage()
+    {
+        npcConvo.SetProgramVariable("__0_message__param", __0_m__param);
+        npcConvo.SetProgramVariable("__0_recipient__param", __0_recipient__param);
+        npcConvo.SetProgramVariable("__0_sender__param", __0_sender__param);
+        npcConvo.SendCustomEvent("__0__StartDeliverMessage");
+        __temp_SystemBoolean_0 = npcConvo.GetProgramVariable("__0___0__StartDeliverMessage__ret");
+        __0___0__NPCConvo_StartDeliverMessage__ret = __temp_SystemBoolean_0;
+        return;
+    }
+
+    public void __0__SetNPCConvoDeliveryItem()
+    {
+        npcConvo.SetProgramVariable("DeliveryItem", __0_item__param);
+        return;
+    }
+
+    public void _Animator()
+    {
+        __0__Animator__ret = animator;
+        return;
+    }
+
+    public void _Interact()
+    {
+        UnityEngine.Component[] __lcl_npcs_UnityEngineComponentArray_0 = null;
+        System.Int32 __intnl_SystemInt32_13 = 0;
+        System.Int32 __intnl_SystemInt32_14 = 0;
+        VRC.Udon.UdonBehaviour __lcl_n_VRCUdonUdonBehaviour_0 = null;
+        System.Boolean __intnl_SystemBoolean_36 = false;
+
+        npcUpdate.SendCustomEvent("get_FocusState");
+        __temp_SystemObject_0 = npcUpdate.GetProgramVariable("__0_get_FocusState__ret");
+        __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemObject_0);
+        __temp_SystemBoolean_0 = __temp_SystemInt32_0 == 2;
+        if (!__temp_SystemBoolean_0)
+        {
+            __lcl_npcs_UnityEngineComponentArray_0 = AI.GetProgramVariable("NPCs");
+            __intnl_SystemInt32_13 = __lcl_npcs_UnityEngineComponentArray_0.Length;
+            __intnl_SystemInt32_14 = 0;
+            while (__intnl_SystemInt32_14 < __intnl_SystemInt32_13)
+            {
+                __lcl_n_VRCUdonUdonBehaviour_0 = __lcl_npcs_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_14);
+                __temp_UnityEngineObject_0 = __lcl_n_VRCUdonUdonBehaviour_0;
+                __temp_UnityEngineObject_1 = this;
+                __intnl_SystemBoolean_36 = __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
+                if (__intnl_SystemBoolean_36)
+                {
+                    __temp_SystemObject_0 = __lcl_n_VRCUdonUdonBehaviour_0.GetProgramVariable("State");
+                    __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemObject_0);
+                    __intnl_SystemBoolean_36 = __temp_SystemInt32_0 == 3;
+                }
+                if (__intnl_SystemBoolean_36)
+                {
+                    __lcl_n_VRCUdonUdonBehaviour_0.SendCustomEvent("_Bye");
+                }
+                __intnl_SystemInt32_14 = __intnl_SystemInt32_14 + 1;
+            }
+            get_IsBusy();
+            if (!__0_get_IsBusy__ret)
+            {
+                if (State == 3)
+                {
+                    _Bye();
+                    return;
+                }
+                npcRoam.SetProgramVariable("__0_stopFollowing__param", true);
+                npcRoam.SendCustomEvent("__0__Stop");
+                npcUpdate.SendCustomEvent("_TakeFocus");
+                npcConvo.SendCustomEvent("_StartConvo");
+                npcUpdate.SendCustomEvent("_UpdateCrystal");
+            }
+        }
+        return;
+    }
+
+    public void _Bye()
+    {
+        npcAction.SendCustomEvent("_Bye");
+        npcUpdate.SendCustomEvent("_EndFocus");
+        npcConvo.SendCustomEvent("_EndConvo");
+        npcRoam.SendCustomEvent("_TryResume");
+        npcUpdate.SendCustomEvent("_UpdateCrystal");
+        this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "N_NextActionDelayed");
+        return;
+    }
+
+    public void N_NextActionDelayed()
+    {
+        this.SendCustomEventDelayedSeconds("_NextAction", 2.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void N_NextActionDelayedMedium()
+    {
+        this.SendCustomEventDelayedSeconds("_NextAction", 5.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void N_NextActionDelayedLong()
+    {
+        this.SendCustomEventDelayedSeconds("_NextAction", 8.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void N_NextActionDelayedLong2()
+    {
+        this.SendCustomEventDelayedSeconds("_NextAction", 12.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        return;
+    }
+
+    public void _OnLocalPlayerEnterRange()
+    {
+        System.Boolean __intnl_SystemBoolean_37 = false;
+        System.Boolean __intnl_SystemBoolean_38 = false;
+        System.Boolean __intnl_SystemBoolean_39 = false;
+        System.Boolean __intnl_SystemBoolean_40 = false;
+        System.Boolean __intnl_SystemBoolean_42 = false;
+        System.Boolean __intnl_SystemBoolean_44 = false;
+        System.Boolean __intnl_SystemBoolean_45 = false;
+        System.Boolean __intnl_SystemBoolean_46 = false;
+
+        get_CombinedState();
+        __intnl_SystemBoolean_40 = __0_get_CombinedState__ret == 0;
+        if (__intnl_SystemBoolean_40)
+        {
+            npcUpdate.SendCustomEvent("get_IsTotallyUnfocused");
+            __temp_SystemBoolean_0 = npcUpdate.GetProgramVariable("__0_get_IsTotallyUnfocused__ret");
+            __intnl_SystemBoolean_40 = __temp_SystemBoolean_0;
+        }
+        __intnl_SystemBoolean_39 = __intnl_SystemBoolean_40;
+        if (!__intnl_SystemBoolean_39)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_42 = __0_get_CombinedState__ret == 11;
+            if (__intnl_SystemBoolean_42)
+            {
+                npcUpdate.SendCustomEvent("get_IsTotallyUnfocused");
+                __temp_SystemBoolean_0 = npcUpdate.GetProgramVariable("__0_get_IsTotallyUnfocused__ret");
+                __intnl_SystemBoolean_42 = __temp_SystemBoolean_0;
+            }
+            __intnl_SystemBoolean_39 = __intnl_SystemBoolean_42;
+        }
+        __intnl_SystemBoolean_38 = __intnl_SystemBoolean_39;
+        if (!__intnl_SystemBoolean_38)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_44 = __0_get_CombinedState__ret == 1;
+            if (__intnl_SystemBoolean_44)
+            {
+                __temp_SystemSingle_0 = UnityEngine.Random.Range(0.0f, 1.0f);
+                __intnl_SystemBoolean_44 = __temp_SystemSingle_0 < P_GREET_WHEN_WALKING;
+            }
+            __intnl_SystemBoolean_38 = __intnl_SystemBoolean_44;
+        }
+        __intnl_SystemBoolean_37 = __intnl_SystemBoolean_38;
+        if (!__intnl_SystemBoolean_37)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_46 = __0_get_CombinedState__ret == 8;
+            if (__intnl_SystemBoolean_46)
+            {
+                __temp_UnityEngineVector3_0 = localPlayer.GetPosition();
+                __temp_UnityEngineTransform_0 = npcRoam.transform;
+                __temp_UnityEngineVector3_1 = __temp_UnityEngineTransform_0.position;
+                __temp_SystemSingle_0 = UnityEngine.Vector3.Distance(__temp_UnityEngineVector3_0, __temp_UnityEngineVector3_1);
+                __temp_SystemObject_0 = AI.GetProgramVariable("FOLLOW_DISTANCE_FAR");
+                __temp_SystemSingle_1 = System.Convert.ToSingle(__temp_SystemObject_0);
+                __intnl_SystemBoolean_46 = __temp_SystemSingle_0 < __temp_SystemSingle_1;
+            }
+            __intnl_SystemBoolean_45 = __intnl_SystemBoolean_46;
+            if (__intnl_SystemBoolean_45)
+            {
+                __temp_SystemSingle_0 = UnityEngine.Random.Range(0.0f, 1.0f);
+                __intnl_SystemBoolean_45 = __temp_SystemSingle_0 < P_GREET_WHEN_FOLLOWING;
+            }
+            __intnl_SystemBoolean_37 = __intnl_SystemBoolean_45;
+        }
+        if (__intnl_SystemBoolean_37)
+        {
+            function_0();
+            return;
+        }
+        return;
+    }
+
+    void function_0()
+    {
+        System.Boolean __intnl_SystemBoolean_47 = false;
+
+        npcUpdate.SendCustomEvent("_TakeTempFocus");
+        __intnl_SystemBoolean_47 = lastLocalGreetTime != 0.0f;
+        if (__intnl_SystemBoolean_47)
+        {
+            __temp_SystemSingle_0 = UnityEngine.Time.time;
+            __temp_SystemSingle_1 = lastLocalGreetTime + LOCAL_GREET_COOLDOWN;
+            __intnl_SystemBoolean_47 = __temp_SystemSingle_0 < __temp_SystemSingle_1;
+        }
+        if (!__intnl_SystemBoolean_47)
+        {
+            lastLocalGreetTime = UnityEngine.Time.time;
+            npcAction.SendCustomEvent("_Hello");
+        }
+        return;
+    }
+
+    public void _ToggleNPC()
+    {
+        __2_newOn__param = System.Boolean.Parse(param);
+        __0__ToggleNPC();
+        return;
+    }
+
+    public void __0__ToggleNPC()
+    {
+        System.Int32 __intnl_SystemInt32_17 = 0;
+        System.Int32 __intnl_SystemInt32_18 = 0;
+
+        npcUpdate.enabled = __2_newOn__param;
+        __temp_UnityEngineGameObject_0 = npcSounds.gameObject;
+        __temp_UnityEngineGameObject_0.SetActive(__2_newOn__param);
+        __intnl_SystemInt32_17 = TogglableObjects.Length;
+        __intnl_SystemInt32_18 = 0;
+        while (true)
+        {
+            __temp_SystemBoolean_0 = __intnl_SystemInt32_18 < __intnl_SystemInt32_17;
+            if (__temp_SystemBoolean_0)
+            {
+                __temp_UnityEngineGameObject_0 = TogglableObjects.Get(__intnl_SystemInt32_18);
+                __temp_UnityEngineGameObject_0.SetActive(false);
+                __intnl_SystemInt32_18 = __intnl_SystemInt32_18 + 1;
+                continue;
+            }
+            break;
+        }
+        return;
+    }
+
+    public void _CycleNextAction()
+    {
+        __temp_SystemBoolean_0 = this.gameObject.activeInHierarchy;
+        if (__temp_SystemBoolean_0)
+        {
+            this.SendCustomEventDelayedSeconds("_CycleNextAction", 15.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+            _NextAction();
+            return;
+        }
+        return;
+    }
+
+    public void _NextAction()
+    {
+        System.Boolean __intnl_SystemBoolean_51 = false;
+        System.Boolean __intnl_SystemBoolean_52 = false;
+        System.Boolean __intnl_SystemBoolean_53 = false;
+        System.Boolean __intnl_SystemBoolean_54 = false;
+        System.Boolean __intnl_SystemBoolean_55 = false;
+        System.Boolean __intnl_SystemBoolean_57 = false;
+        System.Boolean __intnl_SystemBoolean_59 = false;
+        System.Single __intnl_SystemSingle_15 = 0.0f;
+        System.Single __lcl_r_SystemSingle_0 = 0.0f;
+        System.Boolean __lcl_isStationed_SystemBoolean_0 = false;
+        System.Boolean __intnl_SystemBoolean_62 = false;
+        System.Boolean __intnl_SystemBoolean_63 = false;
+        System.Boolean __intnl_SystemBoolean_64 = false;
+        System.Boolean __intnl_SystemBoolean_65 = false;
+        System.Boolean __intnl_SystemBoolean_66 = false;
+
+        __temp_SystemBoolean_0 = VRC.SDKBase.Networking.IsOwner(this.gameObject);
+        __intnl_SystemBoolean_55 = !__temp_SystemBoolean_0;
+        if (!__intnl_SystemBoolean_55)
+        {
+            get_CombinedState();
+            __intnl_SystemBoolean_57 = __0_get_CombinedState__ret != 0;
+            if (__intnl_SystemBoolean_57)
+            {
+                get_CombinedState();
+                __intnl_SystemBoolean_57 = __0_get_CombinedState__ret != 11;
+            }
+            __intnl_SystemBoolean_55 = __intnl_SystemBoolean_57;
+        }
+        __intnl_SystemBoolean_54 = __intnl_SystemBoolean_55;
+        if (!__intnl_SystemBoolean_54)
+        {
+            __temp_SystemObject_0 = AI.GetProgramVariable("actionCooldown");
+            __temp_SystemSingle_0 = System.Convert.ToSingle(__temp_SystemObject_0);
+            __temp_SystemSingle_0 = lastActionTime + __temp_SystemSingle_0;
+            __temp_SystemSingle_1 = UnityEngine.Time.time;
+            __intnl_SystemBoolean_54 = __temp_SystemSingle_0 > __temp_SystemSingle_1;
+        }
+        __intnl_SystemBoolean_53 = __intnl_SystemBoolean_54;
+        if (!__intnl_SystemBoolean_53)
+        {
+            __temp_SystemObject_0 = npcConvo.GetProgramVariable("deliveryTime");
+            __temp_SystemSingle_0 = System.Convert.ToSingle(__temp_SystemObject_0);
+            __temp_SystemSingle_0 = __temp_SystemSingle_0 + 8.0f;
+            __temp_SystemSingle_1 = UnityEngine.Time.time;
+            __intnl_SystemBoolean_53 = __temp_SystemSingle_0 > __temp_SystemSingle_1;
+        }
+        __intnl_SystemBoolean_52 = __intnl_SystemBoolean_53;
+        if (!__intnl_SystemBoolean_52)
+        {
+            __intnl_SystemBoolean_52 = State == 5;
+        }
+        __intnl_SystemBoolean_51 = __intnl_SystemBoolean_52;
+        if (!__intnl_SystemBoolean_51)
+        {
+            __intnl_SystemBoolean_51 = State == 6;
+        }
+        if (!__intnl_SystemBoolean_51)
+        {
+            get_CombinedState();
+            __temp_SystemBoolean_0 = __0_get_CombinedState__ret == 11;
+            if (__temp_SystemBoolean_0)
+            {
+                __temp_SystemObject = AI.GetProgramVariable("sitCooldown");
+                if (!(lastSitTime + System.Convert.ToSingle(__temp_SystemObject) > UnityEngine.Time.time))
+                {
+                    __0_newState__param = 0;
+                    __0__SetSpecialState();
+                    __temp_UnityEngineGameObject_0 = npcAction.gameObject;
+                    VRC.SDKBase.Networking.SetOwner(localPlayer, __temp_UnityEngineGameObject_0);
+                    _DoRandomNextAction();
+                    goto bb_00002a08;
+                }
+                return;
+            }
+            goto bb_00002a08;
+        }
+        return;
+    bb_00002a08:
+        __temp_SystemDateTime_0 = System.DateTime.UtcNow;
+        __temp_SystemInt32_0 = __temp_SystemDateTime_0.Hour;
+        __temp_SystemSingle = UnityEngine.Time.time;
+        __intnl_SystemSingle_15 = __temp_SystemSingle + 3600.0f;
+        __temp_SystemObject = AI.GetProgramVariable("lastDefeatTime");
+        __intnl_SystemBoolean_59 = __intnl_SystemSingle_15 > System.Convert.ToSingle(__temp_SystemObject);
+        if (__intnl_SystemBoolean_59)
+        {
+            __intnl_SystemBoolean_59 = __temp_SystemInt32_0 == LeaveHour;
+        }
+        if (__intnl_SystemBoolean_59)
+        {
+            _Leave();
+            return;
+        }
+        __lcl_r_SystemSingle_0 = UnityEngine.Random.Range(0.0f, 1.0f);
+        npcRoam.SendCustomEvent("get_IsStationed");
+        __temp_SystemBoolean_0 = npcRoam.GetProgramVariable("__0_get_IsStationed__ret");
+        __lcl_isStationed_SystemBoolean_0 = __temp_SystemBoolean_0;
+        npcRoam.SendCustomEvent("get_IsAtStation");
+        __temp_SystemBoolean_0 = npcRoam.GetProgramVariable("__0_get_IsAtStation__ret");
+        __intnl_SystemBoolean_62 = __temp_SystemBoolean_0;
+        if (__intnl_SystemBoolean_62)
+        {
+            __intnl_SystemBoolean_62 = !__lcl_isStationed_SystemBoolean_0;
+        }
+        if (__intnl_SystemBoolean_62)
+        {
+            npcRoam.SendCustomEvent("_ReturnToStation");
+        }
+        else
+        {
+            __intnl_SystemBoolean_63 = Role == 1;
+            if (__intnl_SystemBoolean_63)
+            {
+                __intnl_SystemBoolean_63 = __lcl_isStationed_SystemBoolean_0;
+            }
+            if (__intnl_SystemBoolean_63)
+            {
+                npcSpecial.SendCustomEvent("_TryPAAnnouncement");
+                if (!npcSpecial.GetProgramVariable("__0__TryPAAnnouncement__ret"))
+                {
+                    __temp_SystemDouble = System.Convert.ToDouble(__lcl_r_SystemSingle_0);
+                    if (__temp_SystemDouble < 0.02)
+                    {
+                        _DoRandomNextAction();
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                __intnl_SystemBoolean_65 = Role != 0;
+                if (__intnl_SystemBoolean_65)
+                {
+                    __intnl_SystemBoolean_65 = __lcl_isStationed_SystemBoolean_0;
+                }
+                __intnl_SystemBoolean_64 = __intnl_SystemBoolean_65;
+                if (__intnl_SystemBoolean_64)
+                {
+                    __temp_SystemDouble = System.Convert.ToDouble(__lcl_r_SystemSingle_0);
+                    __intnl_SystemBoolean_64 = __temp_SystemDouble < 0.05;
+                }
+                if (__intnl_SystemBoolean_64)
+                {
+                    _DoRandomNextAction();
+                    return;
+                }
+                __intnl_SystemBoolean_66 = Role != 0;
+                if (__intnl_SystemBoolean_66)
+                {
+                    __intnl_SystemBoolean_66 = !__lcl_isStationed_SystemBoolean_0;
+                }
+                if (__intnl_SystemBoolean_66)
+                {
+                    if (__lcl_r_SystemSingle_0 < 0.3f)
+                    {
+                        npcRoam.SendCustomEvent("_ReturnToStation");
+                        return;
+                    }
+                    _DoRandomNextAction();
+                }
+                if (Role == 0)
+                {
+                    _DoRandomNextAction();
+                    return;
+                }
+            }
+        }
+        return;
+    }
+
+    public void _DoRandomNextAction()
+    {
+        System.Int32 __lcl_r_SystemInt32_0 = 0;
+        System.Int32 __lcl_arrIndex_SystemInt32_0 = 0;
+        System.Int32 __lcl_cum_SystemInt32_0 = 0;
+        System.Int32 __lcl_action_SystemInt32_0 = 0;
+        System.String __lcl_actionString_SystemString_0 = null;
+        System.Boolean __intnl_SystemBoolean_70 = false;
+        System.Int32 __lcl_i_SystemInt32_0 = 0;
+        System.Int32 __intnl_SystemInt32_20 = 0;
+        System.Int32 __intnl_SystemInt32_21 = 0;
+        VRC.Udon.UdonBehaviour __lcl_d_VRCUdonUdonBehaviour_1 = null;
+
+        __temp_SystemBoolean_0 = VRC.SDKBase.Networking.IsOwner(this.gameObject);
+        if (__temp_SystemBoolean_0)
+        {
+            __1__intnlparam = actionWeights;
+            function_1();
+            __temp_SystemInt32_0 = __0__intnlparam + 1;
+            __lcl_r_SystemInt32_0 = UnityEngine.Random.Range(1, __temp_SystemInt32_0);
+            __lcl_arrIndex_SystemInt32_0 = 0;
+            __lcl_cum_SystemInt32_0 = 0;
+            __lcl_i_SystemInt32_0 = 0;
+            while (__lcl_i_SystemInt32_0 < actionWeights.Length)
+            {
+                __lcl_cum_SystemInt32_0 = __lcl_cum_SystemInt32_0 + actionWeights.Get(__lcl_i_SystemInt32_0);
+                if (__lcl_r_SystemInt32_0 <= __lcl_cum_SystemInt32_0)
+                {
+                    __lcl_arrIndex_SystemInt32_0 = __lcl_i_SystemInt32_0;
+                    break;
+                }
+                __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
+            }
+            __lcl_action_SystemInt32_0 = __lcl_arrIndex_SystemInt32_0;
+            __3__intnlparam = __lcl_arrIndex_SystemInt32_0;
+            function_2();
+            __lcl_actionString_SystemString_0 = __2__intnlparam;
+            __intnl_SystemInt32_20 = npcDebugs.Length;
+            __intnl_SystemInt32_21 = 0;
+            while (__intnl_SystemInt32_21 < __intnl_SystemInt32_20)
+            {
+                __lcl_d_VRCUdonUdonBehaviour_1 = npcDebugs.Get(__intnl_SystemInt32_21);
+                __temp_UnityEngineObject_0 = __lcl_d_VRCUdonUdonBehaviour_1;
+                __temp_UnityEngineObject_1 = null;
+                __intnl_SystemBoolean_70 = __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
+                if (__intnl_SystemBoolean_70)
+                {
+                    __temp_TMProTextMeshProUGUI_0 = __lcl_d_VRCUdonUdonBehaviour_1.GetProgramVariable("Action");
+                    __temp_UnityEngineObject_0 = __temp_TMProTextMeshProUGUI_0;
+                    __temp_UnityEngineObject_1 = null;
+                    __intnl_SystemBoolean_70 = __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
+                }
+                if (__intnl_SystemBoolean_70)
+                {
+                    __temp_TMProTextMeshProUGUI_0 = __lcl_d_VRCUdonUdonBehaviour_1.GetProgramVariable("Action");
+                    __temp_TMProTextMeshProUGUI_0.text = __lcl_actionString_SystemString_0;
+                }
+                __intnl_SystemInt32_21 = __intnl_SystemInt32_21 + 1;
+            }
+            if (__lcl_action_SystemInt32_0 >= 0 && __lcl_action_SystemInt32_0 <= 6)
+            {
+                switch (__lcl_action_SystemInt32_0)
+                {
+                    case 1:
+                        npcSpecial.SendCustomEvent("_FindPickupToTidy");
+                        break;
+                    case 2:
+                        function_3();
+                        __temp_VRCSDKBaseVRCPlayerApi_0 = __4__intnlparam;
+                        __temp_SystemString_0 = System.String.Empty;
+                        __temp_VRCSDKBaseVRCPlayerApi_1 = null;
+                        npcDelivery.SetProgramVariable("__0_npc__param", this);
+                        npcDelivery.SetProgramVariable("__0_message__param", __temp_SystemString_0);
+                        npcDelivery.SetProgramVariable("__0_type__param", 7);
+                        npcDelivery.SetProgramVariable("__0_recipient__param", __temp_VRCSDKBaseVRCPlayerApi_0);
+                        npcDelivery.SetProgramVariable("__0_sender__param", __temp_VRCSDKBaseVRCPlayerApi_1);
+                        npcDelivery.SendCustomEvent("__0__StartDeliverMessage");
+                        break;
+                    case 3:
+                        npcRoam.SendCustomEvent("_CheckOtherNPC");
+                        break;
+                    case 4:
+                        _StartPerformance();
+                        return;
+                    case 5:
+                        npcRoam.SendCustomEvent("_SitSomewhere");
+                        break;
+                    case 6:
+                        npcUpdate.SendCustomEvent("_EndFocus");
+                        npcAction.SetProgramVariable("__0_clipName__param", "Phone");
+                        npcAction.SendCustomEvent("__0__Play");
+                        break;
+                    default:
+                        goto bb_00003530;
+                }
+                return;
+            }
+            goto bb_00003530;
+        }
+        return;
+    bb_00003530:
+        npcRoam.SendCustomEvent("_WanderSomewhere");
+        return;
+    }
+
+    public void _FixIfBorked()
+    {
+        System.Boolean __intnl_SystemBoolean_73 = false;
+
+        __temp_SystemBoolean_0 = this.gameObject.activeInHierarchy;
+        if (__temp_SystemBoolean_0)
+        {
+            this.SendCustomEventDelayedSeconds("_FixIfBorked", 20.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+            __temp_SystemBoolean_0 = localPlayer.IsOwner(this.gameObject);
+            if (__temp_SystemBoolean_0)
+            {
+                npcConvo.SendCustomEvent("get_IsDelivering");
+                __temp_SystemBoolean_0 = npcConvo.GetProgramVariable("__0_get_IsDelivering__ret");
+                __intnl_SystemBoolean_73 = __temp_SystemBoolean_0;
+                if (__intnl_SystemBoolean_73)
+                {
+                    __temp_VRCSDKBaseVRCPlayerApi_0 = npcUpdate.GetProgramVariable("FocusPlayer");
+                    __temp_SystemBoolean_0 = VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
+                    __intnl_SystemBoolean_73 = !__temp_SystemBoolean_0;
+                }
+                if (__intnl_SystemBoolean_73)
+                {
+                    __temp_SystemString_0 = System.String.Empty;
+                    npcConvo.SetProgramVariable("Message", __temp_SystemString_0);
+                    npcConvo.SendCustomEvent("_Sync");
+                }
+            }
+        }
+        return;
+    }
+
+    public void _TestNPCtoNPCConvoAngry()
+    {
+        npcMood.SetProgramVariable("__0_value__param", -10);
+        npcMood.SendCustomEvent("__0_set_Mood");
+        npcRoam.SendCustomEvent("_CheckOtherNPC");
+        return;
+    }
+
+    public void _TestNPCtoNPCConvoSad()
+    {
+        npcMood.SetProgramVariable("__0_value__param", -20);
+        npcMood.SendCustomEvent("__0_set_Mood");
+        npcRoam.SendCustomEvent("_CheckOtherNPC");
+        return;
+    }
+
+    public void _Leave()
+    {
+        __0_newState__param = 15;
+        __0__SetSpecialState();
+        return;
+    }
+
+    public void __0__ResetNPC()
+    {
+        __temp_UnityEngineGameObject_0 = npcRoam.gameObject;
+        VRC.SDKBase.Networking.SetOwner(localPlayer, __temp_UnityEngineGameObject_0);
+        __temp_VRCSDK3ComponentsVRCObjectSync_0 = npcRoam.GetProgramVariable("ObjectSync");
+        __temp_UnityEngineTransform_0 = __temp_VRCSDK3ComponentsVRCObjectSync_0.transform;
+        __temp_UnityEngineTransform_1 = AI.GetProgramVariable("EntranceGateLocation");
+        __temp_UnityEngineVector3_0 = __temp_UnityEngineTransform_1.position;
+        __temp_UnityEngineTransform_1 = AI.GetProgramVariable("EntranceGateLocation");
+        __temp_UnityEngineQuaternion_0 = __temp_UnityEngineTransform_1.rotation;
+        __temp_UnityEngineTransform_0.SetPositionAndRotation(__temp_UnityEngineVector3_0, __temp_UnityEngineQuaternion_0);
+        npcRoam.SetProgramVariable("__0_value__param", new UnityEngine.Vector3(0.0f, 0.0f, 0.0f));
+        npcRoam.SendCustomEvent("__0_set_Destination");
+        npcRoam.SetProgramVariable("__1_value__param", false);
+        npcRoam.SendCustomEvent("__0_set_Following");
+        npcRoam.RequestSerialization();
+        __temp_UnityEngineGameObject_0 = npcUpdate.gameObject;
+        VRC.SDKBase.Networking.SetOwner(localPlayer, __temp_UnityEngineGameObject_0);
+        __temp_VRCSDKBaseVRCPlayerApi_0 = null;
+        npcUpdate.SetProgramVariable("FocusPlayer", __temp_VRCSDKBaseVRCPlayerApi_0);
+        npcUpdate.SetProgramVariable("__0_value__param", -1);
+        npcUpdate.SendCustomEvent("__0_set_FocusPlayerId");
+        __temp_VRCSDKBaseVRCPlayerApi_0 = null;
+        npcUpdate.SetProgramVariable("TempFocusPlayer", __temp_VRCSDKBaseVRCPlayerApi_0);
+        npcUpdate.SetProgramVariable("__1_value__param", -1);
+        npcUpdate.SendCustomEvent("__0_set_TempFocusPlayerId");
+        npcUpdate.RequestSerialization();
+        if (__0_completeReset__param)
+        {
+            __temp_UnityEngineGameObject_0 = npcHurt.gameObject;
+            VRC.SDKBase.Networking.SetOwner(localPlayer, __temp_UnityEngineGameObject_0);
+            npcHurt.SetProgramVariable("__0_value__param", 0);
+            npcHurt.SendCustomEvent("__0_set_HitCount");
+            npcHurt.RequestSerialization();
+            __temp_UnityEngineGameObject_0 = npcMood.gameObject;
+            VRC.SDKBase.Networking.SetOwner(localPlayer, __temp_UnityEngineGameObject_0);
+            npcMood.SetProgramVariable("__0_value__param", 0);
+            npcMood.SendCustomEvent("__0_set_Mood");
+            npcMood.RequestSerialization();
+        }
+        __0_newState__param = 0;
+        __0__SetSpecialState();
+        N_NextActionDelayed();
+        return;
+    }
+
+    void function_1()
+    {
+        System.Int32 __lcl_total_SystemInt32_0 = 0;
+        System.Int32 __lcl_i_SystemInt32_1 = 0;
+
+        __lcl_total_SystemInt32_0 = 0;
+        __lcl_i_SystemInt32_1 = 0;
+        while (true)
+        {
+            __temp_SystemInt32_0 = __1__intnlparam.Length;
+            __temp_SystemBoolean_0 = __lcl_i_SystemInt32_1 < __temp_SystemInt32_0;
+            if (__temp_SystemBoolean_0)
+            {
+                __temp_SystemInt32_0 = __1__intnlparam.Get(__lcl_i_SystemInt32_1);
+                __lcl_total_SystemInt32_0 = __lcl_total_SystemInt32_0 + __temp_SystemInt32_0;
+                __lcl_i_SystemInt32_1 = __lcl_i_SystemInt32_1 + 1;
+                continue;
+            }
+            break;
+        }
+        __0__intnlparam = __lcl_total_SystemInt32_0;
+        return;
+    }
+
+    void function_2()
+    {
+        __temp_SystemStringArray_0 = new System.String[](7);
+        __temp_SystemStringArray_0.Set(0, "Wander");
+        __temp_SystemStringArray_0.Set(1, "TidyPickup");
+        __temp_SystemStringArray_0.Set(2, "RandomPlayer");
+        __temp_SystemStringArray_0.Set(3, "CheckOtherNPC");
+        __temp_SystemStringArray_0.Set(4, "Perform");
+        __temp_SystemStringArray_0.Set(5, "SitSomewhere");
+        __temp_SystemStringArray_0.Set(6, "PhoneCall");
+        __2__intnlparam = __temp_SystemStringArray_0.Get(__3__intnlparam);
+        return;
+    }
+
+    void function_3()
+    {
+        VRC.SDKBase.VRCPlayerApi[] __lcl_players_VRCSDKBaseVRCPlayerApiArray_0 = null;
+        System.Int32 __lcl_i_SystemInt32_2 = 0;
+
+        __temp_SystemInt32_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerCount();
+        __temp_VRCSDKBaseVRCPlayerApiArray_0 = new VRC.SDKBase.VRCPlayerApi[](__temp_SystemInt32_0);
+        __lcl_players_VRCSDKBaseVRCPlayerApiArray_0 = VRC.SDKBase.VRCPlayerApi.GetPlayers(__temp_VRCSDKBaseVRCPlayerApiArray_0);
+        __lcl_i_SystemInt32_2 = 0;
+        while (true)
+        {
+            if (true)
+            {
+                __temp_SystemSingle_0 = UnityEngine.Random.value;
+                __temp_SystemInt32_0 = __lcl_players_VRCSDKBaseVRCPlayerApiArray_0.Length;
+                __temp_SystemSingle_1 = System.Convert.ToSingle(__temp_SystemInt32_0);
+                __temp_SystemSingle_0 = __temp_SystemSingle_0 * __temp_SystemSingle_1;
+                __temp_SystemSingle_0 = UnityEngine.Mathf.Floor(__temp_SystemSingle_0);
+                __temp_SystemDouble_0 = System.Convert.ToDouble(__temp_SystemSingle_0);
+                __temp_SystemDouble_0 = System.Math.Truncate(__temp_SystemDouble_0);
+                __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemDouble_0);
+                __temp_VRCSDKBaseVRCPlayerApi_0 = __lcl_players_VRCSDKBaseVRCPlayerApiArray_0.Get(__temp_SystemInt32_0);
+                __temp_SystemBoolean_0 = VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
+                if (__temp_SystemBoolean_0)
+                {
+                    __4__intnlparam = __temp_VRCSDKBaseVRCPlayerApi_0;
+                    return;
+                }
+                __lcl_i_SystemInt32_2 = __lcl_i_SystemInt32_2 + 1;
+                __temp_SystemInt32_0 = __lcl_players_VRCSDKBaseVRCPlayerApiArray_0.Length;
+                __temp_SystemBoolean_0 = __lcl_i_SystemInt32_2 > __temp_SystemInt32_0;
+                if (!__temp_SystemBoolean_0)
+                {
+                    continue;
+                }
+                break;
+            }
+            return;
+        }
+        UnityEngine.Debug.LogWarning("GetRandomPlayer failed to find a valid player - this should never happen");
+        __4__intnlparam = null;
+        return;
+    }
+}
