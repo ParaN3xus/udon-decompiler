@@ -34,6 +34,7 @@ pub const TYPE_VRC_SERIALIZATION_RESULT: &str = "VRC.Udon.Common.SerializationRe
 pub const TYPE_VRC_NETWORK_EVENT_TARGET: &str = "VRC.Udon.Common.Interfaces.NetworkEventTarget";
 pub const TYPE_VRC_EVENT_TIMING: &str = "VRC.Udon.Common.Enums.EventTiming";
 pub const TYPE_VRC_TOKEN_TYPE: &str = "VRC.SDK3.Data.TokenType";
+pub const UINT32_ARRAY_GET_METHOD_NAME: &str = "SystemUInt32Array.__Get__SystemInt32__SystemUInt32";
 
 pub const EXT_HEX: &str = "hex";
 pub const EXT_ASSET: &str = "asset";
@@ -42,9 +43,14 @@ pub const EXT_CS: &str = "cs";
 pub const INPUT_GLOB_HEX: &str = "*.hex";
 pub const INPUT_GLOB_ASSET: &str = "*.asset";
 pub const INPUT_GLOB_ASM: &str = "*.asm";
+pub const ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES: &str =
+    "serializedProgramCompressedBytes";
 pub const CLANG_FORMAT_ASSUME_FILENAME_CS: &str = "_.cs";
 pub const FILE_UDON_MODULE_INFO_JSON: &str = "UdonModuleInfo.json";
 pub const CLASS_NAME_SYMBOL_NAME: &str = "__refl_typename";
+pub const DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME: &str = "Decompiled_Program";
+pub const DECOMPILED_CLASS_PREFIX: &str = "Decompiled_";
+pub const METADATA_SYNTHETIC_BLOCK_ADDR: &str = "_synthetic_block_addr";
 
 pub const SYMBOL_PREFIX_CONST: &str = "__const_";
 pub const SYMBOL_PREFIX_GLOBAL: &str = "__global_";

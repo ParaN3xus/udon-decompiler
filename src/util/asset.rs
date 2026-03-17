@@ -3,6 +3,8 @@ use std::path::Path;
 use anyhow::{Context, Result, bail};
 use unity_asset_yaml::python_like_api::PythonLikeUnityDocument;
 
+use crate::str_constants::ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES;
+
 use super::hex::decode_gzip_bytes;
 
 pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> {
@@ -12,31 +14,34 @@ pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> 
     let entry = doc
         .get(
             Some("MonoBehaviour"),
-            Some(&["serializedProgramCompressedBytes"]),
+            Some(&[ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES]),
         )
         .map_err(|e| {
             anyhow::anyhow!(
-                "failed to find serializedProgramCompressedBytes in {}: {}",
+                "failed to find {} in {}: {}",
+                ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
                 path.display(),
                 e
             )
         })?;
 
-    if let Some(text) = entry.get_string("serializedProgramCompressedBytes") {
+    if let Some(text) = entry.get_string(ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES) {
         let normalized = text
             .chars()
             .filter(|c| !c.is_whitespace())
             .collect::<String>();
         if normalized.is_empty() {
             bail!(
-                "serializedProgramCompressedBytes is empty in {}",
+                "{} is empty in {}",
+                ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
                 path.display()
             );
         }
         let mut out = Vec::<u8>::with_capacity(normalized.len() / 2);
         if normalized.len() % 2 != 0 {
             bail!(
-                "serializedProgramCompressedBytes hex has odd length in {}",
+                "{} hex has odd length in {}",
+                ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
                 path.display()
             );
         }
@@ -55,19 +60,21 @@ pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> 
         return Ok(out);
     }
 
-    if let Some(values) = entry.get_array("serializedProgramCompressedBytes") {
+    if let Some(values) = entry.get_array(ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES) {
         let mut out = Vec::<u8>::with_capacity(values.len());
         for (index, value) in values.iter().enumerate() {
             let int = value.as_integer().ok_or_else(|| {
                 anyhow::anyhow!(
-                    "serializedProgramCompressedBytes[{}] is not an integer in {}",
+                    "{}[{}] is not an integer in {}",
+                    ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
                     index,
                     path.display()
                 )
             })?;
             let byte = u8::try_from(int).map_err(|_| {
                 anyhow::anyhow!(
-                    "serializedProgramCompressedBytes[{}] out of byte range ({}) in {}",
+                    "{}[{}] out of byte range ({}) in {}",
+                    ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
                     index,
                     int,
                     path.display()
@@ -79,7 +86,8 @@ pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> 
     }
 
     bail!(
-        "serializedProgramCompressedBytes has unsupported shape in {}",
+        "{} has unsupported shape in {}",
+        ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
         path.display()
     )
 }
@@ -88,7 +96,8 @@ pub fn read_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> {
     let compressed = read_compressed_program_bytes_from_asset(path)?;
     decode_gzip_bytes(&compressed).with_context(|| {
         format!(
-            "failed to gzip-decompress serializedProgramCompressedBytes from {}",
+            "failed to gzip-decompress {} from {}",
+            ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
             path.display()
         )
     })

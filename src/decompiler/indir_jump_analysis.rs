@@ -1,12 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::str_constants::{SYMBOL_RETURN_JUMP_U32, TYPE_SYSTEM_UINT32_ARRAY};
+use crate::str_constants::{
+    SYMBOL_RETURN_JUMP_U32, TYPE_SYSTEM_UINT32_ARRAY, UINT32_ARRAY_GET_METHOD_NAME,
+};
 use crate::udon_asm::OpCode;
 
 use super::basic_block::SwitchTableInfo;
 use super::context::DecompileContext;
 use super::instruction_list::InstructionId;
-use super::module_info::{UINT32_ARRAY_GET_METHOD_NAME, UdonModuleInfo};
+use super::module_info::UdonModuleInfo;
 
 pub(crate) fn collect_switch_target_block_starts(
     ctx: &DecompileContext,

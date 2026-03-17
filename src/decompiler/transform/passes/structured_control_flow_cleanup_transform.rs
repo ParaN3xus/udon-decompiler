@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrBlock, IrBlockContainer, IrFunction, IrHighLevelDoWhile, IrHighLevelSwitch, IrHighLevelWhile,
@@ -29,7 +30,7 @@ impl CleanupState {
         let current = context
             .program_context
             .metadata
-            .get("_synthetic_block_addr")
+            .get(METADATA_SYNTHETIC_BLOCK_ADDR)
             .copied()
             .unwrap_or(-1);
         Self {
@@ -45,7 +46,7 @@ impl CleanupState {
 
     fn commit(self, context: &mut TransformContext<'_, '_>) {
         context.program_context.metadata.insert(
-            "_synthetic_block_addr".to_string(),
+            METADATA_SYNTHETIC_BLOCK_ADDR.to_string(),
             self.synthetic_block_address,
         );
     }

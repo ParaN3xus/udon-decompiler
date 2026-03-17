@@ -1,3 +1,4 @@
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrBlock, IrBlockContainer, IrContainerKind, IrExpression, IrFunction, IrIf, IrJump, IrLeave,
@@ -26,7 +27,7 @@ impl LoopTransformState {
         let current = context
             .program_context
             .metadata
-            .get("_synthetic_block_addr")
+            .get(METADATA_SYNTHETIC_BLOCK_ADDR)
             .copied()
             .unwrap_or(-1);
         Self {
@@ -44,7 +45,7 @@ impl LoopTransformState {
         context
             .program_context
             .metadata
-            .insert("_synthetic_block_addr".to_string(), self.synthetic_next);
+            .insert(METADATA_SYNTHETIC_BLOCK_ADDR.to_string(), self.synthetic_next);
     }
 }
 

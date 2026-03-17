@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 
 use crate::odin::{SymbolSection, UdonProgramBinary};
-use crate::str_constants::{CLASS_NAME_SYMBOL_NAME, TYPE_UNSERIALIZABLE, UNSERIALIZABLE_LITERAL};
+use crate::str_constants::{
+    CLASS_NAME_SYMBOL_NAME, DECOMPILED_CLASS_PREFIX, DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME,
+    TYPE_UNSERIALIZABLE, UNSERIALIZABLE_LITERAL,
+};
 use crate::udon_asm::{
     HeapLiteralValue, render_heap_literal, resolve_heap_literal_for_program_entry,
 };
@@ -140,7 +143,7 @@ impl DecompileContext {
         let mut ctx = Self {
             input_path: None,
             input_file_name: None,
-            inferred_class_name: "Decompiled_Program".to_string(),
+            inferred_class_name: DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME.to_string(),
             bytecode,
             instructions,
             heap_capacity,
@@ -276,7 +279,7 @@ impl DecompileContext {
             if let Some(file_name) = self.input_file_name.as_deref() {
                 fallback_class_name_from_file_name(file_name)
             } else {
-                "Decompiled_Program".to_string()
+                DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME.to_string()
             }
         });
         self.inferred_class_name = inferred_raw.clone();
@@ -289,7 +292,7 @@ fn fallback_class_name_from_file_name(file_name: &str) -> String {
         .and_then(|x| x.to_str())
         .unwrap_or(file_name);
     let normalized = sanitize_output_stem(stem);
-    format!("Decompiled_{normalized}")
+    format!("{DECOMPILED_CLASS_PREFIX}{normalized}")
 }
 
 fn load_symbols(

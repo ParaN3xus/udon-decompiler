@@ -30,10 +30,7 @@ pub use ir::{
     IrVariableExpression, build_ir_functions, compute_dominance, mark_nodes_with_reachable_exits,
 };
 pub(crate) use ir::{build_extern_ir_expression, is_property_setter};
-pub use module_info::{
-    ExternFunctionInfo, FunctionDefinitionType, ParameterType, UINT32_ARRAY_GET_METHOD_NAME,
-    UdonModuleInfo,
-};
+pub use module_info::{ExternFunctionInfo, FunctionDefinitionType, ParameterType, UdonModuleInfo};
 pub use pipeline::{DecompilePipelineOutput, run_analysis_pipeline, run_decompile_pipeline};
 pub use transform::{
     BlockTransform, BlockTransformContext, IBlockTransform, IProgramTransform, IStatementTransform,

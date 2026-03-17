@@ -1,5 +1,8 @@
 use std::collections::{BTreeSet, HashMap};
 
+use crate::str_constants::{
+    SYMBOL_PREFIX_THIS, SYMBOL_THIS, SYMBOL_THIS_GAME_OBJECT, SYMBOL_THIS_TRANSFORM,
+};
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrAssignmentStatement, IrExpression, IrExpressionStatement, IrFunction, IrIf, IrStatement,
@@ -164,8 +167,8 @@ fn collect_expression_variables(expression: &IrExpression, used: &mut BTreeSet<u
 }
 
 fn is_this_like(name: &str) -> bool {
-    name == "this"
-        || name == "this.transform"
-        || name == "this.gameObject"
-        || name.starts_with("__this_")
+    name == SYMBOL_THIS
+        || name == SYMBOL_THIS_TRANSFORM
+        || name == SYMBOL_THIS_GAME_OBJECT
+        || name.starts_with(SYMBOL_PREFIX_THIS)
 }
