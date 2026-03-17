@@ -74,4 +74,4 @@ jobs:
           sudo apt-get install -y clang-format
 
       - name: Cargo test
-        run: cargo test -q
+        run: cargo test --test e2e -- --nocapture
