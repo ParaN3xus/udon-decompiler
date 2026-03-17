@@ -67,7 +67,7 @@ internal static partial class Program
 
                     var assetName = GetAssetName(baseField, assetInfo);
                     var outputPath = GetUniqueOutputPath(outputDirectory, assetName, ".hex", usedOutputNames);
-                    File.WriteAllText(outputPath, BytesToHex(compressedBytes));
+                    File.WriteAllText(outputPath, Convert.ToHexString(compressedBytes).ToLowerInvariant());
                     dumpCount++;
                 }
             }
@@ -256,23 +256,6 @@ internal static partial class Program
             .ToArray();
 
         return new string(cleanedChars);
-    }
-
-    private static string BytesToHex(byte[] bytes)
-    {
-        var chars = new char[bytes.Length * 2];
-        var cursor = 0;
-        foreach (var value in bytes)
-        {
-            chars[cursor++] = ToHexNibble((value >> 4) & 0xF);
-            chars[cursor++] = ToHexNibble(value & 0xF);
-        }
-        return new string(chars);
-    }
-
-    private static char ToHexNibble(int value)
-    {
-        return (char)(value < 10 ? '0' + value : 'a' + (value - 10));
     }
 
     private sealed record DumpResult(string OutputDirectory, int DumpedCount);
