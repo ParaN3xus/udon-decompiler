@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "cases:build-input": "node --experimental-strip-types scripts/case-md.ts build-input",
-    "cases:update-md": "node --experimental-strip-types scripts/case-md.ts update-md"
+    "cases:update-md": "node --experimental-strip-types scripts/case-md.ts update-md",
+    "test": "cargo insta test --test e2e -- --nocapture"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
