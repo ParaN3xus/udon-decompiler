@@ -4,6 +4,12 @@
 *.pdb
 Cargo.lock
 
+# Node
+/node_modules
+
+# Shiroa
+/dist
+
 # IDE
 .idea/
 *.swp
@@ -13,9 +19,6 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
-
-# Node
-/node_modules
 
 # Local files
 /local
