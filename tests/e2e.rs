@@ -9,6 +9,18 @@ fn cases_root() -> PathBuf {
         .join("cases")
 }
 
+fn repo_root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn display_case_path(case_path: &Path) -> String {
+    case_path
+        .strip_prefix(repo_root())
+        .unwrap_or(case_path)
+        .display()
+        .to_string()
+}
+
 fn collect_case_paths(root: &Path) -> Vec<PathBuf> {
     let mut out = Vec::<PathBuf>::new();
     collect_md_recursive(root, &mut out);
@@ -103,7 +115,7 @@ fn e2e_smoke() {
         let hex_text = match load_hex_from_case(case_path) {
             Ok(text) => text,
             Err(e) => {
-                failures.push(format!("{}: {}", case_path.display(), e));
+                failures.push(format!("{}: {}", display_case_path(case_path), e));
                 continue;
             }
         };
@@ -121,7 +133,7 @@ fn e2e_smoke() {
         })();
 
         if let Err(e) = result {
-            failures.push(format!("{}: {}", case_path.display(), e));
+            failures.push(format!("{}: {}", display_case_path(case_path), e));
             continue;
         }
 
@@ -129,7 +141,7 @@ fn e2e_smoke() {
             "[{}/{}] smoke ok: {}",
             index + 1,
             total_cases,
-            case_path.display()
+            display_case_path(case_path)
         );
     }
 
@@ -151,7 +163,7 @@ fn e2e_snapshot() {
     let total_cases = cases.len();
     for (index, case_path) in cases.iter().enumerate() {
         let hex_text = load_hex_from_case(case_path)
-            .unwrap_or_else(|e| panic!("{}: {}", case_path.display(), e));
+            .unwrap_or_else(|e| panic!("{}: {}", display_case_path(case_path), e));
 
         let stem = case_path
             .file_stem()
@@ -170,7 +182,7 @@ fn e2e_snapshot() {
             "[{}/{}] snapshot ok: {}",
             index + 1,
             total_cases,
-            case_path.display()
+            display_case_path(case_path)
         );
     }
 }
