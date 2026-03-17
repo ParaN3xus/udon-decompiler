@@ -1,4 +1,5 @@
 mod basic_block;
+mod clang_format;
 mod cfg;
 mod codegen;
 mod context;
