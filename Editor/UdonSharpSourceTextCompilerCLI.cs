@@ -42,7 +42,8 @@ public static class UdonCompilerCLI
 
             if (string.IsNullOrEmpty(inputPath) || string.IsNullOrEmpty(outputPath))
             {
-                throw new Exception("Usage: -executeMethod UdonCompilerCLI.Run -inputFile <path> -outputFile <path>");
+                throw new Exception(
+                    "Usage: -executeMethod UdonCompilerCLI.Run -inputFile <path> -outputFile <path>");
             }
 
             if (!File.Exists(inputPath))
@@ -53,12 +54,14 @@ public static class UdonCompilerCLI
             string jsonContent = File.ReadAllText(inputPath);
             CompilerInputData inputData = JsonUtility.FromJson<CompilerInputData>(jsonContent);
 
-            if (inputData == null || inputData.requests == null || inputData.requests.Count == 0)
+            if (inputData == null || inputData.requests == null ||
+                inputData.requests.Count == 0)
             {
                 throw new Exception("Input JSON is invalid or empty.");
             }
 
-            Debug.Log($"[CLI] Loaded {inputData.requests.Count} requests. Starting compilation...");
+            Debug.Log(
+                $"[CLI] Loaded {inputData.requests.Count} requests. Starting compilation...");
 
             SessionState.SetBool(STATE_KEY_CLI_ACTIVE, true);
             SessionState.SetString(STATE_KEY_OUTPUT_PATH, outputPath);
@@ -80,11 +83,8 @@ public static class UdonCompilerCLI
         {
             string outputPath = SessionState.GetString(STATE_KEY_OUTPUT_PATH, "output.json");
 
-            CompilerOutputData outputData = new CompilerOutputData
-            {
-                results = results,
-                error = null
-            };
+            CompilerOutputData outputData =
+                new CompilerOutputData { results = results, error = null };
 
             string jsonResult = JsonUtility.ToJson(outputData, true);
             File.WriteAllText(outputPath, jsonResult);

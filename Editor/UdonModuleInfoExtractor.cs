@@ -37,7 +37,6 @@ public class UdonModuleInfoExtractor : EditorWindow
         public bool returnsVoid;
     }
 
-
     [MenuItem("Tools/Extract Udon Module Info")]
     public static void ExtractModuleInfo()
     {
@@ -53,35 +52,42 @@ public class UdonModuleInfoExtractor : EditorWindow
 
         foreach (Type moduleWrapperType in moduleWrapperTypes)
         {
-            object instance = Activator.CreateInstance(moduleWrapperType, new object[] { udonWrapper, blacklist });
+            object instance = Activator.CreateInstance(moduleWrapperType,
+                                                       new object[] { udonWrapper, blacklist });
 
-            PropertyInfo nameProperty = moduleWrapperType.GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
+            PropertyInfo nameProperty = moduleWrapperType.GetProperty(
+                "Name", BindingFlags.Public | BindingFlags.Instance);
             string moduleName = nameProperty?.GetValue(instance) as string;
 
-            FieldInfo parameterCountsField = moduleWrapperType.GetField("_parameterCounts", BindingFlags.NonPublic | BindingFlags.Instance);
-            Lazy<Dictionary<string, int>> rawCounts = parameterCountsField?.GetValue(instance) as Lazy<Dictionary<string, int>>;
+            FieldInfo parameterCountsField = moduleWrapperType.GetField(
+                "_parameterCounts", BindingFlags.NonPublic | BindingFlags.Instance);
+            Lazy<Dictionary<string, int>> rawCounts =
+                parameterCountsField?.GetValue(instance) as Lazy<Dictionary<string, int>>;
             Dictionary<string, int> paramCounts = rawCounts.Value;
 
             Type moduleType = registryLookup[$"{moduleName}.{paramCounts.Keys.First()}"].type;
-            ModuleDefinition moduleDef = new ModuleDefinition
-            {
-                functions = new List<FunctionDefinition>(paramCounts.Count),
-                type = moduleType.FullName
-            };
+            ModuleDefinition moduleDef =
+                new ModuleDefinition { functions =
+                                           new List<FunctionDefinition>(paramCounts.Count),
+                                       type = moduleType.FullName };
 
             foreach (var funcName in paramCounts.Keys)
             {
                 string fullNodeName = $"{moduleName}.{funcName}";
                 var udonNodeDef = registryLookup[fullNodeName];
-                var parameters = udonNodeDef.parameters
-                    .Select(param => param.parameterType.ToString())
-                    .ToList();
+                var parameters =
+                    udonNodeDef.parameters.Select(param => param.parameterType.ToString())
+                        .ToList();
 
-                string defType = funcName.StartsWith("__op_") ? "op" :
-                            funcName.StartsWith("__ctor__") ? "ctor" :
-                            // todo: dictionary get/set has 3 params 
-                            ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) && parameters.Count >= 1 && parameters.Count <= 2) ? "prop" : "method";
-
+                string defType =
+                    funcName.StartsWith("__op_")      ? "op"
+                    : funcName.StartsWith("__ctor__") ? "ctor"
+                                                      :
+                                                      // todo: dictionary get/set has 3 params
+                        ((funcName.StartsWith("__get_") || funcName.StartsWith("__set_")) &&
+                         parameters.Count >= 1 && parameters.Count <= 2)
+                        ? "prop"
+                        : "method";
 
                 string originalName = null;
                 var isStatic = false;
@@ -97,24 +103,22 @@ public class UdonModuleInfoExtractor : EditorWindow
                 {
                     originalName = udonNodeDef.name[(index + 1)..];
                 }
-                if ((defType == "prop" || defType == "method") && udonNodeDef.parameters.Count > 0)
+                if ((defType == "prop" || defType == "method") &&
+                    udonNodeDef.parameters.Count > 0)
                 {
-                    isStatic = !(udonNodeDef.parameters.First().name == "instance" && udonNodeDef.parameters[0].type == moduleType);
-                    returnsVoid = udonNodeDef.parameters.Last().parameterType != UdonNodeParameter.ParameterType.OUT;
+                    isStatic = !(udonNodeDef.parameters.First().name == "instance" &&
+                                 udonNodeDef.parameters[0].type == moduleType);
+                    returnsVoid = udonNodeDef.parameters.Last().parameterType !=
+                                  UdonNodeParameter.ParameterType.OUT;
                 }
                 if (udonNodeDef.parameters.Count == 0)
                 {
                     returnsVoid = true;
                 }
 
-                var func = new FunctionDefinition
-                {
-                    name = funcName,
-                    originalName = originalName,
-                    parameters = parameters,
-                    isStatic = isStatic,
-                    returnsVoid = returnsVoid,
-                    defType = defType
+                var func = new FunctionDefinition {
+                    name = funcName,     originalName = originalName, parameters = parameters,
+                    isStatic = isStatic, returnsVoid = returnsVoid,   defType = defType
                 };
                 moduleDef.functions.Add(func);
             }
@@ -135,13 +139,19 @@ public class UdonModuleInfoExtractor : EditorWindow
     {
         var lookup = new Dictionary<string, UdonNodeDefinition>();
         RootNodeRegistry rootRegistry = new RootNodeRegistry();
-        PropertyInfo nextRegistriesProp = typeof(RootNodeRegistry).GetProperty("NextRegistries", BindingFlags.NonPublic | BindingFlags.Instance);
-        var nextRegistries = nextRegistriesProp.GetValue(rootRegistry) as Dictionary<string, INodeRegistry>;
+        PropertyInfo nextRegistriesProp =
+            typeof(RootNodeRegistry)
+                .GetProperty("NextRegistries", BindingFlags.NonPublic | BindingFlags.Instance);
+        var nextRegistries =
+            nextRegistriesProp.GetValue(rootRegistry) as Dictionary<string, INodeRegistry>;
 
         foreach (var registry in nextRegistries.Values)
         {
-            PropertyInfo nodeDefsProp = registry.GetType().GetProperty("NodeDefinitions", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
-            var definitions = nodeDefsProp.GetValue(registry) as Dictionary<string, UdonNodeDefinition>;
+            PropertyInfo nodeDefsProp = registry.GetType().GetProperty(
+                "NodeDefinitions",
+                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+            var definitions =
+                nodeDefsProp.GetValue(registry) as Dictionary<string, UdonNodeDefinition>;
             foreach (var kvp in definitions)
             {
                 lookup[kvp.Key] = kvp.Value;
@@ -150,7 +160,8 @@ public class UdonModuleInfoExtractor : EditorWindow
         return lookup;
     }
 
-    private static List<Type> GetWrapperModuleTypes(UdonDefaultWrapperFactory udonWrapperFactory)
+    private static List<Type> GetWrapperModuleTypes(
+        UdonDefaultWrapperFactory udonWrapperFactory)
     {
         if (udonWrapperFactory == null)
         {
@@ -158,10 +169,9 @@ public class UdonModuleInfoExtractor : EditorWindow
             return new List<Type>();
         }
 
-        FieldInfo field = typeof(UdonDefaultWrapperFactory).GetField(
-            "_wrapperModuleTypes",
-            BindingFlags.NonPublic | BindingFlags.Instance
-        );
+        FieldInfo field = typeof(UdonDefaultWrapperFactory)
+                              .GetField("_wrapperModuleTypes",
+                                        BindingFlags.NonPublic | BindingFlags.Instance);
 
         if (field == null)
         {
