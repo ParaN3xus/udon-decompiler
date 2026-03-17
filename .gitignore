@@ -26,10 +26,5 @@ Thumbs.db
 # Resources
 /UdonModuleInfo.json
 
-# .NET
-/.dotnet-home/
-**/bin/
-**/obj/
-
 # Dumper output
 **/*-dumped-programs/
