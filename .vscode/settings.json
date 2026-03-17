@@ -22,6 +22,7 @@
         "editor.defaultFormatter": "seaube.clangformat",
         "editor.formatOnSave": true
     },
+    "npm.packageManager": "yarn",
     "tinymist.exportTarget": "html",
     "tinymist.lint.enabled": true,
     "tinymist.typstExtraArgs": [
