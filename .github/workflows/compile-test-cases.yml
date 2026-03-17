@@ -1,7 +1,6 @@
 name: Compile Test Cases
 
 on:
-  workflow_dispatch:
   push:
     branches: ["main"]
     paths:
@@ -9,6 +8,7 @@ on:
       - "Editor/UdonSharpSourceTextCompiler*.cs"
       - "scripts/case-md.ts"
       - "package.json"
+  workflow_dispatch:
 
 permissions:
   contents: write
