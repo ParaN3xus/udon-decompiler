@@ -19,7 +19,7 @@
         }
     },
     "[csharp]": {
-        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.defaultFormatter": "seaube.clangformat",
         "editor.formatOnSave": true
     },
     "tinymist.exportTarget": "html",
