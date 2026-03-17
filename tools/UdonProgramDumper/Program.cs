@@ -10,36 +10,14 @@ internal static class App
 
     public static int Run(string[] args)
     {
-        if (args.Length == 0 || args.Any(IsHelpArgument))
+        if (!AreValidInputs(args))
         {
-            PrintUsage();
-            return args.Length == 0 ? 1 : 0;
-        }
-
-        var inputs = args
-            .Where(arg => arg.Length == 0 || arg[0] != '-')
-            .ToArray();
-
-        var unknownOptions = args
-            .Where(arg => arg.Length > 0 && arg[0] == '-' && !IsHelpArgument(arg))
-            .ToArray();
-
-        if (unknownOptions.Length > 0)
-        {
-            Console.Error.WriteLine($"Unknown option(s): {string.Join(", ", unknownOptions)}");
-            PrintUsage();
-            return 1;
-        }
-
-        if (inputs.Length == 0)
-        {
-            Console.Error.WriteLine("No input .vrcw files were provided.");
             PrintUsage();
             return 1;
         }
 
         var hadFailure = false;
-        foreach (var input in inputs)
+        foreach (var input in args)
         {
             try
             {
@@ -58,18 +36,30 @@ internal static class App
         return hadFailure ? 1 : 0;
     }
 
+    private static bool AreValidInputs(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            return false;
+        }
+
+        foreach (var input in args)
+        {
+            if (!File.Exists(input))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static DumpResult DumpProgramsFromBundle(string inputPath)
     {
         var fullInputPath = Path.GetFullPath(inputPath);
         if (!File.Exists(fullInputPath))
         {
             throw new FileNotFoundException("Input file does not exist.", fullInputPath);
-        }
-
-        if (!fullInputPath.EndsWith(".vrcw", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                $"Expected a .vrcw file, got '{Path.GetFileName(fullInputPath)}'.");
         }
 
         var outputDirectory = BuildOutputDirectory(fullInputPath);
@@ -333,23 +323,16 @@ internal static class App
         return (char)(value < 10 ? '0' + value : 'a' + (value - 10));
     }
 
-    private static bool IsHelpArgument(string value)
-    {
-        return value is "-h" or "--help" or "/?";
-    }
-
     private static void PrintUsage()
     {
-        Console.WriteLine("UdonProgramDumper");
-        Console.WriteLine("Usage:");
-        Console.WriteLine("  UdonProgramDumper <world1.vrcw> [world2.vrcw] ...");
-        Console.WriteLine();
-        Console.WriteLine("For each input bundle, this tool creates a sibling folder named");
-        Console.WriteLine("'<input>-dumped-programs' and writes one compressed Udon program per");
-        Console.WriteLine("SerializedUdonProgramAsset as a lowercase .hex file.");
+        var fileName = Path.GetFileName(Environment.ProcessPath);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            fileName = AppDomain.CurrentDomain.FriendlyName;
+        }
+
+        Console.WriteLine($"Usage: {fileName} <world1.vrcw> [world2.vrcw] ...");
     }
 
     private sealed record DumpResult(string OutputDirectory, int DumpedCount, int AssetsFileCount);
 }
-
-
