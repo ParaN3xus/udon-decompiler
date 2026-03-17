@@ -24,7 +24,8 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __0_get_syncedData__ret = null;
         UnityEngine.Vector3[] __0_value__param = null;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = new VRC.Udon.Common.SerializationResult { success = false, byteCount = 0 };
+        VRC.Udon.Common.SerializationResult onPostSerializationResult =
+            new VRC.Udon.Common.SerializationResult { success = false, byteCount = 0 };
 
         public void _start()
         {
@@ -38,7 +39,8 @@ namespace QvPen.UdonScript
             System.Boolean __intnl_SystemBoolean_0 = false;
             VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_0 = null;
 
-            __intnl_SystemBoolean_0 = VRC.SDKBase.Networking.LocalPlayer.IsOwner(eraser.gameObject);
+            __intnl_SystemBoolean_0 =
+                VRC.SDKBase.Networking.LocalPlayer.IsOwner(eraser.gameObject);
             if (__intnl_SystemBoolean_0)
             {
                 __intnl_VRCUdonUdonBehaviour_0 = eraser;
@@ -47,7 +49,8 @@ namespace QvPen.UdonScript
             }
             if (__intnl_SystemBoolean_0)
             {
-                this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "StartUsing");
+                this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,
+                                            "StartUsing");
             }
             return;
         }
@@ -81,7 +84,8 @@ namespace QvPen.UdonScript
             eraser.SetProgramVariable("isPickedUp", true);
             respawnButton.SetActive(false);
             inUseUI.SetActive(true);
-            __lcl_owner_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.GetOwner(eraser.gameObject);
+            __lcl_owner_VRCSDKBaseVRCPlayerApi_0 =
+                VRC.SDKBase.Networking.GetOwner(eraser.gameObject);
             if (__lcl_owner_VRCSDKBaseVRCPlayerApi_0 != null)
             {
                 __lcl_text_SystemString_0 = __lcl_owner_VRCSDKBaseVRCPlayerApi_0.displayName;
@@ -152,7 +156,8 @@ namespace QvPen.UdonScript
             }
             else
             {
-                VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer, this.gameObject);
+                VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer,
+                                                this.gameObject);
                 __0__TakeOwnership__ret = VRC.SDKBase.Networking.IsOwner(this.gameObject);
             }
             return;

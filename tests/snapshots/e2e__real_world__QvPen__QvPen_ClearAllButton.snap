@@ -23,7 +23,8 @@ namespace QvPen.UdonScript.UI
             __intnl_SystemInt32_1 = 0;
             while (__intnl_SystemInt32_1 < __intnl_SystemInt32_0)
             {
-                __lcl_penManager_VRCUdonUdonBehaviour_0 = __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_1);
+                __lcl_penManager_VRCUdonUdonBehaviour_0 =
+                    __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_1);
                 if (__lcl_penManager_VRCUdonUdonBehaviour_0)
                 {
                     __lcl_penManager_VRCUdonUdonBehaviour_0.SendCustomEvent("Clear");

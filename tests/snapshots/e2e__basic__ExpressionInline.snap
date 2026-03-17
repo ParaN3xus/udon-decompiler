@@ -14,7 +14,8 @@ public class ExpressionInline : UdonSharpBehaviour
         System.Single __lcl_f_SystemSingle_0 = 0.0f;
         System.Int32 __lcl_res1_SystemInt32_0 = 0;
         System.Single __lcl_res2_SystemSingle_0 = 0.0f;
-        UnityEngine.Vector3 __lcl_v_UnityEngineVector3_0 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+        UnityEngine.Vector3 __lcl_v_UnityEngineVector3_0 =
+            new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
         System.Boolean __intnl_SystemBoolean_0 = false;
         System.Boolean __intnl_SystemBoolean_1 = false;
         System.String __lcl_n_SystemString_0 = null;
@@ -22,9 +23,13 @@ public class ExpressionInline : UdonSharpBehaviour
         __lcl_a_SystemInt32_0 = 10;
         __lcl_b_SystemInt32_0 = 20;
         __lcl_f_SystemSingle_0 = 2.5f;
-        __lcl_res1_SystemInt32_0 = (__lcl_a_SystemInt32_0 + __lcl_b_SystemInt32_0) * (__lcl_b_SystemInt32_0 - __lcl_a_SystemInt32_0);
-        __lcl_res2_SystemSingle_0 = System.Convert.ToSingle(__lcl_a_SystemInt32_0) * 0.5f + __lcl_f_SystemSingle_0 / 2.0f;
-        __lcl_v_UnityEngineVector3_0 = new UnityEngine.Vector3(0.0f, 1.0f, 0.0f) * __lcl_f_SystemSingle_0 + new UnityEngine.Vector3(1.0f, 0.0f, 0.0f);
+        __lcl_res1_SystemInt32_0 = (__lcl_a_SystemInt32_0 + __lcl_b_SystemInt32_0) *
+                                   (__lcl_b_SystemInt32_0 - __lcl_a_SystemInt32_0);
+        __lcl_res2_SystemSingle_0 = System.Convert.ToSingle(__lcl_a_SystemInt32_0) * 0.5f +
+                                    __lcl_f_SystemSingle_0 / 2.0f;
+        __lcl_v_UnityEngineVector3_0 =
+            new UnityEngine.Vector3(0.0f, 1.0f, 0.0f) * __lcl_f_SystemSingle_0 +
+            new UnityEngine.Vector3(1.0f, 0.0f, 0.0f);
         __intnl_SystemBoolean_1 = __lcl_a_SystemInt32_0 > 5;
         if (__intnl_SystemBoolean_1)
         {

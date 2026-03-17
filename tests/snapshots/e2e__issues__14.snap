@@ -35,7 +35,8 @@ public class PatreonProcessor : UdonSharpBehaviour
     System.String[] __2__intnlparam = null;
     VRC.SDK3.Data.DataDictionary __0_patrons__param = null;
     VRC.SDK3.Data.DataDictionary __1_patrons__param = null;
-    System.Globalization.NumberStyles __const_SystemGlobalizationNumberStyles_0 = null /* unserializable */;
+    System.Globalization.NumberStyles __const_SystemGlobalizationNumberStyles_0 =
+        null /* unserializable */;
     VRC.SDK3.Data.DataDictionary __2_patrons__param = null;
     System.String __0_ceVip__param = null;
     System.Int32 __3__intnlparam = 0;
@@ -45,11 +46,13 @@ public class PatreonProcessor : UdonSharpBehaviour
     VRC.Economy.IProduct onPurchaseConfirmedResult = null;
     VRC.SDKBase.VRCPlayerApi onPurchaseConfirmedPlayer = null;
     System.Object[] __gintnl_SystemObjectArray_0 =
-        new System.Object[] { null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */ };
+        new System.Object[] { null /* unserializable */, null /* unserializable */,
+                              null /* unserializable */, null /* unserializable */ };
     System.String[] __5__intnlparam = null;
     System.String[] __6__intnlparam = null;
     System.String __7__intnlparam = null;
-    VRC.Udon.Common.Interfaces.IUdonEventReceiver __temp_VRCUdonCommonInterfacesIUdonEventReceiver_0 = null;
+    VRC.Udon.Common.Interfaces
+        .IUdonEventReceiver __temp_VRCUdonCommonInterfacesIUdonEventReceiver_0 = null;
     VRC.Economy.IProduct __temp_VRCEconomyIProduct_0 = null;
     System.Boolean __temp_SystemBoolean_0 = false;
     System.String __temp_SystemString_0 = null;
@@ -78,12 +81,15 @@ public class PatreonProcessor : UdonSharpBehaviour
         localPlayer = VRC.SDKBase.Networking.LocalPlayer;
         __temp_VRCUdonCommonInterfacesIUdonEventReceiver_0 = this;
         __temp_VRCEconomyIProduct_0 = VIPProduct;
-        VRC.Economy.Store.ListProductOwners(__temp_VRCUdonCommonInterfacesIUdonEventReceiver_0, __temp_VRCEconomyIProduct_0);
+        VRC.Economy.Store.ListProductOwners(__temp_VRCUdonCommonInterfacesIUdonEventReceiver_0,
+                                            __temp_VRCEconomyIProduct_0);
         if (!DebugMode)
         {
             __temp_VRCUdonCommonInterfacesIUdonEventReceiver_0 = this;
-            VRC.SDK3.StringLoading.VRCStringDownloader.LoadUrl(Url, __temp_VRCUdonCommonInterfacesIUdonEventReceiver_0);
-            this.SendCustomEventDelayedSeconds("_StringLoaderTimeout", 30.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+            VRC.SDK3.StringLoading.VRCStringDownloader.LoadUrl(
+                Url, __temp_VRCUdonCommonInterfacesIUdonEventReceiver_0);
+            this.SendCustomEventDelayedSeconds("_StringLoaderTimeout", 30.0f,
+                                               VRC.Udon.Common.Enums.EventTiming.Update);
             return;
         }
         UnityEngine.Debug.Log("[Patreon] UseDebugPatrons");
@@ -103,10 +109,13 @@ public class PatreonProcessor : UdonSharpBehaviour
         __temp_SystemBoolean_0 = Patreon.GetProgramVariable("ready");
         if (!__temp_SystemBoolean_0)
         {
-            UnityEngine.Debug.Log("[PatreonProcessor._StringLoaderTimeout] StringLoader hasn't returned success or failure. Using fallback list");
+            UnityEngine.Debug.Log(
+                "[PatreonProcessor._StringLoaderTimeout] StringLoader hasn't returned success or failure. Using fallback list");
             UnityEngine.Debug.Log("[Patreon] UseFallbackPatrons");
             Hud.SetProgramVariable("__1_mainText__param", "Using fallback VIP list");
-            Hud.SetProgramVariable("__1_subText__param", "Please clear your in-game cache and relaunch VRChat if missing VIP perks");
+            Hud.SetProgramVariable(
+                "__1_subText__param",
+                "Please clear your in-game cache and relaunch VRChat if missing VIP perks");
             Hud.SetProgramVariable("__0_lifeTime__param", 15.0f);
             Hud.SetProgramVariable("__0_isPriority__param", true);
             Hud.SendCustomEvent("__0__ErrorNotification");
@@ -125,10 +134,13 @@ public class PatreonProcessor : UdonSharpBehaviour
         __temp_SystemBoolean_0 = System.String.IsNullOrEmpty(__temp_SystemString_0);
         if (__temp_SystemBoolean_0)
         {
-            UnityEngine.Debug.Log("[Patreon] OnStringLoadSuccess - but Patreon string loader returned success with 0 bytes");
+            UnityEngine.Debug.Log(
+                "[Patreon] OnStringLoadSuccess - but Patreon string loader returned success with 0 bytes");
             UnityEngine.Debug.Log("[Patreon] UseFallbackPatrons");
             Hud.SetProgramVariable("__1_mainText__param", "Using fallback VIP list");
-            Hud.SetProgramVariable("__1_subText__param", "Please clear your in-game cache and relaunch VRChat if missing VIP perks");
+            Hud.SetProgramVariable(
+                "__1_subText__param",
+                "Please clear your in-game cache and relaunch VRChat if missing VIP perks");
             Hud.SetProgramVariable("__0_lifeTime__param", 15.0f);
             Hud.SetProgramVariable("__0_isPriority__param", true);
             Hud.SendCustomEvent("__0__ErrorNotification");
@@ -150,7 +162,9 @@ public class PatreonProcessor : UdonSharpBehaviour
         UnityEngine.Debug.Log(__temp_SystemString_0);
         UnityEngine.Debug.Log("[Patreon] UseFallbackPatrons");
         Hud.SetProgramVariable("__1_mainText__param", "Using fallback VIP list");
-        Hud.SetProgramVariable("__1_subText__param", "Please clear your in-game cache and relaunch VRChat if missing VIP perks");
+        Hud.SetProgramVariable(
+            "__1_subText__param",
+            "Please clear your in-game cache and relaunch VRChat if missing VIP perks");
         Hud.SetProgramVariable("__0_lifeTime__param", 15.0f);
         Hud.SetProgramVariable("__0_isPriority__param", true);
         Hud.SendCustomEvent("__0__ErrorNotification");
@@ -189,10 +203,12 @@ public class PatreonProcessor : UdonSharpBehaviour
         UnityEngine.Debug.Log("[Patreon] _ProcessPatrons");
         __0_encodedPatrons__param = patronsToProcess;
         __0__BastePatrons();
-        __temp_SystemBoolean_0 = VRC.SDK3.Data.VRCJson.TryDeserializeFromJson(__0___0__BastePatrons__ret, ref __temp_VRCSDK3DataDataToken_0);
+        __temp_SystemBoolean_0 = VRC.SDK3.Data.VRCJson.TryDeserializeFromJson(
+            __0___0__BastePatrons__ret, ref __temp_VRCSDK3DataDataToken_0);
         __lcl_json_VRCSDK3DataDataDictionary_0 = __temp_VRCSDK3DataDataToken_0.DataDictionary;
         __temp_VRCSDK3DataDataToken_0 = "vips";
-        __temp_VRCSDK3DataDataToken_0 = __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
+        __temp_VRCSDK3DataDataToken_0 =
+            __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
         __0_dataList__param = __temp_VRCSDK3DataDataToken_0.DataList;
         ToStringArray();
         __temp_SystemStringArray_0 = __0___0_ToStringArray__ret;
@@ -201,35 +217,45 @@ public class PatreonProcessor : UdonSharpBehaviour
         function_3();
         __lcl_allVIPs_SystemStringArray_0 = __0__intnlparam;
         __temp_VRCSDK3DataDataToken_0 = "executives";
-        __temp_VRCSDK3DataDataToken_0 = __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
+        __temp_VRCSDK3DataDataToken_0 =
+            __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
         __0_dataList__param = __temp_VRCSDK3DataDataToken_0.DataList;
         __intnl_VRCUdonUdonBehaviour_0 = PatreonBoard;
         ToStringArray();
         __temp_VRCSDK3DataDataToken_0 = "elites";
-        __temp_VRCSDK3DataDataToken_0 = __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
+        __temp_VRCSDK3DataDataToken_0 =
+            __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
         __0_dataList__param = __temp_VRCSDK3DataDataToken_0.DataList;
         __intnl_SystemStringArray_0 = __0___0_ToStringArray__ret;
         ToStringArray();
         __temp_VRCSDK3DataDataToken_0 = "legends";
-        __temp_VRCSDK3DataDataToken_0 = __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
+        __temp_VRCSDK3DataDataToken_0 =
+            __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
         __0_dataList__param = __temp_VRCSDK3DataDataToken_0.DataList;
         __intnl_SystemStringArray_1 = __0___0_ToStringArray__ret;
         ToStringArray();
-        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_vips__param", __lcl_allVIPs_SystemStringArray_0);
-        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_executives__param", __intnl_SystemStringArray_0);
-        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_elites__param", __intnl_SystemStringArray_1);
-        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_legends__param", __0___0_ToStringArray__ret);
+        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_vips__param",
+                                                          __lcl_allVIPs_SystemStringArray_0);
+        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_executives__param",
+                                                          __intnl_SystemStringArray_0);
+        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_elites__param",
+                                                          __intnl_SystemStringArray_1);
+        __intnl_VRCUdonUdonBehaviour_0.SetProgramVariable("__0_legends__param",
+                                                          __0___0_ToStringArray__ret);
         __intnl_VRCUdonUdonBehaviour_0.SendCustomEvent("__0__SetupPatreonBoard");
         __temp_VRCSDK3DataDataToken_0 = "patrons";
-        __temp_VRCSDK3DataDataToken_0 = __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
+        __temp_VRCSDK3DataDataToken_0 =
+            __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
         __temp_VRCSDK3DataDataDictionary_0 = __temp_VRCSDK3DataDataToken_0.DataDictionary;
         Patreon.SetProgramVariable("patrons", __temp_VRCSDK3DataDataDictionary_0);
         __temp_VRCSDK3DataDataToken_0 = "groups";
-        __temp_SystemBoolean_0 = __lcl_json_VRCSDK3DataDataDictionary_0.ContainsKey(__temp_VRCSDK3DataDataToken_0);
+        __temp_SystemBoolean_0 =
+            __lcl_json_VRCSDK3DataDataDictionary_0.ContainsKey(__temp_VRCSDK3DataDataToken_0);
         if (__temp_SystemBoolean_0)
         {
             __temp_VRCSDK3DataDataToken_0 = "groups";
-            __temp_VRCSDK3DataDataToken_0 = __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
+            __temp_VRCSDK3DataDataToken_0 =
+                __lcl_json_VRCSDK3DataDataDictionary_0.get_Item(__temp_VRCSDK3DataDataToken_0);
             __intnl_VRCSDK3DataDataDictionary_1 = __temp_VRCSDK3DataDataToken_0.DataDictionary;
         }
         else
@@ -237,7 +263,8 @@ public class PatreonProcessor : UdonSharpBehaviour
             __intnl_VRCSDK3DataDataDictionary_1 = new VRC.SDK3.Data.DataDictionary();
         }
         Patreon.SetProgramVariable("groups", __intnl_VRCSDK3DataDataDictionary_1);
-        this.SendCustomEventDelayedSeconds("_ProcessPatronsStep2", 0.1f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_ProcessPatronsStep2", 0.1f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
@@ -257,24 +284,31 @@ public class PatreonProcessor : UdonSharpBehaviour
 
     void function_0()
     {
-        VRC.SDK3.Data.DataToken __lcl_patronData_VRCSDK3DataDataToken_0 = null /* unserializable */;
-        VRC.SDK3.Data.DataToken __lcl_groupRoles_VRCSDK3DataDataToken_0 = null /* unserializable */;
+        VRC.SDK3.Data.DataToken __lcl_patronData_VRCSDK3DataDataToken_0 =
+            null /* unserializable */;
+        VRC.SDK3.Data.DataToken __lcl_groupRoles_VRCSDK3DataDataToken_0 =
+            null /* unserializable */;
 
         __temp_VRCSDK3DataDataDictionary_0 = new VRC.SDK3.Data.DataDictionary();
         Patreon.SetProgramVariable("localGroupRoles", __temp_VRCSDK3DataDataDictionary_0);
         __temp_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.LocalPlayer;
         __temp_SystemString_0 = __temp_VRCSDKBaseVRCPlayerApi_0.displayName;
         __temp_VRCSDK3DataDataToken_0 = __temp_SystemString_0;
-        __temp_SystemBoolean_0 = __0_patrons__param.TryGetValue(__temp_VRCSDK3DataDataToken_0, ref __lcl_patronData_VRCSDK3DataDataToken_0);
+        __temp_SystemBoolean_0 = __0_patrons__param.TryGetValue(
+            __temp_VRCSDK3DataDataToken_0, ref __lcl_patronData_VRCSDK3DataDataToken_0);
         if (__temp_SystemBoolean_0)
         {
-            __temp_VRCSDK3DataDataDictionary_0 = __lcl_patronData_VRCSDK3DataDataToken_0.DataDictionary;
+            __temp_VRCSDK3DataDataDictionary_0 =
+                __lcl_patronData_VRCSDK3DataDataToken_0.DataDictionary;
             __temp_VRCSDK3DataDataToken_0 = "GroupRoles";
-            __temp_SystemBoolean_0 = __temp_VRCSDK3DataDataDictionary_0.TryGetValue(__temp_VRCSDK3DataDataToken_0, ref __lcl_groupRoles_VRCSDK3DataDataToken_0);
+            __temp_SystemBoolean_0 = __temp_VRCSDK3DataDataDictionary_0.TryGetValue(
+                __temp_VRCSDK3DataDataToken_0, ref __lcl_groupRoles_VRCSDK3DataDataToken_0);
             if (__temp_SystemBoolean_0)
             {
-                __temp_VRCSDK3DataDataDictionary_0 = __lcl_groupRoles_VRCSDK3DataDataToken_0.DataDictionary;
-                Patreon.SetProgramVariable("localGroupRoles", __temp_VRCSDK3DataDataDictionary_0);
+                __temp_VRCSDK3DataDataDictionary_0 =
+                    __lcl_groupRoles_VRCSDK3DataDataToken_0.DataDictionary;
+                Patreon.SetProgramVariable("localGroupRoles",
+                                           __temp_VRCSDK3DataDataDictionary_0);
             }
         }
         return;
@@ -298,11 +332,14 @@ public class PatreonProcessor : UdonSharpBehaviour
             if (__temp_SystemBoolean_0)
             {
                 __temp_SystemInt32_0 = __lcl_i_SystemInt32_0 * 2;
-                __temp_SystemString_0 = __0_encodedPatrons__param.Substring(__temp_SystemInt32_0, 2);
-                __temp_SystemInt32_0 = System.Int32.Parse(__temp_SystemString_0, __const_SystemGlobalizationNumberStyles_0);
+                __temp_SystemString_0 =
+                    __0_encodedPatrons__param.Substring(__temp_SystemInt32_0, 2);
+                __temp_SystemInt32_0 = System.Int32.Parse(
+                    __temp_SystemString_0, __const_SystemGlobalizationNumberStyles_0);
                 __temp_SystemInt32_1 = __lcl_k_SystemString_0.Length;
                 __temp_SystemInt32_1 = __lcl_i_SystemInt32_0 % __temp_SystemInt32_1;
-                __temp_SystemCharArray_0 = __lcl_k_SystemString_0.ToCharArray(__temp_SystemInt32_1, 1);
+                __temp_SystemCharArray_0 =
+                    __lcl_k_SystemString_0.ToCharArray(__temp_SystemInt32_1, 1);
                 __temp_SystemChar_0 = __temp_SystemCharArray_0.Get(0);
                 __temp_SystemInt32_1 = System.Convert.ToInt32(__temp_SystemChar_0);
                 __temp_SystemInt32_0 = __temp_SystemInt32_0 ^ __temp_SystemInt32_1;
@@ -314,7 +351,8 @@ public class PatreonProcessor : UdonSharpBehaviour
             break;
         }
         __temp_SystemTextEncoding_0 = System.Text.Encoding.UTF8;
-        __0___0__BastePatrons__ret = __temp_SystemTextEncoding_0.GetString(__lcl_bytes_SystemByteArray_0);
+        __0___0__BastePatrons__ret =
+            __temp_SystemTextEncoding_0.GetString(__lcl_bytes_SystemByteArray_0);
         return;
     }
 
@@ -338,8 +376,10 @@ public class PatreonProcessor : UdonSharpBehaviour
         __intnl_SystemInt32_9 = 0;
         while (__intnl_SystemInt32_9 < __intnl_SystemInt32_8)
         {
-            __lcl_ceVip_SystemString_0 = ceVIPsPurchaseConfirmedBeforeReady.Get(__intnl_SystemInt32_9);
-            __temp_SystemString_0 = System.String.Format("ceVipPurchaseConfirmedBeforeReady = {0}", __lcl_ceVip_SystemString_0);
+            __lcl_ceVip_SystemString_0 =
+                ceVIPsPurchaseConfirmedBeforeReady.Get(__intnl_SystemInt32_9);
+            __temp_SystemString_0 = System.String.Format(
+                "ceVipPurchaseConfirmedBeforeReady = {0}", __lcl_ceVip_SystemString_0);
             UnityEngine.Debug.Log(__temp_SystemString_0);
             __2_patrons__param = __1_patrons__param;
             __0_ceVip__param = __lcl_ceVip_SystemString_0;
@@ -353,15 +393,19 @@ public class PatreonProcessor : UdonSharpBehaviour
     {
         System.Boolean __intnl_SystemBoolean_9 = false;
         VRC.SDK3.Data.DataToken __lcl_data_VRCSDK3DataDataToken_0 = null /* unserializable */;
-        VRC.SDK3.Data.DataToken __lcl_tierToken_VRCSDK3DataDataToken_0 = null /* unserializable */;
+        VRC.SDK3.Data.DataToken __lcl_tierToken_VRCSDK3DataDataToken_0 =
+            null /* unserializable */;
 
         __temp_VRCSDK3DataDataToken_0 = __0_ceVip__param;
-        __intnl_SystemBoolean_9 = __2_patrons__param.TryGetValue(__temp_VRCSDK3DataDataToken_0, ref __lcl_data_VRCSDK3DataDataToken_0);
+        __intnl_SystemBoolean_9 = __2_patrons__param.TryGetValue(
+            __temp_VRCSDK3DataDataToken_0, ref __lcl_data_VRCSDK3DataDataToken_0);
         if (__intnl_SystemBoolean_9)
         {
-            __temp_VRCSDK3DataDataDictionary_0 = __lcl_data_VRCSDK3DataDataToken_0.DataDictionary;
+            __temp_VRCSDK3DataDataDictionary_0 =
+                __lcl_data_VRCSDK3DataDataToken_0.DataDictionary;
             __temp_VRCSDK3DataDataToken_0 = "Tier";
-            __intnl_SystemBoolean_9 = __temp_VRCSDK3DataDataDictionary_0.TryGetValue(__temp_VRCSDK3DataDataToken_0, ref __lcl_tierToken_VRCSDK3DataDataToken_0);
+            __intnl_SystemBoolean_9 = __temp_VRCSDK3DataDataDictionary_0.TryGetValue(
+                __temp_VRCSDK3DataDataToken_0, ref __lcl_tierToken_VRCSDK3DataDataToken_0);
         }
         if (__intnl_SystemBoolean_9)
         {
@@ -370,7 +414,8 @@ public class PatreonProcessor : UdonSharpBehaviour
             __temp_SystemBoolean_0 = __3__intnlparam == 0;
             if (__temp_SystemBoolean_0)
             {
-                __temp_VRCSDK3DataDataDictionary_0 = __lcl_data_VRCSDK3DataDataToken_0.DataDictionary;
+                __temp_VRCSDK3DataDataDictionary_0 =
+                    __lcl_data_VRCSDK3DataDataToken_0.DataDictionary;
                 __temp_VRCSDK3DataDataDictionary_0.set_Item("Tier", "VIP");
             }
         }
@@ -380,7 +425,8 @@ public class PatreonProcessor : UdonSharpBehaviour
             __temp_VRCSDK3DataDataDictionary_0.set_Item("Tier", "VIP");
             __temp_VRCSDK3DataDataToken_0 = __0_ceVip__param;
             __temp_VRCSDK3DataDataToken_1 = __temp_VRCSDK3DataDataDictionary_0;
-            __2_patrons__param.SetValue(__temp_VRCSDK3DataDataToken_0, __temp_VRCSDK3DataDataToken_1);
+            __2_patrons__param.SetValue(__temp_VRCSDK3DataDataToken_0,
+                                        __temp_VRCSDK3DataDataToken_1);
         }
         return;
     }
@@ -399,9 +445,11 @@ public class PatreonProcessor : UdonSharpBehaviour
             __temp_SystemBoolean_0 = __lcl_i_SystemInt32_1 < __temp_SystemInt32_0;
             if (__temp_SystemBoolean_0)
             {
-                __temp_VRCSDK3DataDataToken_0 = __0_dataList__param.get_Item(__lcl_i_SystemInt32_1);
+                __temp_VRCSDK3DataDataToken_0 =
+                    __0_dataList__param.get_Item(__lcl_i_SystemInt32_1);
                 __temp_SystemString_0 = __temp_VRCSDK3DataDataToken_0.String;
-                __lcl_stringArray_SystemStringArray_0.Set(__lcl_i_SystemInt32_1, __temp_SystemString_0);
+                __lcl_stringArray_SystemStringArray_0.Set(__lcl_i_SystemInt32_1,
+                                                          __temp_SystemString_0);
                 __lcl_i_SystemInt32_1 = __lcl_i_SystemInt32_1 + 1;
                 continue;
             }
@@ -443,7 +491,8 @@ public class PatreonProcessor : UdonSharpBehaviour
             if (__temp_SystemBoolean_0)
             {
                 __temp_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.LocalPlayer;
-                __gintnl_SystemObjectArray_0.Set(0, __temp_VRCSDKBaseVRCPlayerApi_0.displayName);
+                __gintnl_SystemObjectArray_0.Set(0,
+                                                 __temp_VRCSDKBaseVRCPlayerApi_0.displayName);
                 if (VRC.SDKBase.Utilities.IsValid(onPurchaseConfirmedPlayer))
                 {
                     __intnl_SystemString_12 = onPurchaseConfirmedPlayer.displayName;
@@ -455,8 +504,9 @@ public class PatreonProcessor : UdonSharpBehaviour
                 __gintnl_SystemObjectArray_0.Set(1, __intnl_SystemString_12);
                 __gintnl_SystemObjectArray_0.Set(2, PatreonReady);
                 __gintnl_SystemObjectArray_0.Set(3, CEReady);
-                __temp_SystemString_0 =
-                    System.String.Format("{0} OnPurchaseConfirmed - player = {1}; PatreonReady = {2} - CEready = {3}", __gintnl_SystemObjectArray_0);
+                __temp_SystemString_0 = System.String.Format(
+                    "{0} OnPurchaseConfirmed - player = {1}; PatreonReady = {2} - CEready = {3}",
+                    __gintnl_SystemObjectArray_0);
                 UnityEngine.Debug.Log(__temp_SystemString_0);
                 __intnl_SystemBoolean_16 = PatreonReady;
                 if (__intnl_SystemBoolean_16)
@@ -482,11 +532,13 @@ public class PatreonProcessor : UdonSharpBehaviour
             {
                 __intnl_SystemString_11 = onPurchaseConfirmedResult.ID;
                 __temp_VRCEconomyUdonProduct_0 = Patreon.GetProgramVariable("EmoteProduct");
-                __intnl_SystemBoolean_15 = __intnl_SystemString_11 == __temp_VRCEconomyUdonProduct_0.ID;
+                __intnl_SystemBoolean_15 =
+                    __intnl_SystemString_11 == __temp_VRCEconomyUdonProduct_0.ID;
             }
             if (__intnl_SystemBoolean_15)
             {
-                __temp_UnityEngineGameObject_0 = Patreon.GetProgramVariable("RandomEmoteButton");
+                __temp_UnityEngineGameObject_0 =
+                    Patreon.GetProgramVariable("RandomEmoteButton");
                 __temp_UnityEngineGameObject_0.SetActive(true);
                 Patreon.SetProgramVariable("playerOwnsEmoteButton", true);
                 __temp_SystemSingle_0 = UnityEngine.Time.timeSinceLevelLoad;
@@ -495,7 +547,8 @@ public class PatreonProcessor : UdonSharpBehaviour
                     __temp_UnityEngineColor_0 = Hud.GetProgramVariable("Green");
                     __temp_UnityEngineTexture_0 = Hud.GetProgramVariable("Tick");
                     __temp_VRCUdonUdonBehaviour_0 = Hud.GetProgramVariable("Audio2d");
-                    __temp_UnityEngineAudioClip_0 = __temp_VRCUdonUdonBehaviour_0.GetProgramVariable("Success");
+                    __temp_UnityEngineAudioClip_0 =
+                        __temp_VRCUdonUdonBehaviour_0.GetProgramVariable("Success");
                     Hud.SetProgramVariable("__5_mainText__param", "Purchase Successful");
                     Hud.SetProgramVariable("__4_subText__param", "Emote away!");
                     Hud.SetProgramVariable("__1_color__param", __temp_UnityEngineColor_0);

@@ -42,7 +42,8 @@ public class NPC : UdonSharpBehaviour
     System.Int32 __0_value__param = 0;
     System.Int32 _old__specialState = 0;
     System.Int32 __0_newState__param = 0;
-    UnityEngine.Vector3 __0__NPCRoam_Destination__ret = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+    UnityEngine.Vector3 __0__NPCRoam_Destination__ret =
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
     System.Boolean __0_newOn__param = false;
     System.Boolean __0__NPCConvo_Active__ret = false;
     System.String[] __0_lines__param = null;
@@ -97,7 +98,8 @@ public class NPC : UdonSharpBehaviour
     VRC.SDKBase.VRCPlayerApi __temp_VRCSDKBaseVRCPlayerApi_1 = null;
     VRC.SDK3.Components.VRCObjectSync __temp_VRCSDK3ComponentsVRCObjectSync_0 = null;
     UnityEngine.Transform __temp_UnityEngineTransform_1 = null;
-    UnityEngine.Quaternion __temp_UnityEngineQuaternion_0 = new UnityEngine.Quaternion(0.0f, 0.0f, 0.0f, 0.0f);
+    UnityEngine.Quaternion __temp_UnityEngineQuaternion_0 =
+        new UnityEngine.Quaternion(0.0f, 0.0f, 0.0f, 0.0f);
     System.String[] __temp_SystemStringArray_0 = null;
     VRC.SDKBase.VRCPlayerApi[] __temp_VRCSDKBaseVRCPlayerApiArray_0 = null;
     System.Double __temp_SystemDouble_0 = 0.0;
@@ -197,7 +199,8 @@ public class NPC : UdonSharpBehaviour
         if (__temp_SystemBoolean_0)
         {
             __temp_VRCSDKBaseVRCPlayerApi_0 = npcUpdate.GetProgramVariable("FocusPlayer");
-            __intnl_SystemBoolean_10 = VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
+            __intnl_SystemBoolean_10 =
+                VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
             if (__intnl_SystemBoolean_10)
             {
                 __temp_VRCSDKBaseVRCPlayerApi_0 = npcUpdate.GetProgramVariable("FocusPlayer");
@@ -217,7 +220,8 @@ public class NPC : UdonSharpBehaviour
             if (__lcl_focusState_SystemInt32_0 != 0)
             {
                 npcConvo.SendCustomEvent("get_Active");
-                __lcl_inConvo_SystemBoolean_0 = npcConvo.GetProgramVariable("__0_get_Active__ret");
+                __lcl_inConvo_SystemBoolean_0 =
+                    npcConvo.GetProgramVariable("__0_get_Active__ret");
                 __temp_SystemBoolean_0 = __lcl_focusState_SystemInt32_0 == 1;
                 if (__temp_SystemBoolean_0)
                 {
@@ -259,7 +263,8 @@ public class NPC : UdonSharpBehaviour
             else
             {
                 npcRoam.SendCustomEvent("get_Destination");
-                __temp_UnityEngineVector3_0 = npcRoam.GetProgramVariable("__0_get_Destination__ret");
+                __temp_UnityEngineVector3_0 =
+                    npcRoam.GetProgramVariable("__0_get_Destination__ret");
                 __temp_UnityEngineVector3_1 = null;
                 if (__temp_UnityEngineVector3_0 != __temp_UnityEngineVector3_1)
                 {
@@ -432,7 +437,8 @@ public class NPC : UdonSharpBehaviour
         __temp_SystemInt32_1 = this.gameObject.GetInstanceID();
         __temp_SystemInt32_0 = __temp_SystemInt32_0 + __temp_SystemInt32_1;
         UnityEngine.Random.InitState(__temp_SystemInt32_0);
-        this.SendCustomEventDelayedSeconds("_InitAllDelayedEvents", 6.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_InitAllDelayedEvents", 6.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
@@ -467,8 +473,10 @@ public class NPC : UdonSharpBehaviour
 
     public void _InitDelayedEvents()
     {
-        this.SendCustomEventDelayedSeconds("_CycleNextAction", 10.0f, VRC.Udon.Common.Enums.EventTiming.Update);
-        this.SendCustomEventDelayedSeconds("_FixIfBorked", 10.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_CycleNextAction", 10.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_FixIfBorked", 10.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
@@ -621,19 +629,22 @@ public class NPC : UdonSharpBehaviour
 
     public void __0__NPCUpdate__CheckIfStillFollowingMe_Delayed()
     {
-        npcUpdate.SendCustomEventDelayedSeconds("_CheckIfStillFollowingMe", __0_delay__param, VRC.Udon.Common.Enums.EventTiming.Update);
+        npcUpdate.SendCustomEventDelayedSeconds("_CheckIfStillFollowingMe", __0_delay__param,
+                                                VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
     public void __0__NPCSpecial_PAEnd_Delayed()
     {
-        npcSpecial.SendCustomEventDelayedSeconds("_PAEnd", __1_delay__param, VRC.Udon.Common.Enums.EventTiming.Update);
+        npcSpecial.SendCustomEventDelayedSeconds("_PAEnd", __1_delay__param,
+                                                 VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
     public void __0__NPCSpecial_StartPAAnimation()
     {
-        npcSpecial.SendCustomEventDelayedSeconds("_StartPAAnimation", __2_delay__param, VRC.Udon.Common.Enums.EventTiming.Update);
+        npcSpecial.SendCustomEventDelayedSeconds("_StartPAAnimation", __2_delay__param,
+                                                 VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
@@ -664,7 +675,8 @@ public class NPC : UdonSharpBehaviour
         npcConvo.SetProgramVariable("__0_recipient__param", __0_recipient__param);
         npcConvo.SetProgramVariable("__0_sender__param", __0_sender__param);
         npcConvo.SendCustomEvent("__0__StartDeliverMessage");
-        __temp_SystemBoolean_0 = npcConvo.GetProgramVariable("__0___0__StartDeliverMessage__ret");
+        __temp_SystemBoolean_0 =
+            npcConvo.GetProgramVariable("__0___0__StartDeliverMessage__ret");
         __0___0__NPCConvo_StartDeliverMessage__ret = __temp_SystemBoolean_0;
         return;
     }
@@ -700,13 +712,16 @@ public class NPC : UdonSharpBehaviour
             __intnl_SystemInt32_14 = 0;
             while (__intnl_SystemInt32_14 < __intnl_SystemInt32_13)
             {
-                __lcl_n_VRCUdonUdonBehaviour_0 = __lcl_npcs_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_14);
+                __lcl_n_VRCUdonUdonBehaviour_0 =
+                    __lcl_npcs_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_14);
                 __temp_UnityEngineObject_0 = __lcl_n_VRCUdonUdonBehaviour_0;
                 __temp_UnityEngineObject_1 = this;
-                __intnl_SystemBoolean_36 = __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
+                __intnl_SystemBoolean_36 =
+                    __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
                 if (__intnl_SystemBoolean_36)
                 {
-                    __temp_SystemObject_0 = __lcl_n_VRCUdonUdonBehaviour_0.GetProgramVariable("State");
+                    __temp_SystemObject_0 =
+                        __lcl_n_VRCUdonUdonBehaviour_0.GetProgramVariable("State");
                     __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemObject_0);
                     __intnl_SystemBoolean_36 = __temp_SystemInt32_0 == 3;
                 }
@@ -741,31 +756,36 @@ public class NPC : UdonSharpBehaviour
         npcConvo.SendCustomEvent("_EndConvo");
         npcRoam.SendCustomEvent("_TryResume");
         npcUpdate.SendCustomEvent("_UpdateCrystal");
-        this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "N_NextActionDelayed");
+        this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,
+                                    "N_NextActionDelayed");
         return;
     }
 
     public void N_NextActionDelayed()
     {
-        this.SendCustomEventDelayedSeconds("_NextAction", 2.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_NextAction", 2.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
     public void N_NextActionDelayedMedium()
     {
-        this.SendCustomEventDelayedSeconds("_NextAction", 5.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_NextAction", 5.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
     public void N_NextActionDelayedLong()
     {
-        this.SendCustomEventDelayedSeconds("_NextAction", 8.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_NextAction", 8.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
     public void N_NextActionDelayedLong2()
     {
-        this.SendCustomEventDelayedSeconds("_NextAction", 12.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+        this.SendCustomEventDelayedSeconds("_NextAction", 12.0f,
+                                           VRC.Udon.Common.Enums.EventTiming.Update);
         return;
     }
 
@@ -785,7 +805,8 @@ public class NPC : UdonSharpBehaviour
         if (__intnl_SystemBoolean_40)
         {
             npcUpdate.SendCustomEvent("get_IsTotallyUnfocused");
-            __temp_SystemBoolean_0 = npcUpdate.GetProgramVariable("__0_get_IsTotallyUnfocused__ret");
+            __temp_SystemBoolean_0 =
+                npcUpdate.GetProgramVariable("__0_get_IsTotallyUnfocused__ret");
             __intnl_SystemBoolean_40 = __temp_SystemBoolean_0;
         }
         __intnl_SystemBoolean_39 = __intnl_SystemBoolean_40;
@@ -796,7 +817,8 @@ public class NPC : UdonSharpBehaviour
             if (__intnl_SystemBoolean_42)
             {
                 npcUpdate.SendCustomEvent("get_IsTotallyUnfocused");
-                __temp_SystemBoolean_0 = npcUpdate.GetProgramVariable("__0_get_IsTotallyUnfocused__ret");
+                __temp_SystemBoolean_0 =
+                    npcUpdate.GetProgramVariable("__0_get_IsTotallyUnfocused__ret");
                 __intnl_SystemBoolean_42 = __temp_SystemBoolean_0;
             }
             __intnl_SystemBoolean_39 = __intnl_SystemBoolean_42;
@@ -823,7 +845,8 @@ public class NPC : UdonSharpBehaviour
                 __temp_UnityEngineVector3_0 = localPlayer.GetPosition();
                 __temp_UnityEngineTransform_0 = npcRoam.transform;
                 __temp_UnityEngineVector3_1 = __temp_UnityEngineTransform_0.position;
-                __temp_SystemSingle_0 = UnityEngine.Vector3.Distance(__temp_UnityEngineVector3_0, __temp_UnityEngineVector3_1);
+                __temp_SystemSingle_0 = UnityEngine.Vector3.Distance(
+                    __temp_UnityEngineVector3_0, __temp_UnityEngineVector3_1);
                 __temp_SystemObject_0 = AI.GetProgramVariable("FOLLOW_DISTANCE_FAR");
                 __temp_SystemSingle_1 = System.Convert.ToSingle(__temp_SystemObject_0);
                 __intnl_SystemBoolean_46 = __temp_SystemSingle_0 < __temp_SystemSingle_1;
@@ -901,7 +924,8 @@ public class NPC : UdonSharpBehaviour
         __temp_SystemBoolean_0 = this.gameObject.activeInHierarchy;
         if (__temp_SystemBoolean_0)
         {
-            this.SendCustomEventDelayedSeconds("_CycleNextAction", 15.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+            this.SendCustomEventDelayedSeconds("_CycleNextAction", 15.0f,
+                                               VRC.Udon.Common.Enums.EventTiming.Update);
             _NextAction();
             return;
         }
@@ -974,12 +998,14 @@ public class NPC : UdonSharpBehaviour
             if (__temp_SystemBoolean_0)
             {
                 __temp_SystemObject = AI.GetProgramVariable("sitCooldown");
-                if (!(lastSitTime + System.Convert.ToSingle(__temp_SystemObject) > UnityEngine.Time.time))
+                if (!(lastSitTime + System.Convert.ToSingle(__temp_SystemObject) >
+                      UnityEngine.Time.time))
                 {
                     __0_newState__param = 0;
                     __0__SetSpecialState();
                     __temp_UnityEngineGameObject_0 = npcAction.gameObject;
-                    VRC.SDKBase.Networking.SetOwner(localPlayer, __temp_UnityEngineGameObject_0);
+                    VRC.SDKBase.Networking.SetOwner(localPlayer,
+                                                    __temp_UnityEngineGameObject_0);
                     _DoRandomNextAction();
                     goto bb_00002a08;
                 }
@@ -994,7 +1020,8 @@ public class NPC : UdonSharpBehaviour
         __temp_SystemSingle = UnityEngine.Time.time;
         __intnl_SystemSingle_15 = __temp_SystemSingle + 3600.0f;
         __temp_SystemObject = AI.GetProgramVariable("lastDefeatTime");
-        __intnl_SystemBoolean_59 = __intnl_SystemSingle_15 > System.Convert.ToSingle(__temp_SystemObject);
+        __intnl_SystemBoolean_59 =
+            __intnl_SystemSingle_15 > System.Convert.ToSingle(__temp_SystemObject);
         if (__intnl_SystemBoolean_59)
         {
             __intnl_SystemBoolean_59 = __temp_SystemInt32_0 == LeaveHour;
@@ -1106,7 +1133,8 @@ public class NPC : UdonSharpBehaviour
             __lcl_i_SystemInt32_0 = 0;
             while (__lcl_i_SystemInt32_0 < actionWeights.Length)
             {
-                __lcl_cum_SystemInt32_0 = __lcl_cum_SystemInt32_0 + actionWeights.Get(__lcl_i_SystemInt32_0);
+                __lcl_cum_SystemInt32_0 =
+                    __lcl_cum_SystemInt32_0 + actionWeights.Get(__lcl_i_SystemInt32_0);
                 if (__lcl_r_SystemInt32_0 <= __lcl_cum_SystemInt32_0)
                 {
                     __lcl_arrIndex_SystemInt32_0 = __lcl_i_SystemInt32_0;
@@ -1125,17 +1153,21 @@ public class NPC : UdonSharpBehaviour
                 __lcl_d_VRCUdonUdonBehaviour_1 = npcDebugs.Get(__intnl_SystemInt32_21);
                 __temp_UnityEngineObject_0 = __lcl_d_VRCUdonUdonBehaviour_1;
                 __temp_UnityEngineObject_1 = null;
-                __intnl_SystemBoolean_70 = __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
+                __intnl_SystemBoolean_70 =
+                    __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
                 if (__intnl_SystemBoolean_70)
                 {
-                    __temp_TMProTextMeshProUGUI_0 = __lcl_d_VRCUdonUdonBehaviour_1.GetProgramVariable("Action");
+                    __temp_TMProTextMeshProUGUI_0 =
+                        __lcl_d_VRCUdonUdonBehaviour_1.GetProgramVariable("Action");
                     __temp_UnityEngineObject_0 = __temp_TMProTextMeshProUGUI_0;
                     __temp_UnityEngineObject_1 = null;
-                    __intnl_SystemBoolean_70 = __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
+                    __intnl_SystemBoolean_70 =
+                        __temp_UnityEngineObject_0 != __temp_UnityEngineObject_1;
                 }
                 if (__intnl_SystemBoolean_70)
                 {
-                    __temp_TMProTextMeshProUGUI_0 = __lcl_d_VRCUdonUdonBehaviour_1.GetProgramVariable("Action");
+                    __temp_TMProTextMeshProUGUI_0 =
+                        __lcl_d_VRCUdonUdonBehaviour_1.GetProgramVariable("Action");
                     __temp_TMProTextMeshProUGUI_0.text = __lcl_actionString_SystemString_0;
                 }
                 __intnl_SystemInt32_21 = __intnl_SystemInt32_21 + 1;
@@ -1153,10 +1185,13 @@ public class NPC : UdonSharpBehaviour
                         __temp_SystemString_0 = System.String.Empty;
                         __temp_VRCSDKBaseVRCPlayerApi_1 = null;
                         npcDelivery.SetProgramVariable("__0_npc__param", this);
-                        npcDelivery.SetProgramVariable("__0_message__param", __temp_SystemString_0);
+                        npcDelivery.SetProgramVariable("__0_message__param",
+                                                       __temp_SystemString_0);
                         npcDelivery.SetProgramVariable("__0_type__param", 7);
-                        npcDelivery.SetProgramVariable("__0_recipient__param", __temp_VRCSDKBaseVRCPlayerApi_0);
-                        npcDelivery.SetProgramVariable("__0_sender__param", __temp_VRCSDKBaseVRCPlayerApi_1);
+                        npcDelivery.SetProgramVariable("__0_recipient__param",
+                                                       __temp_VRCSDKBaseVRCPlayerApi_0);
+                        npcDelivery.SetProgramVariable("__0_sender__param",
+                                                       __temp_VRCSDKBaseVRCPlayerApi_1);
                         npcDelivery.SendCustomEvent("__0__StartDeliverMessage");
                         break;
                     case 3:
@@ -1193,17 +1228,21 @@ public class NPC : UdonSharpBehaviour
         __temp_SystemBoolean_0 = this.gameObject.activeInHierarchy;
         if (__temp_SystemBoolean_0)
         {
-            this.SendCustomEventDelayedSeconds("_FixIfBorked", 20.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+            this.SendCustomEventDelayedSeconds("_FixIfBorked", 20.0f,
+                                               VRC.Udon.Common.Enums.EventTiming.Update);
             __temp_SystemBoolean_0 = localPlayer.IsOwner(this.gameObject);
             if (__temp_SystemBoolean_0)
             {
                 npcConvo.SendCustomEvent("get_IsDelivering");
-                __temp_SystemBoolean_0 = npcConvo.GetProgramVariable("__0_get_IsDelivering__ret");
+                __temp_SystemBoolean_0 =
+                    npcConvo.GetProgramVariable("__0_get_IsDelivering__ret");
                 __intnl_SystemBoolean_73 = __temp_SystemBoolean_0;
                 if (__intnl_SystemBoolean_73)
                 {
-                    __temp_VRCSDKBaseVRCPlayerApi_0 = npcUpdate.GetProgramVariable("FocusPlayer");
-                    __temp_SystemBoolean_0 = VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
+                    __temp_VRCSDKBaseVRCPlayerApi_0 =
+                        npcUpdate.GetProgramVariable("FocusPlayer");
+                    __temp_SystemBoolean_0 =
+                        VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
                     __intnl_SystemBoolean_73 = !__temp_SystemBoolean_0;
                 }
                 if (__intnl_SystemBoolean_73)
@@ -1250,8 +1289,10 @@ public class NPC : UdonSharpBehaviour
         __temp_UnityEngineVector3_0 = __temp_UnityEngineTransform_1.position;
         __temp_UnityEngineTransform_1 = AI.GetProgramVariable("EntranceGateLocation");
         __temp_UnityEngineQuaternion_0 = __temp_UnityEngineTransform_1.rotation;
-        __temp_UnityEngineTransform_0.SetPositionAndRotation(__temp_UnityEngineVector3_0, __temp_UnityEngineQuaternion_0);
-        npcRoam.SetProgramVariable("__0_value__param", new UnityEngine.Vector3(0.0f, 0.0f, 0.0f));
+        __temp_UnityEngineTransform_0.SetPositionAndRotation(__temp_UnityEngineVector3_0,
+                                                             __temp_UnityEngineQuaternion_0);
+        npcRoam.SetProgramVariable("__0_value__param",
+                                   new UnityEngine.Vector3(0.0f, 0.0f, 0.0f));
         npcRoam.SendCustomEvent("__0_set_Destination");
         npcRoam.SetProgramVariable("__1_value__param", false);
         npcRoam.SendCustomEvent("__0_set_Following");
@@ -1330,8 +1371,10 @@ public class NPC : UdonSharpBehaviour
         System.Int32 __lcl_i_SystemInt32_2 = 0;
 
         __temp_SystemInt32_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerCount();
-        __temp_VRCSDKBaseVRCPlayerApiArray_0 = new VRC.SDKBase.VRCPlayerApi[](__temp_SystemInt32_0);
-        __lcl_players_VRCSDKBaseVRCPlayerApiArray_0 = VRC.SDKBase.VRCPlayerApi.GetPlayers(__temp_VRCSDKBaseVRCPlayerApiArray_0);
+        __temp_VRCSDKBaseVRCPlayerApiArray_0 =
+            new VRC.SDKBase.VRCPlayerApi[](__temp_SystemInt32_0);
+        __lcl_players_VRCSDKBaseVRCPlayerApiArray_0 =
+            VRC.SDKBase.VRCPlayerApi.GetPlayers(__temp_VRCSDKBaseVRCPlayerApiArray_0);
         __lcl_i_SystemInt32_2 = 0;
         while (true)
         {
@@ -1345,8 +1388,10 @@ public class NPC : UdonSharpBehaviour
                 __temp_SystemDouble_0 = System.Convert.ToDouble(__temp_SystemSingle_0);
                 __temp_SystemDouble_0 = System.Math.Truncate(__temp_SystemDouble_0);
                 __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemDouble_0);
-                __temp_VRCSDKBaseVRCPlayerApi_0 = __lcl_players_VRCSDKBaseVRCPlayerApiArray_0.Get(__temp_SystemInt32_0);
-                __temp_SystemBoolean_0 = VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
+                __temp_VRCSDKBaseVRCPlayerApi_0 =
+                    __lcl_players_VRCSDKBaseVRCPlayerApiArray_0.Get(__temp_SystemInt32_0);
+                __temp_SystemBoolean_0 =
+                    VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
                 if (__temp_SystemBoolean_0)
                 {
                     __4__intnlparam = __temp_VRCSDKBaseVRCPlayerApi_0;
@@ -1363,7 +1408,8 @@ public class NPC : UdonSharpBehaviour
             }
             return;
         }
-        UnityEngine.Debug.LogWarning("GetRandomPlayer failed to find a valid player - this should never happen");
+        UnityEngine.Debug.LogWarning(
+            "GetRandomPlayer failed to find a valid player - this should never happen");
         __4__intnlparam = null;
         return;
     }

@@ -9,10 +9,14 @@ public class NetworkingManager : UdonSharpBehaviour
 {
     System.Int32[] playerIDsSynced = new System.Int32[] { -1, -1, -1, -1 };
     UnityEngine.Vector3[] ballsPSynced =
-        new UnityEngine.Vector3[] { null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */, null /* unserializable */, null /* unserializable */ };
+        new UnityEngine.Vector3[] { null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */,
+                                    null /* unserializable */, null /* unserializable */ };
     UnityEngine.Vector3 cueBallVSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
     UnityEngine.Vector3 cueBallWSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
     System.UInt16 stateIdSynced = 0;
@@ -117,7 +121,8 @@ public class NetworkingManager : UdonSharpBehaviour
     System.Boolean __0___0_isValidBase64__ret = false;
     System.String __0_value__param = null;
     System.String __0__EncodeGameState__ret = null;
-    System.Base64FormattingOptions __const_SystemBase64FormattingOptions_0 = null /* unserializable */;
+    System.Base64FormattingOptions __const_SystemBase64FormattingOptions_0 =
+        null /* unserializable */;
     System.Boolean __0___0_isInvalidBase64Char__ret = false;
     System.Char __1_value__param = null /* unserializable */;
     VRC.SDKBase.VRCPlayerApi onOwnershipTransferredPlayer = null;
@@ -131,7 +136,10 @@ public class NetworkingManager : UdonSharpBehaviour
         __lcl_i_SystemInt32_0 = 0;
         while (__lcl_i_SystemInt32_0 < ballsPSynced.Length)
         {
-            ballsPSynced.Set(__lcl_i_SystemInt32_0, __0_table___param.GetProgramVariable("balls").Get(__lcl_i_SystemInt32_0).transform.localPosition);
+            ballsPSynced.Set(__lcl_i_SystemInt32_0,
+                             __0_table___param.GetProgramVariable("balls")
+                                 .Get(__lcl_i_SystemInt32_0)
+                                 .transform.localPosition);
             __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
         }
         __lcl_i_SystemInt32_0 = 0;
@@ -154,12 +162,15 @@ public class NetworkingManager : UdonSharpBehaviour
         System.Boolean __intnl_SystemBoolean_5 = false;
         System.Int32 __lcl_i_SystemInt32_1 = 0;
 
-        if (!(System.Convert.ToInt32(gameStateSynced) == 0) && VRC.SDKBase.Networking.LocalPlayer.IsOwner(this.gameObject))
+        if (!(System.Convert.ToInt32(gameStateSynced) == 0) &&
+            VRC.SDKBase.Networking.LocalPlayer.IsOwner(this.gameObject))
         {
-            __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.GetOwner(__0_slot__param.gameObject);
+            __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0 =
+                VRC.SDKBase.Networking.GetOwner(__0_slot__param.gameObject);
             if (VRC.SDKBase.Utilities.IsValid(__lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0))
             {
-                __lcl_slotOwnerID_SystemInt32_0 = __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0.playerId;
+                __lcl_slotOwnerID_SystemInt32_0 =
+                    __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0.playerId;
                 __lcl_changedSlot_SystemBoolean_0 = false;
                 __lcl_numPlayersPrev_SystemInt32_0 = 0;
                 __lcl_i_SystemInt32_1 = 0;
@@ -167,10 +178,14 @@ public class NetworkingManager : UdonSharpBehaviour
                 {
                     if (playerIDsSynced.Get(__lcl_i_SystemInt32_1) != -1)
                     {
-                        __lcl_numPlayersPrev_SystemInt32_0 = __lcl_numPlayersPrev_SystemInt32_0 + 1;
+                        __lcl_numPlayersPrev_SystemInt32_0 =
+                            __lcl_numPlayersPrev_SystemInt32_0 + 1;
                     }
-                    if (playerIDsSynced.Get(__lcl_i_SystemInt32_1) == __lcl_slotOwnerID_SystemInt32_0 &&
-                        __lcl_i_SystemInt32_1 != System.Convert.ToInt32(System.Convert.ToByte(__0_slot__param.GetProgramVariable("slot"))))
+                    if (playerIDsSynced.Get(__lcl_i_SystemInt32_1) ==
+                            __lcl_slotOwnerID_SystemInt32_0 &&
+                        __lcl_i_SystemInt32_1 !=
+                            System.Convert.ToInt32(System.Convert.ToByte(
+                                __0_slot__param.GetProgramVariable("slot"))))
                     {
                         playerIDsSynced.Set(__lcl_i_SystemInt32_1, -1);
                         __lcl_changedSlot_SystemBoolean_0 = true;
@@ -179,16 +194,20 @@ public class NetworkingManager : UdonSharpBehaviour
                 }
                 if (__0_slot__param.GetProgramVariable("leave"))
                 {
-                    playerIDsSynced.Set(System.Convert.ToInt32(System.Convert.ToByte(__0_slot__param.GetProgramVariable("slot"))), -1);
+                    playerIDsSynced.Set(System.Convert.ToInt32(System.Convert.ToByte(
+                                            __0_slot__param.GetProgramVariable("slot"))),
+                                        -1);
                 }
                 else
                 {
-                    playerIDsSynced.Set(System.Convert.ToInt32(System.Convert.ToByte(__0_slot__param.GetProgramVariable("slot"))),
+                    playerIDsSynced.Set(System.Convert.ToInt32(System.Convert.ToByte(
+                                            __0_slot__param.GetProgramVariable("slot"))),
                                         __lcl_slotOwner_VRCSDKBaseVRCPlayerApi_0.playerId);
                 }
                 function_0();
                 __lcl_numPlayers_SystemInt32_0 = __0_CountPlayers__ret;
-                __intnl_SystemBoolean_5 = __lcl_numPlayersPrev_SystemInt32_0 != __lcl_numPlayers_SystemInt32_0;
+                __intnl_SystemBoolean_5 =
+                    __lcl_numPlayersPrev_SystemInt32_0 != __lcl_numPlayers_SystemInt32_0;
                 if (!__intnl_SystemBoolean_5)
                 {
                     __intnl_SystemBoolean_5 = __lcl_changedSlot_SystemBoolean_0;
@@ -641,7 +660,8 @@ public class NetworkingManager : UdonSharpBehaviour
         {
             if (!(playerIDsSynced.Get(__lcl_i_SystemInt32_7) == -1))
             {
-                __lcl_plyr_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerById(playerIDsSynced.Get(__lcl_i_SystemInt32_7));
+                __lcl_plyr_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerById(
+                    playerIDsSynced.Get(__lcl_i_SystemInt32_7));
                 if (__lcl_plyr_VRCSDKBaseVRCPlayerApi_0 == null)
                 {
                     __lcl_playerRemoved_SystemBoolean_0 = true;
@@ -759,7 +779,8 @@ public class NetworkingManager : UdonSharpBehaviour
     void function_1()
     {
         System.Boolean __intnl_SystemBoolean_36 = false;
-        UnityEngine.Vector3 __lcl_temp_UnityEngineVector3_0 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+        UnityEngine.Vector3 __lcl_temp_UnityEngineVector3_0 =
+            new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
 
         __intnl_SystemBoolean_36 = System.Convert.ToInt32(gameModeSynced) != 2;
         if (__intnl_SystemBoolean_36)
@@ -798,7 +819,8 @@ public class NetworkingManager : UdonSharpBehaviour
         if (hasBufferedMessages)
         {
             hasBufferedMessages = false;
-            VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer, this.gameObject);
+            VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer,
+                                            this.gameObject);
             this.RequestSerialization();
             _onDeserialization();
         }
@@ -807,7 +829,8 @@ public class NetworkingManager : UdonSharpBehaviour
 
     public void _OnPlayerPrepareShoot()
     {
-        this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "OnPlayerPrepareShoot");
+        this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,
+                                    "OnPlayerPrepareShoot");
         return;
     }
 
@@ -822,15 +845,19 @@ public class NetworkingManager : UdonSharpBehaviour
 
     void function_3()
     {
-        __0_data__param.Set(__0_pos__param, System.Convert.ToByte(System.Convert.ToInt32(__0_v__param) && 255));
-        __0_data__param.Set(__0_pos__param + 1, System.Convert.ToByte(System.Convert.ToUInt32(__0_v__param) >> 8 && 255));
+        __0_data__param.Set(__0_pos__param,
+                            System.Convert.ToByte(System.Convert.ToInt32(__0_v__param) && 255));
+        __0_data__param.Set(
+            __0_pos__param + 1,
+            System.Convert.ToByte(System.Convert.ToUInt32(__0_v__param) >> 8 && 255));
         return;
     }
 
     void function_4()
     {
-        __0___0_decodeU16__ret = System.Convert.ToUInt16(System.Convert.ToUInt32(__1_data__param.Get(__1_pos__param)) ||
-                                                         System.Convert.ToUInt32(__1_data__param.Get(__1_pos__param + 1)) << 8);
+        __0___0_decodeU16__ret = System.Convert.ToUInt16(
+            System.Convert.ToUInt32(__1_data__param.Get(__1_pos__param)) ||
+            System.Convert.ToUInt32(__1_data__param.Get(__1_pos__param + 1)) << 8);
         return;
     }
 
@@ -859,10 +886,14 @@ public class NetworkingManager : UdonSharpBehaviour
         __1_pos__param = __intnl_SystemInt32_37;
         function_4();
         __lcl__z_SystemUInt16_0 = __0___0_decodeU16__ret;
-        __lcl_x_SystemSingle_0 = (System.Convert.ToSingle(__lcl__x_SystemUInt16_0) - 32767.0f) / 32767.0f * __1_range__param;
-        __lcl_y_SystemSingle_0 = (System.Convert.ToSingle(__lcl__y_SystemUInt16_0) - 32767.0f) / 32767.0f * __1_range__param;
-        __lcl_z_SystemSingle_0 = (System.Convert.ToSingle(__lcl__z_SystemUInt16_0) - 32767.0f) / 32767.0f * __1_range__param;
-        __0___0_decodeVec3Full__ret = new UnityEngine.Vector3(__lcl_x_SystemSingle_0, __lcl_y_SystemSingle_0, __lcl_z_SystemSingle_0);
+        __lcl_x_SystemSingle_0 = (System.Convert.ToSingle(__lcl__x_SystemUInt16_0) - 32767.0f) /
+                                 32767.0f * __1_range__param;
+        __lcl_y_SystemSingle_0 = (System.Convert.ToSingle(__lcl__y_SystemUInt16_0) - 32767.0f) /
+                                 32767.0f * __1_range__param;
+        __lcl_z_SystemSingle_0 = (System.Convert.ToSingle(__lcl__z_SystemUInt16_0) - 32767.0f) /
+                                 32767.0f * __1_range__param;
+        __0___0_decodeVec3Full__ret = new UnityEngine.Vector3(
+            __lcl_x_SystemSingle_0, __lcl_y_SystemSingle_0, __lcl_z_SystemSingle_0);
         return;
     }
 
@@ -880,8 +911,10 @@ public class NetworkingManager : UdonSharpBehaviour
         System.Byte[] __lcl_floatBytes_SystemByteArray_0 = null;
 
         __lcl_floatBytes_SystemByteArray_0 = new System.Byte[](4);
-        System.Array.Copy(__6_data__param, __4_pos__param, __lcl_floatBytes_SystemByteArray_0, 0, 4);
-        __0___0_bytesToFloat__ret = System.BitConverter.ToSingle(__lcl_floatBytes_SystemByteArray_0, 0);
+        System.Array.Copy(__6_data__param, __4_pos__param, __lcl_floatBytes_SystemByteArray_0,
+                          0, 4);
+        __0___0_bytesToFloat__ret =
+            System.BitConverter.ToSingle(__lcl_floatBytes_SystemByteArray_0, 0);
         return;
     }
 
@@ -935,7 +968,8 @@ public class NetworkingManager : UdonSharpBehaviour
         __4_pos__param = __intnl_SystemInt32_41;
         __0_bytesToFloat();
         __lcl_z_SystemSingle_1 = __0___0_bytesToFloat__ret;
-        __0___0_bytesToVec3__ret = new UnityEngine.Vector3(__lcl_x_SystemSingle_1, __lcl_y_SystemSingle_1, __lcl_z_SystemSingle_1);
+        __0___0_bytesToVec3__ret = new UnityEngine.Vector3(
+            __lcl_x_SystemSingle_1, __lcl_y_SystemSingle_1, __lcl_z_SystemSingle_1);
         return;
     }
 
@@ -985,7 +1019,8 @@ public class NetworkingManager : UdonSharpBehaviour
         isValidBase64();
         if (__0___0_isValidBase64__ret)
         {
-            __lcl_gameState_SystemByteArray_0 = System.Convert.FromBase64String(__1_gameStateStr__param);
+            __lcl_gameState_SystemByteArray_0 =
+                System.Convert.FromBase64String(__1_gameStateStr__param);
             if (!(__lcl_gameState_SystemByteArray_0.Length != 84))
             {
                 stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
@@ -998,7 +1033,8 @@ public class NetworkingManager : UdonSharpBehaviour
                     __1_range__param = 2.5f;
                     __intnl_UnityEngineVector3Array_0 = ballsPSynced;
                     function_5();
-                    __intnl_UnityEngineVector3Array_0.Set(__lcl_i_SystemInt32_10, __0___0_decodeVec3Full__ret);
+                    __intnl_UnityEngineVector3Array_0.Set(__lcl_i_SystemInt32_10,
+                                                          __0___0_decodeVec3Full__ret);
                     __lcl_i_SystemInt32_10 = __lcl_i_SystemInt32_10 + 1;
                 }
                 __3_data__param = __lcl_gameState_SystemByteArray_0;
@@ -1039,10 +1075,13 @@ public class NetworkingManager : UdonSharpBehaviour
                 }
                 foulStateSynced = System.Convert.ToByte(__intnl_SystemInt32_48);
                 isTableOpenSynced = (__lcl_state_SystemUInt32_0 && 8) == 8;
-                teamColorSynced = System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 16) >> 4);
-                gameModeSynced = System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 1792) >> 8);
+                teamColorSynced =
+                    System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 16) >> 4);
+                gameModeSynced =
+                    System.Convert.ToByte((__lcl_state_SystemUInt32_0 && 1792) >> 8);
                 __lcl_timerSetting_SystemUInt32_0 = (__lcl_state_SystemUInt32_0 && 24576) >> 13;
-                if (__lcl_timerSetting_SystemUInt32_0 >= 0 && __lcl_timerSetting_SystemUInt32_0 <= 3)
+                if (__lcl_timerSetting_SystemUInt32_0 >= 0 &&
+                    __lcl_timerSetting_SystemUInt32_0 <= 3)
                 {
                     switch (System.Convert.ToInt32(__lcl_timerSetting_SystemUInt32_0))
                     {
@@ -1064,8 +1103,10 @@ public class NetworkingManager : UdonSharpBehaviour
                 teamsSynced = (__lcl_state_SystemUInt32_0 && 32768) == 32768;
                 if (System.Convert.ToInt32(gameModeSynced) == 2)
                 {
-                    fourBallScoresSynced.Set(0, System.Convert.ToByte(__lcl_spec_SystemUInt32_0 && 15));
-                    fourBallScoresSynced.Set(1, System.Convert.ToByte((__lcl_spec_SystemUInt32_0 && 15) >> 4));
+                    fourBallScoresSynced.Set(
+                        0, System.Convert.ToByte(__lcl_spec_SystemUInt32_0 && 15));
+                    fourBallScoresSynced.Set(
+                        1, System.Convert.ToByte((__lcl_spec_SystemUInt32_0 && 15) >> 4));
                     if ((__lcl_spec_SystemUInt32_0 && 256) == 256)
                     {
                         gameModeSynced = 3;
@@ -1093,7 +1134,8 @@ public class NetworkingManager : UdonSharpBehaviour
         isValidBase64();
         if (__0___0_isValidBase64__ret)
         {
-            __lcl_gameState_SystemByteArray_1 = System.Convert.FromBase64String(__2_gameStateStr__param);
+            __lcl_gameState_SystemByteArray_1 =
+                System.Convert.FromBase64String(__2_gameStateStr__param);
             if (!(__lcl_gameState_SystemByteArray_1.Length != 123))
             {
                 stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
@@ -1106,7 +1148,8 @@ public class NetworkingManager : UdonSharpBehaviour
                     __1_range__param = 2.5f;
                     __intnl_UnityEngineVector3Array_1 = ballsPSynced;
                     function_5();
-                    __intnl_UnityEngineVector3Array_1.Set(__lcl_i_SystemInt32_11, __0___0_decodeVec3Full__ret);
+                    __intnl_UnityEngineVector3Array_1.Set(__lcl_i_SystemInt32_11,
+                                                          __0___0_decodeVec3Full__ret);
                     __lcl_i_SystemInt32_11 = __lcl_i_SystemInt32_11 + 1;
                 }
                 __3_data__param = __lcl_gameState_SystemByteArray_1;
@@ -1125,16 +1168,19 @@ public class NetworkingManager : UdonSharpBehaviour
                 ballsPocketedSynced = __0___0_decodeU16__ret;
                 teamIdSynced = __lcl_gameState_SystemByteArray_1.Get(110);
                 foulStateSynced = __lcl_gameState_SystemByteArray_1.Get(111);
-                isTableOpenSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(112)) != 0;
+                isTableOpenSynced =
+                    System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(112)) != 0;
                 teamColorSynced = __lcl_gameState_SystemByteArray_1.Get(113);
                 turnStateSynced = __lcl_gameState_SystemByteArray_1.Get(114);
                 gameModeSynced = __lcl_gameState_SystemByteArray_1.Get(115);
                 timerSynced = __lcl_gameState_SystemByteArray_1.Get(117);
-                teamsSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(118)) != 0;
+                teamsSynced =
+                    System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(118)) != 0;
                 fourBallScoresSynced.Set(0, __lcl_gameState_SystemByteArray_1.Get(119));
                 fourBallScoresSynced.Set(1, __lcl_gameState_SystemByteArray_1.Get(120));
                 fourBallCueBallSynced = __lcl_gameState_SystemByteArray_1.Get(121);
-                colorTurnSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(122)) != 0;
+                colorTurnSynced =
+                    System.Convert.ToInt32(__lcl_gameState_SystemByteArray_1.Get(122)) != 0;
                 __0_urgent__param = true;
                 function_2();
             }
@@ -1153,8 +1199,10 @@ public class NetworkingManager : UdonSharpBehaviour
         isValidBase64();
         if (__0___0_isValidBase64__ret)
         {
-            __lcl_gameState_SystemByteArray_2 = System.Convert.FromBase64String(__3_gameStateStr__param);
-            if (!(System.Convert.ToInt64(__lcl_gameState_SystemByteArray_2.Length) != System.Convert.ToInt64(gameStateLength)))
+            __lcl_gameState_SystemByteArray_2 =
+                System.Convert.FromBase64String(__3_gameStateStr__param);
+            if (!(System.Convert.ToInt64(__lcl_gameState_SystemByteArray_2.Length) !=
+                  System.Convert.ToInt64(gameStateLength)))
             {
                 stateIdSynced = System.Convert.ToUInt16(stateIdSynced + 1);
                 __lcl_encodePos_SystemInt32_0 = 0;
@@ -1165,7 +1213,8 @@ public class NetworkingManager : UdonSharpBehaviour
                     __1_start__param = __lcl_encodePos_SystemInt32_0;
                     __intnl_UnityEngineVector3Array_2 = ballsPSynced;
                     function_8();
-                    __intnl_UnityEngineVector3Array_2.Set(__lcl_i_SystemInt32_12, __0___0_bytesToVec3__ret);
+                    __intnl_UnityEngineVector3Array_2.Set(__lcl_i_SystemInt32_12,
+                                                          __0___0_bytesToVec3__ret);
                     __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 12;
                     __lcl_i_SystemInt32_12 = __lcl_i_SystemInt32_12 + 1;
                 }
@@ -1184,29 +1233,42 @@ public class NetworkingManager : UdonSharpBehaviour
                 function_4();
                 ballsPocketedSynced = __0___0_decodeU16__ret;
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 2;
-                teamIdSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                teamIdSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                foulStateSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                foulStateSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                isTableOpenSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0)) != 0;
+                isTableOpenSynced =
+                    System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(
+                        __lcl_encodePos_SystemInt32_0)) != 0;
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                teamColorSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                teamColorSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                turnStateSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                turnStateSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                gameModeSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                gameModeSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                timerSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                timerSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                teamsSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0)) != 0;
+                teamsSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(
+                                  __lcl_encodePos_SystemInt32_0)) != 0;
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                fourBallScoresSynced.Set(0, __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0));
+                fourBallScoresSynced.Set(
+                    0, __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0));
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                fourBallScoresSynced.Set(1, __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0));
+                fourBallScoresSynced.Set(
+                    1, __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0));
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                fourBallCueBallSynced = __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
+                fourBallCueBallSynced =
+                    __lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0);
                 __lcl_encodePos_SystemInt32_0 = __lcl_encodePos_SystemInt32_0 + 1;
-                colorTurnSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(__lcl_encodePos_SystemInt32_0)) != 0;
+                colorTurnSynced = System.Convert.ToInt32(__lcl_gameState_SystemByteArray_2.Get(
+                                      __lcl_encodePos_SystemInt32_0)) != 0;
                 __0_urgent__param = true;
                 function_2();
             }
@@ -1223,9 +1285,11 @@ public class NetworkingManager : UdonSharpBehaviour
         System.Int32 __intnl_SystemInt32_63 = 0;
         System.Int32 __intnl_SystemInt32_64 = 0;
         System.Int32 __lcl_i_SystemInt32_13 = 0;
-        UnityEngine.Vector3 __intnl_UnityEngineVector3_2 = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
+        UnityEngine.Vector3 __intnl_UnityEngineVector3_2 =
+            new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
 
-        __lcl_gameState_SystemByteArray_3 = new System.Byte[](System.Convert.ToInt32(gameStateLength));
+        __lcl_gameState_SystemByteArray_3 =
+            new System.Byte[](System.Convert.ToInt32(gameStateLength));
         __lcl_encodePos_SystemInt32_1 = 0;
         __lcl_i_SystemInt32_13 = 0;
         while (__lcl_i_SystemInt32_13 < 16)
@@ -1248,7 +1312,8 @@ public class NetworkingManager : UdonSharpBehaviour
         __1_vec__param = cueBallWSynced;
         function_7();
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 12;
-        __intnl_SystemUInt16_3 = System.Convert.ToUInt16(System.Convert.ToUInt32(ballsPocketedSynced) && 65535);
+        __intnl_SystemUInt16_3 =
+            System.Convert.ToUInt16(System.Convert.ToUInt32(ballsPocketedSynced) && 65535);
         __0_data__param = __lcl_gameState_SystemByteArray_3;
         __0_pos__param = __lcl_encodePos_SystemInt32_1;
         __0_v__param = __intnl_SystemUInt16_3;
@@ -1266,7 +1331,8 @@ public class NetworkingManager : UdonSharpBehaviour
         {
             __intnl_SystemInt32_62 = 0;
         }
-        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, System.Convert.ToByte(__intnl_SystemInt32_62));
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1,
+                                              System.Convert.ToByte(__intnl_SystemInt32_62));
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
         __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, teamColorSynced);
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
@@ -1284,13 +1350,17 @@ public class NetworkingManager : UdonSharpBehaviour
         {
             __intnl_SystemInt32_63 = 0;
         }
-        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, System.Convert.ToByte(__intnl_SystemInt32_63));
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1,
+                                              System.Convert.ToByte(__intnl_SystemInt32_63));
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
-        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, fourBallScoresSynced.Get(0));
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1,
+                                              fourBallScoresSynced.Get(0));
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
-        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, fourBallScoresSynced.Get(1));
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1,
+                                              fourBallScoresSynced.Get(1));
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
-        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, fourBallCueBallSynced);
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1,
+                                              fourBallCueBallSynced);
         __lcl_encodePos_SystemInt32_1 = __lcl_encodePos_SystemInt32_1 + 1;
         if (colorTurnSynced)
         {
@@ -1300,8 +1370,11 @@ public class NetworkingManager : UdonSharpBehaviour
         {
             __intnl_SystemInt32_64 = 0;
         }
-        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1, System.Convert.ToByte(__intnl_SystemInt32_64));
-        __0__EncodeGameState__ret = "v3:" + System.Convert.ToBase64String(__lcl_gameState_SystemByteArray_3, __const_SystemBase64FormattingOptions_0);
+        __lcl_gameState_SystemByteArray_3.Set(__lcl_encodePos_SystemInt32_1,
+                                              System.Convert.ToByte(__intnl_SystemInt32_64));
+        __0__EncodeGameState__ret =
+            "v3:" + System.Convert.ToBase64String(__lcl_gameState_SystemByteArray_3,
+                                                  __const_SystemBase64FormattingOptions_0);
         return;
     }
 
@@ -1353,18 +1426,21 @@ public class NetworkingManager : UdonSharpBehaviour
         else
         {
             __lcl_index_SystemInt32_0 = __0_value__param.Length - 1;
-            if (System.Convert.ToInt32(__0_value__param.ToCharArray(__lcl_index_SystemInt32_0, 1).Get(0)) == 61)
+            if (System.Convert.ToInt32(
+                    __0_value__param.ToCharArray(__lcl_index_SystemInt32_0, 1).Get(0)) == 61)
             {
                 __lcl_index_SystemInt32_0 = __lcl_index_SystemInt32_0 - 1;
             }
-            if (System.Convert.ToInt32(__0_value__param.ToCharArray(__lcl_index_SystemInt32_0, 1).Get(0)) == 61)
+            if (System.Convert.ToInt32(
+                    __0_value__param.ToCharArray(__lcl_index_SystemInt32_0, 1).Get(0)) == 61)
             {
                 __lcl_index_SystemInt32_0 = __lcl_index_SystemInt32_0 - 1;
             }
             __lcl_i_SystemInt32_14 = 0;
             while (__lcl_i_SystemInt32_14 <= __lcl_index_SystemInt32_0)
             {
-                __1_value__param = __0_value__param.ToCharArray(__lcl_i_SystemInt32_14, 1).Get(0);
+                __1_value__param =
+                    __0_value__param.ToCharArray(__lcl_i_SystemInt32_14, 1).Get(0);
                 isInvalidBase64Char();
                 if (__0___0_isInvalidBase64Char__ret)
                 {
@@ -1443,8 +1519,8 @@ public class NetworkingManager : UdonSharpBehaviour
         if (onOwnershipTransferredPlayer.isLocal)
         {
             validatePlayers();
-            __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0 =
-                VRC.SDKBase.VRCPlayerApi.GetPlayerById(System.Convert.ToInt32(table.GetProgramVariable("simulationOwnerID")));
+            __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerById(
+                System.Convert.ToInt32(table.GetProgramVariable("simulationOwnerID")));
             __intnl_SystemBoolean_67 = table.GetProgramVariable("isLocalSimulationRunning");
             if (!__intnl_SystemBoolean_67)
             {
@@ -1459,24 +1535,30 @@ public class NetworkingManager : UdonSharpBehaviour
             {
                 if (delayedDeserialization)
                 {
-                    table.SetProgramVariable("__4_msg__param", "Simulation changed ownership: New owner is in LoD mode, simulation end may be delayed");
+                    table.SetProgramVariable(
+                        "__4_msg__param",
+                        "Simulation changed ownership: New owner is in LoD mode, simulation end may be delayed");
                     table.SendCustomEvent("__0__LogInfo");
                     __intnl_VRCUdonUdonBehaviour_2 = table;
                     table.SendCustomEvent("checkDistanceLoD");
                     _onDeserialization();
                 }
-                __intnl_SystemBoolean_68 = !VRC.SDKBase.Utilities.IsValid(__lcl_simOwner_VRCSDKBaseVRCPlayerApi_0);
+                __intnl_SystemBoolean_68 =
+                    !VRC.SDKBase.Utilities.IsValid(__lcl_simOwner_VRCSDKBaseVRCPlayerApi_0);
                 if (!__intnl_SystemBoolean_68)
                 {
                     __intnl_SystemBoolean_68 =
-                        __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0.playerId == System.Convert.ToInt32(table.GetProgramVariable("simulationOwnerID"));
+                        __lcl_simOwner_VRCSDKBaseVRCPlayerApi_0.playerId ==
+                        System.Convert.ToInt32(table.GetProgramVariable("simulationOwnerID"));
                 }
                 if (__intnl_SystemBoolean_68)
                 {
                     table.SetProgramVariable("isLocalSimulationOurs", true);
                     if (table.GetProgramVariable("isLocalSimulationRunning"))
                     {
-                        table.SetProgramVariable("__4_msg__param", "Simulation changed ownership: Owner quit during sim");
+                        table.SetProgramVariable(
+                            "__4_msg__param",
+                            "Simulation changed ownership: Owner quit during sim");
                         table.SendCustomEvent("__0__LogInfo");
                     }
                     else
@@ -1484,7 +1566,9 @@ public class NetworkingManager : UdonSharpBehaviour
                         table.SetProgramVariable("__0_forceScratch__param", false);
                         table.SetProgramVariable("__0_forceRun__param", true);
                         table.SendCustomEvent("__0__TriggerSimulationEnded");
-                        table.SetProgramVariable("__4_msg__param", "Simulation changed ownership: Owner probably lagged out during sim");
+                        table.SetProgramVariable(
+                            "__4_msg__param",
+                            "Simulation changed ownership: Owner probably lagged out during sim");
                         table.SendCustomEvent("__0__LogInfo");
                     }
                 }

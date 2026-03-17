@@ -49,7 +49,8 @@ namespace QvPen.UdonScript
         UnityEngine.Vector3[] __3_value__param = null;
         System.Int32 __0_get_InkId__ret = 0;
         UnityEngine.Vector3[] __0_data__param = null;
-        VRC.Udon.Common.SerializationResult onPostSerializationResult = new VRC.Udon.Common.SerializationResult { success = false, byteCount = 0 };
+        VRC.Udon.Common.SerializationResult onPostSerializationResult =
+            new VRC.Udon.Common.SerializationResult { success = false, byteCount = 0 };
 
         public void get_roundedTrailShader()
         {
@@ -84,14 +85,17 @@ namespace QvPen.UdonScript
             }
             if (__intnl_SystemBoolean_0)
             {
-                this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "StartUsing");
+                this.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,
+                                            "StartUsing");
             }
             if (onPlayerJoinedPlayer.isLocal && VRC.SDKBase.Utilities.IsValid(clearButton))
             {
-                clearButtonPositionConstraint =
-                    clearButton.transform.GetComponent(typeof(UnityEngine.Animations.PositionConstraint) /* UnityEngine.AnimationModule */);
-                clearButtonRotationConstraint =
-                    clearButton.transform.GetComponent(typeof(UnityEngine.Animations.RotationConstraint) /* UnityEngine.AnimationModule */);
+                clearButtonPositionConstraint = clearButton.transform.GetComponent(
+                    typeof(UnityEngine.Animations
+                               .PositionConstraint) /* UnityEngine.AnimationModule */);
+                clearButtonRotationConstraint = clearButton.transform.GetComponent(
+                    typeof(UnityEngine.Animations
+                               .RotationConstraint) /* UnityEngine.AnimationModule */);
                 function_1();
             }
             return;
@@ -137,7 +141,8 @@ namespace QvPen.UdonScript
             {
                 inUseUI.SetActive(true);
             }
-            __lcl_owner_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.GetOwner(pen.gameObject);
+            __lcl_owner_VRCSDKBaseVRCPlayerApi_0 =
+                VRC.SDKBase.Networking.GetOwner(pen.gameObject);
             if (__lcl_owner_VRCSDKBaseVRCPlayerApi_0 != null)
             {
                 __lcl_text_SystemString_0 = __lcl_owner_VRCSDKBaseVRCPlayerApi_0.displayName;
@@ -215,7 +220,8 @@ namespace QvPen.UdonScript
             {
                 clearButtonRotationConstraint.enabled = true;
             }
-            this.SendCustomEventDelayedSeconds("_DisableClearButtonConstraints", 2.0f, VRC.Udon.Common.Enums.EventTiming.Update);
+            this.SendCustomEventDelayedSeconds("_DisableClearButtonConstraints", 2.0f,
+                                               VRC.Udon.Common.Enums.EventTiming.Update);
             return;
         }
 
@@ -366,16 +372,20 @@ namespace QvPen.UdonScript
         {
             System.Int32 __lcl_i_SystemInt32_0 = 0;
             System.Int32 __lcl_n_SystemInt32_0 = 0;
-            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_0 = null /* unserializable */;
+            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_0 =
+                null /* unserializable */;
             VRC.Udon.UdonBehaviour __lcl_listener_VRCUdonUdonBehaviour_0 = null;
 
             __lcl_i_SystemInt32_0 = 0;
             __lcl_n_SystemInt32_0 = listenerList.Count;
             while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
             {
-                if (listenerList.TryGetValue(__lcl_i_SystemInt32_0, VRC.SDK3.Data.TokenType.Reference, ref __lcl_listerToken_VRCSDK3DataDataToken_0))
+                if (listenerList.TryGetValue(__lcl_i_SystemInt32_0,
+                                             VRC.SDK3.Data.TokenType.Reference,
+                                             ref __lcl_listerToken_VRCSDK3DataDataToken_0))
                 {
-                    __lcl_listener_VRCUdonUdonBehaviour_0 = __lcl_listerToken_VRCSDK3DataDataToken_0.Reference;
+                    __lcl_listener_VRCUdonUdonBehaviour_0 =
+                        __lcl_listerToken_VRCSDK3DataDataToken_0.Reference;
                     if (VRC.SDKBase.Utilities.IsValid(__lcl_listener_VRCUdonUdonBehaviour_0))
                     {
                         __lcl_listener_VRCUdonUdonBehaviour_0.SendCustomEvent("OnPenPickup");
@@ -390,16 +400,20 @@ namespace QvPen.UdonScript
         {
             System.Int32 __lcl_i_SystemInt32_1 = 0;
             System.Int32 __lcl_n_SystemInt32_1 = 0;
-            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_1 = null /* unserializable */;
+            VRC.SDK3.Data.DataToken __lcl_listerToken_VRCSDK3DataDataToken_1 =
+                null /* unserializable */;
             VRC.Udon.UdonBehaviour __lcl_listener_VRCUdonUdonBehaviour_1 = null;
 
             __lcl_i_SystemInt32_1 = 0;
             __lcl_n_SystemInt32_1 = listenerList.Count;
             while (__lcl_i_SystemInt32_1 < __lcl_n_SystemInt32_1)
             {
-                if (listenerList.TryGetValue(__lcl_i_SystemInt32_1, VRC.SDK3.Data.TokenType.Reference, ref __lcl_listerToken_VRCSDK3DataDataToken_1))
+                if (listenerList.TryGetValue(__lcl_i_SystemInt32_1,
+                                             VRC.SDK3.Data.TokenType.Reference,
+                                             ref __lcl_listerToken_VRCSDK3DataDataToken_1))
                 {
-                    __lcl_listener_VRCUdonUdonBehaviour_1 = __lcl_listerToken_VRCSDK3DataDataToken_1.Reference;
+                    __lcl_listener_VRCUdonUdonBehaviour_1 =
+                        __lcl_listerToken_VRCSDK3DataDataToken_1.Reference;
                     if (VRC.SDKBase.Utilities.IsValid(__lcl_listener_VRCUdonUdonBehaviour_1))
                     {
                         __lcl_listener_VRCUdonUdonBehaviour_1.SendCustomEvent("OnPenDrop");
@@ -419,7 +433,8 @@ namespace QvPen.UdonScript
             }
             else
             {
-                VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer, this.gameObject);
+                VRC.SDKBase.Networking.SetOwner(VRC.SDKBase.Networking.LocalPlayer,
+                                                this.gameObject);
                 __0__TakeOwnership__ret = VRC.SDKBase.Networking.IsOwner(this.gameObject);
             }
             return;

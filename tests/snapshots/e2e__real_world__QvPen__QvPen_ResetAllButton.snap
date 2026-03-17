@@ -57,7 +57,9 @@ namespace QvPen.UdonScript.UI
                 __lcl_i_SystemInt32_0 = 0;
                 while (__lcl_i_SystemInt32_0 < __lcl_s_SystemString_0.Length)
                 {
-                    if (System.Convert.ToInt32(__lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0)) < 128)
+                    if (System.Convert.ToInt32(
+                            __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1)
+                                .Get(0)) < 128)
                     {
                         __lcl_cnt_SystemInt32_0 = __lcl_cnt_SystemInt32_0 + 1;
                     }
@@ -67,23 +69,29 @@ namespace QvPen.UdonScript.UI
                     }
                     if (__lcl_cnt_SystemInt32_0 < 12)
                     {
-                        __lcl_displayName_SystemString_0 =
-                            System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
+                        __lcl_displayName_SystemString_0 = System.String.Concat(
+                            __lcl_displayName_SystemString_0,
+                            __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1)
+                                .Get(0));
                         __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
                         continue;
                     }
                     if (__lcl_i_SystemInt32_0 == __lcl_s_SystemString_0.Length - 1)
                     {
-                        __lcl_displayName_SystemString_0 =
-                            System.String.Concat(__lcl_displayName_SystemString_0, __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1).Get(0));
+                        __lcl_displayName_SystemString_0 = System.String.Concat(
+                            __lcl_displayName_SystemString_0,
+                            __lcl_s_SystemString_0.ToCharArray(__lcl_i_SystemInt32_0, 1)
+                                .Get(0));
                     }
                     else
                     {
-                        __lcl_displayName_SystemString_0 = __lcl_displayName_SystemString_0 + "...";
+                        __lcl_displayName_SystemString_0 =
+                            __lcl_displayName_SystemString_0 + "...";
                     }
                     break;
                 }
-                __lcl_messageString_SystemString_0 = System.String.Format("<size=8>[Only {0}]</size>", __lcl_displayName_SystemString_0);
+                __lcl_messageString_SystemString_0 = System.String.Format(
+                    "<size=8>[Only {0}]</size>", __lcl_displayName_SystemString_0);
                 if (message)
                 {
                     message.text = __lcl_messageString_SystemString_0;
@@ -110,27 +118,33 @@ namespace QvPen.UdonScript.UI
 
             if (VRC.SDKBase.Networking.IsOwner(this.gameObject))
             {
-                __intnl_UnityEngineComponentArray_0 = settings.GetProgramVariable("penManagers");
+                __intnl_UnityEngineComponentArray_0 =
+                    settings.GetProgramVariable("penManagers");
                 __intnl_SystemInt32_6 = __intnl_UnityEngineComponentArray_0.Length;
                 __intnl_SystemInt32_7 = 0;
                 while (__intnl_SystemInt32_7 < __intnl_SystemInt32_6)
                 {
-                    __lcl_penManager_VRCUdonUdonBehaviour_0 = __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_7);
+                    __lcl_penManager_VRCUdonUdonBehaviour_0 =
+                        __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_7);
                     if (__lcl_penManager_VRCUdonUdonBehaviour_0)
                     {
-                        __lcl_penManager_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "ResetPen");
+                        __lcl_penManager_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(
+                            VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "ResetPen");
                     }
                     __intnl_SystemInt32_7 = __intnl_SystemInt32_7 + 1;
                 }
-                __intnl_UnityEngineComponentArray_0 = settings.GetProgramVariable("eraserManagers");
+                __intnl_UnityEngineComponentArray_0 =
+                    settings.GetProgramVariable("eraserManagers");
                 __intnl_SystemInt32_6 = __intnl_UnityEngineComponentArray_0.Length;
                 __intnl_SystemInt32_7 = 0;
                 while (__intnl_SystemInt32_7 < __intnl_SystemInt32_6)
                 {
-                    __lcl_eraserManager_VRCUdonUdonBehaviour_0 = __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_7);
+                    __lcl_eraserManager_VRCUdonUdonBehaviour_0 =
+                        __intnl_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_7);
                     if (__lcl_eraserManager_VRCUdonUdonBehaviour_0)
                     {
-                        __lcl_eraserManager_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "ResetEraser");
+                        __lcl_eraserManager_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(
+                            VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "ResetEraser");
                     }
                     __intnl_SystemInt32_7 = __intnl_SystemInt32_7 + 1;
                 }

@@ -24,7 +24,8 @@ namespace QvPen.Udon.UI
             System.Boolean __intnl_SystemBoolean_0 = false;
             System.Boolean __intnl_SystemBoolean_2 = false;
             System.Boolean __intnl_SystemBoolean_4 = false;
-            VRC.Udon.Common.Interfaces.NetworkEventTarget __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 =
+            VRC.Udon.Common.Interfaces
+                .NetworkEventTarget __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 =
                 VRC.Udon.Common.Interfaces.NetworkEventTarget.All;
             VRC.Udon.UdonBehaviour __intnl_VRCUdonUdonBehaviour_0 = null;
             System.String __intnl_SystemString_0 = null;
@@ -52,7 +53,8 @@ namespace QvPen.Udon.UI
                         __intnl_SystemBoolean_4 = canUseOwner;
                         if (__intnl_SystemBoolean_4)
                         {
-                            __intnl_SystemBoolean_4 = !VRC.SDKBase.Networking.IsOwner(this.gameObject);
+                            __intnl_SystemBoolean_4 =
+                                !VRC.SDKBase.Networking.IsOwner(this.gameObject);
                         }
                         if (__intnl_SystemBoolean_4)
                         {
@@ -71,14 +73,17 @@ namespace QvPen.Udon.UI
                     __intnl_VRCUdonUdonBehaviour_0 = udonSharpBehaviour;
                     if (onlySendToOwner)
                     {
-                        __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 = VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner;
+                        __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 =
+                            VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner;
                     }
                     else
                     {
-                        __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 = VRC.Udon.Common.Interfaces.NetworkEventTarget.All;
+                        __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 =
+                            VRC.Udon.Common.Interfaces.NetworkEventTarget.All;
                     }
                     __intnl_SystemString_0 = customEventName;
-                    __intnl_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(__intnl_VRCUdonCommonInterfacesNetworkEventTarget_0, customEventName);
+                    __intnl_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(
+                        __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0, customEventName);
                 }
                 else
                 {
@@ -94,20 +99,26 @@ namespace QvPen.Udon.UI
                     __intnl_SystemInt32_2 = 0;
                     while (__intnl_SystemInt32_2 < __intnl_SystemInt32_1)
                     {
-                        __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0 = udonSharpBehaviours.Get(__intnl_SystemInt32_2);
-                        if (VRC.SDKBase.Utilities.IsValid(__lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0))
+                        __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0 =
+                            udonSharpBehaviours.Get(__intnl_SystemInt32_2);
+                        if (VRC.SDKBase.Utilities.IsValid(
+                                __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0))
                         {
                             if (onlySendToOwner)
                             {
-                                __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 = VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner;
+                                __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 =
+                                    VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner;
                             }
                             else
                             {
-                                __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 = VRC.Udon.Common.Interfaces.NetworkEventTarget.All;
+                                __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0 =
+                                    VRC.Udon.Common.Interfaces.NetworkEventTarget.All;
                             }
                             __intnl_SystemString_0 = customEventName;
-                            __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0.SendCustomNetworkEvent(__intnl_VRCUdonCommonInterfacesNetworkEventTarget_0,
-                                                                                                   customEventName);
+                            __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0
+                                .SendCustomNetworkEvent(
+                                    __intnl_VRCUdonCommonInterfacesNetworkEventTarget_0,
+                                    customEventName);
                         }
                         __intnl_SystemInt32_2 = __intnl_SystemInt32_2 + 1;
                     }
@@ -118,11 +129,14 @@ namespace QvPen.Udon.UI
                     __intnl_SystemInt32_2 = 0;
                     while (__intnl_SystemInt32_2 < __intnl_SystemInt32_1)
                     {
-                        __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0 = udonSharpBehaviours.Get(__intnl_SystemInt32_2);
-                        if (VRC.SDKBase.Utilities.IsValid(__lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0))
+                        __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0 =
+                            udonSharpBehaviours.Get(__intnl_SystemInt32_2);
+                        if (VRC.SDKBase.Utilities.IsValid(
+                                __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0))
                         {
                             __intnl_SystemString_0 = customEventName;
-                            __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0.SendCustomEvent(customEventName);
+                            __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0.SendCustomEvent(
+                                customEventName);
                         }
                         __intnl_SystemInt32_2 = __intnl_SystemInt32_2 + 1;
                     }

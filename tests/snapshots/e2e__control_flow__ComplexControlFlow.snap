@@ -47,7 +47,8 @@ public class ComplexControlFlow : UdonSharpBehaviour
                 }
                 if (__intnl_SystemBoolean_1)
                 {
-                    __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 - __lcl_local_SystemInt32_0;
+                    __lcl_sum_SystemInt32_0 =
+                        __lcl_sum_SystemInt32_0 - __lcl_local_SystemInt32_0;
                 }
                 else
                 {
@@ -94,7 +95,8 @@ public class ComplexControlFlow : UdonSharpBehaviour
                 {
                     if (!(__lcl_k_SystemInt32_0 == 1))
                     {
-                        __lcl_sum_SystemInt32_0 = __lcl_sum_SystemInt32_0 + __lcl_k_SystemInt32_0;
+                        __lcl_sum_SystemInt32_0 =
+                            __lcl_sum_SystemInt32_0 + __lcl_k_SystemInt32_0;
                     }
                     __lcl_k_SystemInt32_0 = __lcl_k_SystemInt32_0 + 1;
                 }
