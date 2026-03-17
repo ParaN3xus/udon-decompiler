@@ -5,7 +5,9 @@
   "scripts": {
     "cases:build-input": "node --experimental-strip-types scripts/case-md.ts build-input",
     "cases:update-md": "node --experimental-strip-types scripts/case-md.ts update-md",
-    "test": "cargo insta test --test e2e -- --nocapture"
+    "test": "cargo insta test --test e2e -- --nocapture",
+    "check": "cargo fmt --check && cargo clippy --all-targets -- -D warnings && yarn biome check && git ls-files '*.cs' | xargs clang-format --dry-run --Werror --style=file:.clang-format && dotnet build && yarn test",
+    "fix": "cargo fmt && cargo clippy --fix --allow-dirty && yarn biome check --fix && git ls-files -z '*.cs' | xargs -0 clang-format -i --style=file:.clang-format"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
