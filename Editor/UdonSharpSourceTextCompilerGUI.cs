@@ -3,9 +3,12 @@ using UnityEditor;
 
 public class UdonSharpSourceTextCompilerGUI : EditorWindow
 {
-    [SerializeField] private string className = "TempSourceText";
+    [SerializeField]
+    private string className = "TempSourceText";
 
-    [SerializeField] private string sourceCode = @"
+    [SerializeField]
+    private string sourceCode =
+        @"
 using UnityEngine;
 using UdonSharp;
 
@@ -16,7 +19,8 @@ public class TempSourceText : UdonSharpBehaviour
         Debug.Log(""Hello World"");
     }
 }";
-    [SerializeField] private string jsonOutput = "";
+    [SerializeField]
+    private string jsonOutput = "";
     private Vector2 scrollPosition;
 
     [MenuItem("Tools/Udon Source Compiler")]
@@ -58,7 +62,8 @@ public class TempSourceText : UdonSharpBehaviour
 
         GUILayout.Label("Input Udon Assembly Code:", EditorStyles.boldLabel);
 
-        sourceCode = EditorGUILayout.TextArea(sourceCode, areaStyle, GUILayout.MinHeight(150), GUILayout.ExpandHeight(true));
+        sourceCode = EditorGUILayout.TextArea(sourceCode, areaStyle, GUILayout.MinHeight(150),
+                                              GUILayout.ExpandHeight(true));
 
         GUILayout.Space(10);
 
@@ -70,7 +75,8 @@ public class TempSourceText : UdonSharpBehaviour
                 return;
             }
 
-            jsonOutput = "Compiling... Please wait for Unity Domain Reload.\n(System will freeze briefly)";
+            jsonOutput =
+                "Compiling... Please wait for Unity Domain Reload.\n(System will freeze briefly)";
 
             UdonSharpSourceTextCompiler.CompileAndEncode(sourceCode, className);
         }
@@ -79,7 +85,8 @@ public class TempSourceText : UdonSharpBehaviour
 
         GUILayout.Label("Compressed Program Hex:", EditorStyles.boldLabel);
 
-        jsonOutput = EditorGUILayout.TextArea(jsonOutput, areaStyle, GUILayout.MinHeight(150), GUILayout.ExpandHeight(true));
+        jsonOutput = EditorGUILayout.TextArea(jsonOutput, areaStyle, GUILayout.MinHeight(150),
+                                              GUILayout.ExpandHeight(true));
 
         EditorGUILayout.EndScrollView();
     }

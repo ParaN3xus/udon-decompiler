@@ -45,6 +45,27 @@ jobs:
       - name: Biome check
         run: yarn biome check
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install clang-format
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+          
+      - name: Check C# formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files '*.cs' | xargs clang-format --dry-run --Werror --style=file:.clang-format
+
+      - name: Dotnet build
+        run: dotnet build
+
       - name: Download UdonModuleInfo.json
         shell: bash
         env:
@@ -63,12 +84,7 @@ jobs:
             echo "Failed to download ${UDON_MODULE_INFO}; continuing."
           fi
 
-      - name: Install clang-format
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y clang-format
+
 
       - name: Cargo test
         run: cargo test --test e2e -- --nocapture

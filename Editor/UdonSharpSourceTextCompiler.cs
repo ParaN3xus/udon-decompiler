@@ -34,7 +34,8 @@ public static class UdonSharpSourceTextCompiler
 
     public static void CompileBatch(List<CompilationRequest> requests)
     {
-        if (requests == null || requests.Count == 0) return;
+        if (requests == null || requests.Count == 0)
+            return;
 
         if (AssetDatabase.IsValidFolder(TEMP_FOLDER))
         {
@@ -60,7 +61,8 @@ public static class UdonSharpSourceTextCompiler
 
         AssetDatabase.Refresh();
 
-        Debug.Log($"[U# Source Text Compiler] Batch processing {requests.Count} files. Waiting for Domain Reload...");
+        Debug.Log(
+            $"[U# Source Text Compiler] Batch processing {requests.Count} files. Waiting for Domain Reload...");
     }
 
     public static void CompileAndEncode(string sourceCode, string fileName)
@@ -72,7 +74,8 @@ public static class UdonSharpSourceTextCompiler
     [UnityEditor.Callbacks.DidReloadScripts]
     private static void OnScriptsReloaded()
     {
-        if (!SessionState.GetBool(STATE_KEY_COMPILING, false)) return;
+        if (!SessionState.GetBool(STATE_KEY_COMPILING, false))
+            return;
         SessionState.SetBool(STATE_KEY_COMPILING, false);
 
         EditorApplication.delayCall += ExecuteBatchCompilation;
@@ -81,9 +84,11 @@ public static class UdonSharpSourceTextCompiler
     private static void ExecuteBatchCompilation()
     {
         string joinedNames = SessionState.GetString(STATE_KEY_FILENAMES, "");
-        if (string.IsNullOrEmpty(joinedNames)) return;
+        if (string.IsNullOrEmpty(joinedNames))
+            return;
 
-        string[] fileNames = joinedNames.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        string[] fileNames =
+            joinedNames.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
         List<UdonSharpProgramAsset> assetsToCompile = new List<UdonSharpProgramAsset>();
 
         foreach (var fileName in fileNames)
@@ -98,7 +103,8 @@ public static class UdonSharpSourceTextCompiler
                 continue;
             }
 
-            UdonSharpProgramAsset programAsset = AssetDatabase.LoadAssetAtPath<UdonSharpProgramAsset>(assetPath);
+            UdonSharpProgramAsset programAsset =
+                AssetDatabase.LoadAssetAtPath<UdonSharpProgramAsset>(assetPath);
             if (programAsset == null)
             {
                 programAsset = ScriptableObject.CreateInstance<UdonSharpProgramAsset>();
@@ -130,11 +136,13 @@ public static class UdonSharpSourceTextCompiler
             else
             {
                 encodedResults.Add("ERROR: Compile Failed");
-                Debug.LogError($"[U# Source Text Compiler] Failed to compile {programAsset.name}");
+                Debug.LogError(
+                    $"[U# Source Text Compiler] Failed to compile {programAsset.name}");
             }
         }
 
-        Debug.Log($"[U# Source Text Compiler] Batch Compilation Completed. Count: {encodedResults.Count}");
+        Debug.Log(
+            $"[U# Source Text Compiler] Batch Compilation Completed. Count: {encodedResults.Count}");
 
         OnBatchResultCompleted?.Invoke(encodedResults);
 
@@ -149,8 +157,7 @@ public static class UdonSharpSourceTextCompiler
         if (program is not UdonProgram concreteProgram)
         {
             throw new InvalidOperationException(
-                $"Expected UdonProgram runtime type, got {program.GetType().FullName}"
-            );
+                $"Expected UdonProgram runtime type, got {program.GetType().FullName}");
         }
 
         byte[] rawBytes;
@@ -159,19 +166,20 @@ public static class UdonSharpSourceTextCompiler
             using (var writer = new BinaryDataWriter(rawStream, new SerializationContext()))
             {
                 VRC.Udon.Serialization.OdinSerializer.SerializationUtility.SerializeValue(
-                    concreteProgram,
-                    writer
-                );
+                    concreteProgram, writer);
             }
             rawBytes = rawStream.ToArray();
         }
 
         using var compressedStream = new MemoryStream();
-        using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress, leaveOpen: true))
+        using (var gzipStream =
+                   new GZipStream(compressedStream, CompressionMode.Compress, leaveOpen: true))
         {
             gzipStream.Write(rawBytes, 0, rawBytes.Length);
         }
 
-        return BitConverter.ToString(compressedStream.ToArray()).Replace("-", "").ToLowerInvariant();
+        return BitConverter.ToString(compressedStream.ToArray())
+            .Replace("-", "")
+            .ToLowerInvariant();
     }
 }
