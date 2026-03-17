@@ -532,6 +532,15 @@ fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
             }
         }
 
+        // todo: there can be other types of assigning ret
+        // like
+        // __0___0_fibonacci__ret <- __intnl_SystemInt32_2 + ret
+        // PUSH, __intnl_SystemInt32_2
+        // PUSH, __0___0_fibonacci__ret
+        // PUSH, __0___0_fibonacci__ret
+        // EXTERN, "SystemInt32.__op_Addition__SystemInt32_SystemInt32__SystemInt32"
+
+        // find a --copy-> __*_{__* | get}_name__ret
         let mut candidate_names = Vec::<String>::new();
         for idx in 0..instruction_addresses.len().saturating_sub(2) {
             let addr2 = instruction_addresses[idx + 1];
