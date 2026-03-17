@@ -43,7 +43,7 @@ jobs:
         run: yarn install --immutable
 
       - name: Biome check
-        run: yarn biome check package.json scripts/case-md.ts
+        run: yarn biome check
 
       - name: Cargo build tests
         run: cargo test -q --no-run
