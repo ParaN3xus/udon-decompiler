@@ -56,6 +56,11 @@
   resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-2.4.7.tgz#952a06ac73f36e7c16d984bf2c0de0b619aa67b5"
   integrity sha512-qEpGjSkPC3qX4ycbMUthXvi9CkRq7kZpkqMY1OyhmYlYLnANnooDQ7hDerM8+0NJ+DZKVnsIc07h30XOpt7LtQ==
 
+"@rainbowatcher/toml-edit-js@0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@rainbowatcher/toml-edit-js/-/toml-edit-js-0.6.1.tgz#7adaa70467e83d6cb1a61116e1815cb8e58d1c5e"
+  integrity sha512-YJA+v7R1oqpg3cZYzkgrVmMDcKpnPP6iDJeIfRj9D4EsCyFQW6x5RODgPEvQWnsyCTHeGjHpi9V5MFwgycOMJg==
+
 "@types/node@^24.12.0":
   version "24.12.0"
   resolved "https://registry.npmjs.org/@types/node/-/node-24.12.0.tgz"

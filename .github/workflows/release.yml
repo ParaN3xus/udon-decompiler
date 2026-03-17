@@ -1,0 +1,213 @@
+name: Release
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 0.1.0). Leave empty for nightly."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  NODE_VERSION: "24"
+
+jobs:
+  prepare:
+    name: Prepare metadata
+    runs-on: ubuntu-latest
+    outputs:
+      is_nightly: ${{ steps.meta.outputs.is_nightly }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      ref: ${{ steps.meta.outputs.ref }}
+    steps:
+      - name: Resolve release mode
+        id: meta
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version || '' }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${INPUT_VERSION}"
+          if [ -z "${VERSION}" ]; then
+            echo "is_nightly=true" >> "$GITHUB_OUTPUT"
+            echo "version=nightly" >> "$GITHUB_OUTPUT"
+            echo "tag=nightly" >> "$GITHUB_OUTPUT"
+            echo "ref=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version: ${VERSION}" >&2
+            exit 1
+          fi
+
+          echo "is_nightly=false" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "ref=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+  bump-version:
+    name: Bump version, tag, and push
+    needs: prepare
+    if: needs.prepare.outputs.is_nightly == 'false'
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.push.outputs.ref }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Yarn dependencies
+        run: yarn install --immutable
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Bump Cargo version
+        run: yarn build:bump --version "${{ needs.prepare.outputs.version }}"
+
+      - name: Update Cargo.lock
+        run: cargo update
+
+      - name: Commit, tag, and push
+        id: push
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add Cargo.toml Cargo.lock
+
+          if git diff --cached --quiet; then
+            echo "No version changes to commit." >&2
+            exit 1
+          fi
+
+          git commit -m "build: bump version to v${VERSION}"
+          git tag "${TAG}"
+          git push origin HEAD
+          git push origin "${TAG}"
+
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs:
+      - prepare
+      - bump-version
+    if: always() && needs.prepare.result == 'success' && (needs.prepare.outputs.is_nightly == 'true' || needs.bump-version.result == 'success')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-latest
+            rust-target: x86_64-unknown-linux-gnu
+            dotnet-rid: linux-x64
+            rust-binary: udon-decompiler
+            dumper-binary: UdonProgramDumper
+          - name: windows-x64
+            os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+            dotnet-rid: win-x64
+            rust-binary: udon-decompiler.exe
+            dumper-binary: UdonProgramDumper.exe
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.ref || needs.prepare.outputs.ref }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Create output directory
+        shell: bash
+        run: mkdir -p dist/${{ matrix.name }}
+
+      - name: Build binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cargo build --release --locked --target ${{ matrix.rust-target }} --bin udon-decompiler
+          cp "target/${{ matrix.rust-target }}/release/${{ matrix.rust-binary }}" "dist/${{ matrix.name }}/${{ matrix.rust-binary }}"
+
+          dotnet publish tools/UdonProgramDumper/UdonProgramDumper.csproj \
+            -c Release \
+            -r ${{ matrix.dotnet-rid }} \
+            -p:PublishAot=true
+          cp "tools/UdonProgramDumper/bin/Release/net10.0/${{ matrix.dotnet-rid }}/publish/${{ matrix.dumper-binary }}" "dist/${{ matrix.name }}/${{ matrix.dumper-binary }}"
+
+      - name: Upload artifact directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.name }}
+          if-no-files-found: error
+          retention-days: 14
+
+  draft-release:
+    name: Create draft GitHub release
+    needs:
+      - prepare
+      - build
+    if: needs.prepare.outputs.is_nightly == 'false' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Package release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for dir in */; do
+            [ -d "$dir" ] || continue
+            name="${dir%/}"
+            zip -r "${name}.zip" "$name"
+          done
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release-assets/*.zip
