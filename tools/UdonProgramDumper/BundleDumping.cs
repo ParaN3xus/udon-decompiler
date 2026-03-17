@@ -130,7 +130,7 @@ internal static partial class Program
             return true;
         }
 
-        AssetTypeReference ? scriptInfo;
+        AssetTypeReference? scriptInfo;
         try
         {
             scriptInfo = AssetHelper.GetAssetsFileScriptInfo(manager, assetsFile, scriptIndex);

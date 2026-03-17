@@ -1,10 +1,10 @@
-use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrBlock, IrBlockContainer, IrContainerKind, IrFunction, IrHighLevelDoWhile, IrHighLevelWhile,
     IrJump, IrLeave, IrStatement,
 };
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 
 pub struct HighLevelLoopStatementTransform;
 

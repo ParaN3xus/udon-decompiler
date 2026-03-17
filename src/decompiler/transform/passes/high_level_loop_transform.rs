@@ -1,10 +1,10 @@
-use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrBlock, IrBlockContainer, IrContainerKind, IrExpression, IrFunction, IrIf, IrJump, IrLeave,
     IrOperator, IrOperatorCallExpression, IrStatement, IrSwitch,
 };
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 
 pub struct HighLevelLoopTransform;
 
@@ -42,10 +42,10 @@ impl LoopTransformState {
     }
 
     fn commit(self, context: &mut TransformContext<'_, '_>) {
-        context
-            .program_context
-            .metadata
-            .insert(METADATA_SYNTHETIC_BLOCK_ADDR.to_string(), self.synthetic_next);
+        context.program_context.metadata.insert(
+            METADATA_SYNTHETIC_BLOCK_ADDR.to_string(),
+            self.synthetic_next,
+        );
     }
 }
 

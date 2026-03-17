@@ -1,6 +1,6 @@
 mod basic_block;
-mod clang_format;
 mod cfg;
+mod clang_format;
 mod codegen;
 mod context;
 mod indir_jump_analysis;

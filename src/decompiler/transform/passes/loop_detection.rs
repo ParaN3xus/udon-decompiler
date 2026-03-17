@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     ControlFlowGraph, ControlFlowNode, IrBlock, IrBlockContainer, IrContainerKind, IrFunction,
@@ -8,6 +7,7 @@ use crate::decompiler::ir::{
 };
 use crate::decompiler::transform::ir_utils::{find_container_mut, iter_block_containers};
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 
 pub struct LoopDetection;
 

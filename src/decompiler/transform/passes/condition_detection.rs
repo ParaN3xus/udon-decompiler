@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     ControlFlowGraph, IrBlock, IrBlockContainer, IrExpression, IrFunction, IrHighLevelDoWhile,
@@ -10,6 +9,7 @@ use crate::decompiler::ir::{
 use crate::decompiler::transform::ir_utils::{find_container_mut, iter_block_containers};
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
 use crate::decompiler::transform::passes::detect_exit_points::DetectExitPoints;
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 
 pub struct ConditionDetection;
 

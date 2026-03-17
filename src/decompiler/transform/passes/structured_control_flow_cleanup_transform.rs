@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrBlock, IrBlockContainer, IrFunction, IrHighLevelDoWhile, IrHighLevelSwitch, IrHighLevelWhile,
     IrIf, IrJump, IrReturn, IrStatement, IrSwitch,
 };
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
+use crate::str_constants::METADATA_SYNTHETIC_BLOCK_ADDR;
 
 pub struct StructuredControlFlowCleanupTransform;
 

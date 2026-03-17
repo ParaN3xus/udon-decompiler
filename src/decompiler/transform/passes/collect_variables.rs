@@ -1,14 +1,14 @@
 use std::collections::{BTreeSet, HashMap};
 
-use crate::str_constants::{
-    SYMBOL_PREFIX_THIS, SYMBOL_THIS, SYMBOL_THIS_GAME_OBJECT, SYMBOL_THIS_TRANSFORM,
-};
 use crate::decompiler::Result;
 use crate::decompiler::ir::{
     IrAssignmentStatement, IrExpression, IrExpressionStatement, IrFunction, IrIf, IrStatement,
     IrSwitch, IrVariableDeclarationStatement,
 };
 use crate::decompiler::transform::pass_base::{ITransform, TransformContext};
+use crate::str_constants::{
+    SYMBOL_PREFIX_THIS, SYMBOL_THIS, SYMBOL_THIS_GAME_OBJECT, SYMBOL_THIS_TRANSFORM,
+};
 
 pub struct CollectVariables;
 
