@@ -35,6 +35,12 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Yarn dependencies
+        run: yarn install --immutable
+
       - name: Setup VRChat Project
         uses: ./.github/actions/setup-vrchat-project
         with:
