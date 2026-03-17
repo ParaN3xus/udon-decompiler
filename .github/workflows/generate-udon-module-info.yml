@@ -1,0 +1,79 @@
+name: Generate UdonModuleInfo.json
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-2022.3.22f1-base-3.2.1
+
+    env:
+      PROJECT_NAME: temp_proj
+      BUILD_LOG: build.log
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup VRChat Project
+        uses: ./.github/actions/setup-vrchat-project
+        with:
+          project_name: ${{ env.PROJECT_NAME }}
+
+      - name: Run Unity Extraction
+        working-directory: ${{ env.PROJECT_NAME }}
+        shell: bash
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          set +e
+          /opt/unity/Editor/Unity \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD" \
+            -serial "$UNITY_SERIAL" \
+            -batchmode \
+            -nographics \
+            -quit \
+            -projectPath . \
+            -executeMethod UdonModuleInfoExtractor.ExtractModuleInfo \
+            -logFile "$(pwd)/build.log"
+
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Unity exited with code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+      - name: Upload UdonModuleInfo.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UdonModuleInfo.json
+          path: ${{ env.PROJECT_NAME }}/Assets/UdonModuleInfo.json
+          if-no-files-found: error
+
+      - name: Sanitize Build Log
+        if: always()
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        uses: ./.github/actions/sanitize-unity-log
+        with:
+          build_log_path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ${{ env.PROJECT_NAME }}/${{ env.BUILD_LOG }}
+          if-no-files-found: ignore
