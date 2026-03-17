@@ -5,6 +5,7 @@ internal static partial class Program
 {
     private const string SerializedUdonProgramAssetClassName = "SerializedUdonProgramAsset";
     private const string CompressedProgramFieldPath = "serializedProgramCompressedBytes.Array";
+    private static readonly HashSet<char> InvalidFileNameChars = [..Path.GetInvalidFileNameChars()];
 
     private static DumpResult DumpProgramsFromBundle(string inputPath)
     {
@@ -39,10 +40,16 @@ internal static partial class Program
                 }
 
                 assetsFileCount++;
+                var assetsFileData = assetsFile.file;
+                var serializedUdonProgramScriptCache = new Dictionary<ushort, bool>();
 
-                foreach (var assetInfo in assetsFile.file.GetAssetsOfType(AssetClassID.MonoBehaviour))
+                foreach (var assetInfo in assetsFileData.GetAssetsOfType(AssetClassID.MonoBehaviour))
                 {
-                    if (!IsSerializedUdonProgramAsset(manager, assetsFile, assetInfo))
+                    if (!IsSerializedUdonProgramAsset(
+                            manager,
+                            assetsFile,
+                            assetInfo,
+                            serializedUdonProgramScriptCache))
                     {
                         continue;
                     }
@@ -90,7 +97,8 @@ internal static partial class Program
     private static bool IsSerializedUdonProgramAsset(
         AssetsManager manager,
         AssetsFileInstance assetsFile,
-        AssetFileInfo assetInfo)
+        AssetFileInfo assetInfo,
+        Dictionary<ushort, bool> serializedUdonProgramScriptCache)
     {
         if (assetInfo.TypeId != (int)AssetClassID.MonoBehaviour)
         {
@@ -112,13 +120,19 @@ internal static partial class Program
             return false;
         }
 
+        if (serializedUdonProgramScriptCache.TryGetValue(scriptIndex, out var cachedResult))
+        {
+            return cachedResult;
+        }
+
         if (TryGetTypeTreeRootClassName(assetsFile, scriptIndex, out var typeTreeClassName) &&
             string.Equals(typeTreeClassName, SerializedUdonProgramAssetClassName, StringComparison.Ordinal))
         {
+            serializedUdonProgramScriptCache[scriptIndex] = true;
             return true;
         }
 
-        AssetTypeReference? scriptInfo = null;
+        AssetTypeReference? scriptInfo;
         try
         {
             scriptInfo = AssetHelper.GetAssetsFileScriptInfo(manager, assetsFile, scriptIndex);
@@ -128,7 +142,12 @@ internal static partial class Program
             return false;
         }
 
-        return string.Equals(scriptInfo?.ClassName, SerializedUdonProgramAssetClassName, StringComparison.Ordinal);
+        var isSerializedUdonProgram = string.Equals(
+            scriptInfo?.ClassName,
+            SerializedUdonProgramAssetClassName,
+            StringComparison.Ordinal);
+        serializedUdonProgramScriptCache[scriptIndex] = isSerializedUdonProgram;
+        return isSerializedUdonProgram;
     }
 
     private static bool TryGetTypeTreeRootClassName(
@@ -194,13 +213,14 @@ internal static partial class Program
             var nameField = baseField["m_Name"];
             if (!nameField.IsDummy && !string.IsNullOrWhiteSpace(nameField.AsString))
             {
-                return SanitizeFileName(nameField.AsString);
+                return nameField.AsString;
             }
         }
         catch
         {
         }
 
+        // fallback
         return $"pathid_{assetInfo.PathId}";
     }
 
@@ -244,10 +264,9 @@ internal static partial class Program
 
     private static string SanitizeFileName(string value)
     {
-        var invalidChars = Path.GetInvalidFileNameChars();
         var cleanedChars = value
             .Trim()
-            .Select(ch => invalidChars.Contains(ch) ? '_' : ch)
+            .Select(ch => InvalidFileNameChars.Contains(ch) ? '_' : ch)
             .ToArray();
 
         return new string(cleanedChars);
