@@ -45,9 +45,6 @@ jobs:
       - name: Biome check
         run: yarn biome check
 
-      - name: Cargo build tests
-        run: cargo test -q --no-run
-
       - name: Download UdonModuleInfo.json
         shell: bash
         env:
