@@ -100,6 +100,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          if [ ! -f "$PROJECT_NAME/$OUTPUT_JSON" ]; then
+              echo "Missing Unity compiler output: $PROJECT_NAME/$OUTPUT_JSON"
+              exit 1
+          fi
+
           ERR_MSG=$(jq -r '.error' "$PROJECT_NAME/$OUTPUT_JSON")
           if [ "$ERR_MSG" != "null" ] && [ -n "$ERR_MSG" ]; then
               echo "Error found in output.json: $ERR_MSG"

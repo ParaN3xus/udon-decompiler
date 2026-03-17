@@ -158,7 +158,10 @@ public static class UdonSharpSourceTextCompiler
         {
             using (var writer = new BinaryDataWriter(rawStream, new SerializationContext()))
             {
-                SerializationUtility.SerializeValue(concreteProgram, writer);
+                VRC.Udon.Serialization.OdinSerializer.SerializationUtility.SerializeValue(
+                    concreteProgram,
+                    writer
+                );
             }
             rawBytes = rawStream.ToArray();
         }
