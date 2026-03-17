@@ -1,6 +1,3 @@
-use std::io::Write;
-use std::process::{Command, Stdio};
-
 use crate::decompiler::context::DecompileContext;
 use crate::decompiler::ir::{
     IrAssignmentStatement, IrBlock, IrBlockContainer, IrClass, IrExpression, IrExpressionStatement,
@@ -8,10 +5,11 @@ use crate::decompiler::ir::{
     IrLiteralExpression, IrOperator, IrOperatorCallExpression, IrPropertyAccessExpression,
     IrStatement, IrSwitch,
 };
-use crate::decompiler::{DecompileError, ParameterType, Result, VariableRecord};
+use crate::decompiler::{ParameterType, Result, VariableRecord};
+use crate::decompiler::clang_format::format_csharp;
 use crate::str_constants::{
-    CLANG_FORMAT_ASSUME_FILENAME_CS, TYPE_SYSTEM_BOOLEAN, TYPE_SYSTEM_BYTE, TYPE_SYSTEM_DOUBLE,
-    TYPE_SYSTEM_INT16, TYPE_SYSTEM_INT32, TYPE_SYSTEM_INT64, TYPE_SYSTEM_OBJECT, TYPE_SYSTEM_SBYTE,
+    TYPE_SYSTEM_BOOLEAN, TYPE_SYSTEM_BYTE, TYPE_SYSTEM_DOUBLE, TYPE_SYSTEM_INT16,
+    TYPE_SYSTEM_INT32, TYPE_SYSTEM_INT64, TYPE_SYSTEM_OBJECT, TYPE_SYSTEM_SBYTE,
     TYPE_SYSTEM_SINGLE, TYPE_SYSTEM_STRING, TYPE_SYSTEM_UINT16, TYPE_SYSTEM_UINT32,
     TYPE_SYSTEM_UINT64, TYPE_UNSERIALIZABLE, UNSERIALIZABLE_ARRAY_ELEMENT_LITERAL,
     UNSERIALIZABLE_LITERAL,
@@ -78,52 +76,6 @@ pub fn generate_csharp(ctx: &DecompileContext, class_ir: &IrClass) -> Result<Str
 
     format_csharp(out.join("\n").as_str())
 }
-
-fn format_csharp(code: &str) -> Result<String> {
-    let style = "{BasedOnStyle: Google, Language: CSharp, IndentWidth: 4, ColumnLimit: 160, BreakBeforeBraces: Allman}";
-
-    let mut child = Command::new("clang-format")
-        .arg(format!(
-            "--assume-filename={}",
-            CLANG_FORMAT_ASSUME_FILENAME_CS
-        ))
-        .arg(format!("-style={style}"))
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| match error.kind() {
-            std::io::ErrorKind::NotFound => {
-                DecompileError::new("clang-format not found on PATH. Install it or adjust PATH.")
-            }
-            _ => DecompileError::new(format!("failed to start clang-format: {error}")),
-        })?;
-
-    if let Some(stdin) = child.stdin.as_mut() {
-        stdin.write_all(code.as_bytes()).map_err(|error| {
-            DecompileError::new(format!("failed to write clang-format stdin: {error}"))
-        })?;
-    }
-
-    let output = child.wait_with_output().map_err(|error| {
-        DecompileError::new(format!("failed to wait for clang-format: {error}"))
-    })?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        let detail = if stderr.is_empty() {
-            "unknown error"
-        } else {
-            stderr.as_str()
-        };
-        return Err(DecompileError::new(format!(
-            "clang-format failed: {detail}"
-        )));
-    }
-
-    String::from_utf8(output.stdout)
-        .map_err(|error| DecompileError::new(format!("clang-format output is not utf-8: {error}")))
-}
-
 fn append_function(out: &mut Vec<String>, function: &IrFunction, ctx: &DecompileContext) {
     out.push(format!(
         "{}void {}()",
