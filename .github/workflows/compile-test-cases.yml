@@ -6,7 +6,7 @@ on:
     paths:
       - "tests/cases/**/*.md"
       - "Editor/UdonSharpSourceTextCompiler*.cs"
-      - "scripts/case-md.ts"
+      - "tools/case-md.ts"
       - "package.json"
   workflow_dispatch:
 

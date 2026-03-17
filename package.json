@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "cases:build-input": "node --experimental-strip-types scripts/case-md.ts build-input",
-    "cases:update-md": "node --experimental-strip-types scripts/case-md.ts update-md",
-    "build:bump": "node --experimental-strip-types scripts/bump-version.ts",
+    "cases:build-input": "node --experimental-strip-types tools/case-md.ts build-input",
+    "cases:update-md": "node --experimental-strip-types tools/case-md.ts update-md",
+    "build:bump": "node --experimental-strip-types tools/bump-version.ts",
     "docs:serve": "shiroa serve --root . docs --mode static-html",
     "docs:build": "shiroa build --root . docs --mode static-html",
     "test": "cargo insta test --test e2e -- --nocapture",
