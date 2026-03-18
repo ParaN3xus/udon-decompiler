@@ -1,10 +1,10 @@
 # Udon Decompiler
 
-[![Nightly Build](https://github.com/ParaN3xus/udon-decompiler/actions/workflows/release.yml/badge.svg?event=schedule)](https://github.com/ParaN3xus/udon-decompiler/actions/workflows/release.yml?query=event%3Aschedule)
+[![Nightly Build](https://img.shields.io/github/actions/workflow/status/ParaN3xus/udon-decompiler/release.yml?event=schedule&label=nightly)](https://github.com/ParaN3xus/udon-decompiler/actions/workflows/release.yml?query=event%3Aschedule)
 
 The UdonSharp Decompiler.
 
-We have just completed a full Rust rewrite of the entire project, and the documentation still needs to be updated. For the old version (Python version) of the source code, please refer to the [legacy branch](https://github.com/ParaN3xus/udon-decompiler/tree/python).
+We have just completed a full Rust rewrite of the entire project, and the documentation still needs to be updated. For the source code of the old version (Python version), please refer to the [legacy branch](https://github.com/ParaN3xus/udon-decompiler/tree/python).
 
 <!--
 ## Installation
