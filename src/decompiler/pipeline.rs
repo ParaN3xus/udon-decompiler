@@ -36,12 +36,9 @@ pub fn run_decompile_pipeline(ctx: &mut DecompileContext) -> Result<DecompilePip
     let mut transform_context = ProgramTransformContext::new(class_name.clone(), ctx);
     build_default_pipeline().run(&mut functions, &mut transform_context)?;
 
-    let ir_class = transform_context.ir_class.unwrap_or(IrClass {
-        class_name,
-        namespace: None,
-        variable_declarations: Vec::new(),
-        functions,
-    });
+    let ir_class = transform_context
+        .ir_class
+        .expect("IR Transform failed! ir_class output expected!");
 
     let generated_code = generate_csharp(ctx, &ir_class)?;
 
