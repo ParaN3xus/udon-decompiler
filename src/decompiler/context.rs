@@ -97,13 +97,13 @@ impl DecompileContext {
         let bytes =
             read_program_bytes(path).map_err(|e| super::DecompileError::new(e.to_string()))?;
         let program = UdonProgramBinary::parse_bytes(&bytes)?;
-        let mut ctx = Self::from_program(&program)?;
-        ctx.input_path = Some(path.to_path_buf());
-        ctx.set_input_file_name(
+        let mut ctx = Self::from_program_with_input_file_name(
+            &program,
             path.file_name()
                 .and_then(|x| x.to_str())
                 .map(|x| x.to_string()),
-        );
+        )?;
+        ctx.input_path = Some(path.to_path_buf());
         Ok(ctx)
     }
 
@@ -114,9 +114,7 @@ impl DecompileContext {
             "loading decompile context from base64 text"
         );
         let program = UdonProgramBinary::parse_base64(text)?;
-        let mut ctx = Self::from_program(&program)?;
-        ctx.set_input_file_name(input_file_name);
-        Ok(ctx)
+        Self::from_program_with_input_file_name(&program, input_file_name)
     }
 
     pub fn from_compressed_hex_text(text: &str, input_file_name: Option<String>) -> Result<Self> {
@@ -128,12 +126,17 @@ impl DecompileContext {
         let bytes = decode_compressed_hex_text(text)
             .map_err(|e| super::DecompileError::new(e.to_string()))?;
         let program = UdonProgramBinary::parse_bytes(&bytes)?;
-        let mut ctx = Self::from_program(&program)?;
-        ctx.set_input_file_name(input_file_name);
-        Ok(ctx)
+        Self::from_program_with_input_file_name(&program, input_file_name)
     }
 
     pub fn from_program(program: &UdonProgramBinary) -> Result<Self> {
+        Self::from_program_with_input_file_name(program, None)
+    }
+
+    pub fn from_program_with_input_file_name(
+        program: &UdonProgramBinary,
+        input_file_name: Option<String>,
+    ) -> Result<Self> {
         let bytecode = program.byte_code()?;
         let instructions = InstructionList::from_bytecode(&bytecode)?;
         let heap_capacity = program.heap_capacity()?;
@@ -143,7 +146,7 @@ impl DecompileContext {
 
         let mut ctx = Self {
             input_path: None,
-            input_file_name: None,
+            input_file_name,
             inferred_class_name: DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME.to_string(),
             clang_format_override: None,
             bytecode,

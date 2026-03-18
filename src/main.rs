@@ -352,17 +352,18 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
             let program = UdonProgramBinary::parse_bytes(&bytes).with_context(|| {
                 format!("failed to parse program from {}", input_file.display())
             })?;
-            let mut ctx = DecompileContext::from_program(&program).with_context(|| {
+            let mut ctx = DecompileContext::from_program_with_input_file_name(
+                &program,
+                input_file
+                    .file_name()
+                    .map(|x| x.to_string_lossy().to_string()),
+            )
+            .with_context(|| {
                 format!(
                     "failed to create decompile context from {}",
                     input_file.display()
                 )
             })?;
-            ctx.set_input_file_name(
-                input_file
-                    .file_name()
-                    .map(|x| x.to_string_lossy().to_string()),
-            );
             ctx.run_analysis().with_context(|| {
                 format!(
                     "failed to analyze program for bind reconstruction from {}",
