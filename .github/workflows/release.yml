@@ -197,12 +197,46 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  package-editor-scripts:
+    name: Package editor scripts
+    needs:
+      - prepare
+      - bump-version
+    if: always() && needs.prepare.result == 'success' && (needs.prepare.outputs.is_nightly == 'true' || needs.bump-version.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.bump-version.outputs.ref || needs.prepare.outputs.ref }}
+
+      - name: Create output directory
+        shell: bash
+        run: mkdir -p dist/editor-scripts
+
+      - name: Copy editor scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp -r tools/Editor/. dist/editor-scripts/
+          cp LICENSE dist/editor-scripts/LICENSE
+
+      - name: Upload artifact directory
+        uses: actions/upload-artifact@v6
+        with:
+          name: editor-scripts
+          path: dist/editor-scripts
+          if-no-files-found: error
+          retention-days: 14
+
   draft-release:
     name: Create draft GitHub release
     needs:
       - prepare
       - build
-    if: needs.prepare.outputs.is_nightly == 'false' && needs.build.result == 'success'
+      - package-editor-scripts
+    if: needs.prepare.outputs.is_nightly == 'false' && needs.build.result == 'success' && needs.package-editor-scripts.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
