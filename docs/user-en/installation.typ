@@ -3,24 +3,18 @@
 
 #show: book-page.with(title: "Installation")
 
-*This content is outdated and for reference only.*
-
-This document was translated from Chinese by an LLM.
+*This document was translated from Chinese by an LLM.*
 
 This section describes how to install this project.
 
 = Install the decompiler
 
-+ We use #uv for Python project management, so before installing this decompiler, please follow the #uv official #link("https://docs.astral.sh/uv/getting-started/installation/")[guide] to install #uv
-+ Install this project as a tool
-  ```shell-unix-generic
-  uv tool install git+https://github.com/paran3xus/udon-decompiler.git
-  ```
+Please download a release build from this repository's #release page, or a nightly build from the #release-workflow workflow page.
 
 = Obtain required resources
 More specifically, to make decompilation work, you also need `UdonModuleInfo.json`. It contains information about all C\# functions that #udon programs can call. Due to the #vrc-sdk-license restrictions, we cannot distribute this file in the repository.
 
-You can get this file from other sources, but since later steps reuse the project created here, we recommend generating it yourself with the following steps.
+You can of course obtain this file from other sources, but we recommend generating it yourself with the following steps.
 
 + Follow the VRChat creator documentation #link("https://creators.vrchat.com/sdk/")[guide] to create a Unity project with both VRChat Base SDK and VRChat *World* SDK installed
 + Use #vcc to ensure both SDK packages above are upgraded to the latest versions

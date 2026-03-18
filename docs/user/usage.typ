@@ -3,8 +3,6 @@
 
 #show: book-page.with(title: "使用")
 
-*这些内容已经过时, 仅供参考*
-
 
 For English version, refer to #cross-link("/user-en/usage.typ")[Usage].
 
@@ -14,48 +12,48 @@ For English version, refer to #cross-link("/user-en/usage.typ")[Usage].
 
 本项目不提供这方面的指引. 你应当有一个 `.vrcw` 格式的文件.
 
-= Dump SerializedUdonPrograms
+= 提取 Udon 程序
 
-+ 使用 #asset-ripper 解包世界文件(导出项目). 无需使用 #asset-ripper 的 Premium Edition, 它对反编译 Udon 程序没有额外的增益.
-+ 找到导出项目的 `ExportedProject/Assets/MonoBehaviour` 文件夹, 这里面有所有可能是 UdonProgram 的资产文件
-+ #cross-link-heading(
-    "/user/installation.typ",
-    [= 获取必要的资源],
-  )[获取必要的资源]一节创建了一个安装了本项目提供的编辑器脚本的项目. 打开该项目, 在 Unity 的顶部菜单栏点击 `Tools/Udon Program Dumper`. 在弹出的窗口中, 有一个标有 "Folder Path" 的输入框. 在该输入框中输入 `ExportedProject/Assets/MonoBehaviour` 文件夹的路径, 点击 "Dump All .asset Files" 按钮
-+ 控制台中应该出现日志
+使用 #cross-link-heading("/user/installation.typ", [= 安装])[安装]一节下载的 `UdonProgramDumper` 程序提取 `.vrcw` 中的程序文件, 具体而言:
+- 使用命令行
+  ```shell-unix-generic
+  UdonProgramDumper <world1.vrcw> [world2.vrcw] ...
   ```
-  Generated: ExportedProject/Assets/MonoBehaviour/dumped/xxx.asset.json
-  ...
-  Dumped!
+  你应该得到类似这样的输出
+  ```shell-unix-generic
+  $ UdonProgramDumper example.vrcw
+  [example.vrcw] dumped 8 program(s) to example-dumped-programs
   ```
-  然后可以在 `ExportedProject/Assets/MonoBehaviour/dumped` 目录中找到一些 `.json` 文件. 这些是 dump 出的 Udon 程序, 是本项目主体程序(下称"本反编译器")的输入
+- 直接将 `.vrcw` 文件拖放到 `UdonProgramDumper` 程序上. 这实际上等价于前一种方法.
+
+然后可以在 `.vrcw` 文件相同目录下找到所生成的 `dumped-programs` 文件夹.
 
 = 反编译
 
 运行
 ```shell-unix-generic
-udon-decompiler ExportedProject/Assets/MonoBehaviour/dumped --info UdonModuleInfo.json
+udon-decompiler dc dumped-programs --info UdonModuleInfo.json
 ```
-此处需要填写 `dumped` 文件夹和 `UdonModuleInfo.json` 文件的实际路径.
+此处需要填写 `dumped-programs` 文件夹和 `UdonModuleInfo.json` 文件的实际路径.
 
 控制台应当显示日志如
 ```shell-unix-generic
-2026-01-27 16:00:43 - udon_decompiler - INFO - Decompiling xxx.asset.json
-2026-01-27 16:00:43 - udon_decompiler - INFO - Successfully loaded program: UdonProgram(
-  bytecode_length=460,
-  symbols=25,
-  entry_points=4,
-  heap_entries=34
-)
-2026-01-27 16:00:43 - udon_decompiler - INFO - Parsed 61 instructions
-2026-01-27 16:00:43 - udon_decompiler - INFO - Created 7 basic blocks
-2026-01-27 16:00:43 - udon_decompiler - INFO - Built 4 control flow graphs
-2026-01-27 16:00:43 - udon_decompiler - INFO - Program entry points identified: [EntryPoint(_start @ 0x00000008), EntryPoint(_f @ 0x00000058), EntryPoint(_g @ 0x00000094), EntryPoint(_h @ 0x00000178)]
-2026-01-27 16:00:43 - udon_decompiler - INFO - Completed dataflow analysis for 4 functions
-2026-01-27 16:00:43 - udon_decompiler - INFO - Generating C# code for yyy...
-2026-01-27 16:00:43 - udon_decompiler - INFO - Decompiled: xxx.asset.json -> dumped-decompiled/yyy.cs
+2026-03-18T03:15:38.832775Z  INFO udon_decompiler: logging initialized level=info
+2026-03-18T03:15:38.832843Z  INFO udon_decompiler: start command mode=Dc input=dumped-programs output=None template=None
+2026-03-18T03:15:38.837946Z  INFO udon_decompiler: processing directory mode=Dc input_dir=dumped-programs output=None template=None
+2026-03-18T03:15:38.842021Z  INFO udon_decompiler: processing "dumped-programs/27d9de9b1e2d2424cadf167f75a47d24.hex"
+2026-03-18T03:15:38.845832Z  INFO udon_decompiler::decompiler::context: class name inferred: Sonic853.Udon.Keypad.UdonVRCheckerObjects
+2026-03-18T03:15:38.845873Z  INFO udon_decompiler::decompiler::context: decompile context loaded bytecode_len=468 instruction_count=60 entry_points=1 symbols=15 heap_entries=23
+2026-03-18T03:15:38.846975Z  INFO udon_decompiler::decompiler::variable: 23 variables identified from heap
+2026-03-18T03:15:39.018584Z  INFO udon_decompiler::decompiler::module_info: successfully loaded module info
+2026-03-18T03:15:39.019550Z  INFO udon_decompiler::decompiler::basic_block: 7 basic blocks identified
+2026-03-18T03:15:39.019791Z  INFO udon_decompiler::decompiler::cfg: 1 functions discovered with their cfgs built
+2026-03-18T03:15:39.019884Z  INFO udon_decompiler::decompiler::ir::builder: 1 IrFunctions built
+2026-03-18T03:15:39.020321Z  INFO udon_decompiler::decompiler::transform::pipeline: IR transformed.
+2026-03-18T03:15:39.020411Z  INFO udon_decompiler::decompiler::codegen: c# code for UdonVRCheckerObjects generated!
+2026-03-18T03:15:39.073924Z  INFO udon_decompiler: dumped-programs/27d9de9b1e2d2424cadf167f75a47d24.hex -> dumped-programs-decompiled/Sonic853_Udon_Keypad_UdonVRCheckerObjects.cs
 ...
-2026-01-27 16:00:43 - udon_decompiler - INFO - Done.
+2026-03-18T03:15:39.710051Z  INFO udon_decompiler: done!
 ```
 
-然后可以在 `ExportedProject/Assets/MonoBehaviour/dumped-decompiled` 目录中找到所有反编译结果, 也即 `.cs` 格式的伪代码.
+然后可以在 `dumped-programs-decompiled` 目录中找到所有反编译结果, 也即 `.cs` 格式的伪代码.
