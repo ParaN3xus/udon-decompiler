@@ -172,7 +172,7 @@ impl<'a> IrBuilder<'a> {
             .peek(1)
             .unwrap_or_else(|| panic!("COPY at 0x{address:08X} has incomplete stack operands"));
 
-        let target_address = target_value.value;
+        let target_address = target_value.heap_address();
         if self
             .ctx
             .variables
@@ -181,10 +181,10 @@ impl<'a> IrBuilder<'a> {
         {
             return Vec::new();
         }
-
+        let source_address = source_value.heap_address();
         vec![IrStatement::Assignment(IrAssignmentStatement {
             target: IrExpression::from_heap_addr(&self.ctx.variables, target_address),
-            value: IrExpression::from_heap_addr(&self.ctx.variables, source_value.value),
+            value: IrExpression::from_heap_addr(&self.ctx.variables, source_address),
         })]
     }
 
@@ -275,9 +275,10 @@ impl<'a> IrBuilder<'a> {
             let value = state
                 .peek(depth)
                 .unwrap_or_else(|| panic!("EXTERN at 0x{address:08X} missing stack arg {index}"));
+            let heap_address = value.heap_address();
             args.push(IrExpression::from_heap_addr(
                 &self.ctx.variables,
-                value.value,
+                heap_address,
             ));
         }
         args
@@ -485,7 +486,8 @@ impl<'a> IrBuilder<'a> {
         let value = state
             .peek(0)
             .unwrap_or_else(|| panic!("JUMP_IF_FALSE at 0x{address:08X} missing condition value"));
-        IrExpression::from_heap_addr(&self.ctx.variables, value.value)
+        let heap_address = value.heap_address();
+        IrExpression::from_heap_addr(&self.ctx.variables, heap_address)
     }
 
     fn resolve_internal_call_entry(
@@ -515,7 +517,7 @@ impl<'a> IrBuilder<'a> {
             .and_then(|next| self.ctx.instructions.address_of(next));
         if let Some(top) = state.peek(0)
             && let Some(next_address) = next_address
-            && self.ctx.heap_u32_literals.get(&top.value).copied() == Some(next_address)
+            && top.resolve_u32_literal(self.ctx) == Some(next_address)
         {
             return Some(InternalCallKind::Returning {
                 function_name: entry.name.clone(),

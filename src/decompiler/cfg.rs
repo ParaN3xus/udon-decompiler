@@ -12,7 +12,7 @@ use super::indir_jump_analysis::{is_return_jump_operand, resolve_switch_info_for
 use super::module_info::UdonModuleInfo;
 use super::{DecompileError, Result};
 
-type HeapLiteralState = HashMap<u32, Option<u32>>;
+type HeapLiteralState = HashMap<u32, HeapValue>;
 const HIDDEN_ENTRY_PLACEHOLDER_PREFIX: &str = "__hidden_entry_";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,8 +25,61 @@ pub struct FunctionCfg {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StackValue {
-    pub value: u32,
+pub enum StackValue {
+    HeapAddress(u32),
+    HaltJump,
+}
+
+impl StackValue {
+    pub fn heap_address(&self) -> u32 {
+        match self {
+            Self::HeapAddress(address) => *address,
+            _ => panic!("trying to get the heap_address of a phantom stack value"),
+        }
+    }
+
+    pub fn resolve_u32_literal(&self, ctx: &DecompileContext) -> Option<u32> {
+        match self {
+            Self::HeapAddress(address) => ctx.heap_u32_literals.get(address).copied(),
+            Self::HaltJump => Some(u32::MAX),
+        }
+    }
+
+    pub fn as_u32_literal(&self, heap_state: &HeapLiteralState) -> Option<u32> {
+        match self {
+            Self::HeapAddress(address) => {
+                heap_state.get(address).and_then(HeapValue::as_u32_literal)
+            }
+            Self::HaltJump => Some(u32::MAX),
+        }
+    }
+
+    pub fn as_heap_value(&self, heap_state: &HeapLiteralState) -> HeapValue {
+        match self {
+            Self::HeapAddress(address) => heap_state
+                .get(address)
+                .cloned()
+                .unwrap_or(HeapValue::Unknown),
+            Self::HaltJump => HeapValue::HaltJump,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HeapValue {
+    U32(u32),
+    HaltJump,
+    Unknown,
+}
+
+impl HeapValue {
+    pub fn as_u32_literal(&self) -> Option<u32> {
+        match self {
+            Self::U32(value) => Some(*value),
+            Self::HaltJump => Some(u32::MAX),
+            Self::Unknown => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -200,7 +253,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
             match inst.opcode {
                 OpCode::Push => {
                     let address = inst.numeric_operand();
-                    stack_state.push(StackValue { value: address });
+                    stack_state.push(StackValue::HeapAddress(address));
                 }
                 OpCode::Pop => {
                     let _ = stack_state.pop().ok_or_else(|| {
@@ -208,18 +261,19 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     })?;
                 }
                 OpCode::Copy => {
-                    let source = stack_state.pop().ok_or_else(|| {
-                        DecompileError::new(format!(
-                            "stack underflow on COPY source at 0x{addr:08X}"
-                        ))
-                    })?;
                     let target = stack_state.pop().ok_or_else(|| {
                         DecompileError::new(format!(
                             "stack underflow on COPY target at 0x{addr:08X}"
                         ))
                     })?;
-                    let source_literal = heap_state.get(&source.value).copied().flatten();
-                    heap_state.insert(target.value, source_literal);
+                    let source = stack_state.pop().ok_or_else(|| {
+                        DecompileError::new(format!(
+                            "stack underflow on COPY source at 0x{addr:08X}"
+                        ))
+                    })?;
+                    let target_address = target.heap_address();
+                    let source_value = source.as_heap_value(&heap_state);
+                    heap_state.insert(target_address, source_value);
                 }
                 OpCode::JumpIfFalse => {
                     terminated = true;
@@ -346,7 +400,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     terminated = true;
 
                     let operand = inst.numeric_operand();
-                    if is_return_jump_operand(operand, &ctx.symbol_name_by_address) {
+                    if is_return_jump_operand(ctx, operand, &heap_state) {
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Return;
                     } else if let Some(info) = resolve_switch_info_for_jump_indirect(
                         ctx,
@@ -744,8 +798,7 @@ fn initial_stack_for_entry_point(ctx: &DecompileContext, entry: &DecompileSymbol
 
 fn initial_stack_for_hidden_entry() -> StackFrame {
     let mut frame = StackFrame::default();
-    // halt jump addr
-    frame.push(StackValue { value: u32::MAX });
+    frame.push(StackValue::HaltJump);
     frame
 }
 
@@ -830,10 +883,10 @@ fn is_header_push_address(ctx: &DecompileContext, address: u32) -> bool {
         .is_some_and(|x| x == SYMBOL_RETURN_JUMP_U32)
 }
 
-fn build_heap_literal_u32_map(ctx: &DecompileContext) -> HashMap<u32, Option<u32>> {
-    let mut out = HashMap::<u32, Option<u32>>::with_capacity(ctx.heap_u32_literals.len());
+fn build_heap_literal_u32_map(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
+    let mut out = HashMap::<u32, HeapValue>::with_capacity(ctx.heap_u32_literals.len());
     for (address, value) in &ctx.heap_u32_literals {
-        out.insert(*address, Some(*value));
+        out.insert(*address, HeapValue::U32(*value));
     }
     out
 }
@@ -841,12 +894,12 @@ fn build_heap_literal_u32_map(ctx: &DecompileContext) -> HashMap<u32, Option<u32
 fn matches_stack_literal(
     stack_value: Option<&StackValue>,
     expected: u32,
-    heap_state: &HashMap<u32, Option<u32>>,
+    heap_state: &HeapLiteralState,
 ) -> bool {
     let Some(stack_value) = stack_value else {
         return false;
     };
-    heap_state.get(&stack_value.value).copied().flatten() == Some(expected)
+    stack_value.as_u32_literal(heap_state) == Some(expected)
 }
 
 fn simulate_extern_call(
@@ -888,7 +941,8 @@ fn simulate_extern_call(
                 "EXTERN non-void signature missing destination slot on stack: {signature}"
             ))
         })?;
-        heap_state.insert(target.value, None);
+        let target_address = target.heap_address();
+        heap_state.insert(target_address, HeapValue::Unknown);
     }
     Ok(())
 }

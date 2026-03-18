@@ -1,7 +1,7 @@
 use crate::decompiler::{
     DecompileContext, DecompileError, ExternFunctionInfo, IrExpression, IrVariableExpression,
-    Result, UdonModuleInfo, build_extern_ir_expression, is_property_setter, render_expression,
-    render_variable_expression,
+    Result, StackValue, UdonModuleInfo, build_extern_ir_expression, is_property_setter,
+    render_expression, render_variable_expression,
 };
 
 use super::{AsmBindDirective, AsmBindTableDirective, AsmInstructionComment, OpCode};
@@ -108,12 +108,13 @@ fn resolve_internal_call_bind(
 ) -> Option<(String, u32)> {
     let state = ctx.stack_simulation.get_instruction_state(address)?;
     let top = state.peek(0)?;
-    let symbol_name = ctx.symbol_name_by_address.get(&top.value)?.clone();
+    let top_address = top.heap_address();
+    let symbol_name = ctx.symbol_name_by_address.get(&top_address)?.clone();
     let next_address = ctx
         .instructions
         .next_of(inst_id)
         .and_then(|next| ctx.instructions.address_of(next))?;
-    if ctx.heap_u32_literals.get(&top.value).copied() != Some(next_address) {
+    if top.resolve_u32_literal(ctx) != Some(next_address) {
         return None;
     }
 
@@ -153,7 +154,7 @@ fn render_extern_instruction_comment(
     let args = (0..function_info.parameter_count())
         .map(|index| {
             let depth = function_info.parameter_count() - 1 - index;
-            state.peek(depth).map(|x| x.value)
+            state.peek(depth).map(StackValue::heap_address)
         })
         .collect::<Option<Vec<_>>>()?;
     Some(render_extern_comment(ctx, &function_info, &args))
@@ -163,8 +164,8 @@ fn render_copy_instruction_comment(ctx: &DecompileContext, address: u32) -> Opti
     let state = ctx.stack_simulation.get_instruction_state(address)?;
     let target = state.peek(0)?;
     let source = state.peek(1)?;
-    let target_name = render_variable_expression(target.value, ctx);
-    let source_name = render_variable_expression(source.value, ctx);
+    let target_name = render_variable_expression(target.heap_address(), ctx);
+    let source_name = render_variable_expression(source.heap_address(), ctx);
     if target_name == source_name {
         return None;
     }
@@ -174,7 +175,7 @@ fn render_copy_instruction_comment(ctx: &DecompileContext, address: u32) -> Opti
 fn render_jump_if_false_comment(ctx: &DecompileContext, address: u32) -> Option<String> {
     let state = ctx.stack_simulation.get_instruction_state(address)?;
     let condition = state.peek(0)?;
-    let condition_name = render_variable_expression(condition.value, ctx);
+    let condition_name = render_variable_expression(condition.heap_address(), ctx);
     Some(format!("if (!{condition_name})"))
 }
 

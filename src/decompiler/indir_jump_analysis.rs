@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::str_constants::{
-    SYMBOL_RETURN_JUMP_U32, TYPE_SYSTEM_UINT32_ARRAY, UINT32_ARRAY_GET_METHOD_NAME,
-};
+use crate::str_constants::{TYPE_SYSTEM_UINT32_ARRAY, UINT32_ARRAY_GET_METHOD_NAME};
 use crate::udon_asm::OpCode;
 
 use super::basic_block::SwitchTableInfo;
+use super::cfg::HeapValue;
 use super::context::DecompileContext;
 use super::instruction_list::InstructionId;
 use super::module_info::UdonModuleInfo;
@@ -15,12 +14,13 @@ pub(crate) fn collect_switch_target_block_starts(
     module_info: Option<&UdonModuleInfo>,
 ) -> Vec<u32> {
     let mut out = HashSet::<u32>::new();
+    let initial_heap_state = build_initial_heap_literal_state(ctx);
     for (inst_id, _addr, inst) in ctx.instructions.iter() {
         if inst.opcode != OpCode::JumpIndirect {
             continue;
         }
         let operand = inst.numeric_operand();
-        if is_return_jump_operand(operand, &ctx.symbol_name_by_address) {
+        if is_return_jump_operand(ctx, operand, &initial_heap_state) {
             continue;
         }
         if let Some(info) = resolve_switch_info_for_jump_indirect(
@@ -43,13 +43,23 @@ pub(crate) fn collect_switch_target_block_starts(
     starts
 }
 
+fn build_initial_heap_literal_state(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
+    ctx.heap_u32_literals
+        .iter()
+        .map(|(address, value)| (*address, HeapValue::U32(*value)))
+        .collect()
+}
+
 pub(crate) fn is_return_jump_operand(
+    ctx: &DecompileContext,
     operand: u32,
-    symbol_name_by_address: &HashMap<u32, String>,
+    heap_state: &HashMap<u32, HeapValue>,
 ) -> bool {
-    symbol_name_by_address
-        .get(&operand)
-        .is_some_and(|name| name == SYMBOL_RETURN_JUMP_U32)
+    match heap_state.get(&operand) {
+        Some(HeapValue::HaltJump) => true,
+        Some(HeapValue::U32(v)) => ctx.is_out_of_program_counter_range(*v),
+        _ => false,
+    }
 }
 
 pub(crate) fn resolve_switch_info_for_jump_indirect(
