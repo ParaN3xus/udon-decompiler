@@ -86,7 +86,7 @@ fn main() -> Result<()> {
         .map_err(|e| anyhow::anyhow!("failed to configure module info path: {}", e))?;
     debug!(module_info = %module_info_path.display(), "module info path configured");
 
-    match cli.command {
+    let res = match cli.command {
         Commands::Dc { input, output } => run(Mode::Dc, &input, output.as_deref(), None),
         Commands::Dasm { input, output } => run(Mode::Dasm, &input, output.as_deref(), None),
         Commands::Asm {
@@ -94,7 +94,9 @@ fn main() -> Result<()> {
             output,
             template,
         } => run(Mode::Asm, &input, output.as_deref(), template.as_deref()),
-    }
+    };
+    info!("done!");
+    res
 }
 
 fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>) -> Result<()> {
