@@ -91,6 +91,14 @@ struct SimulationArtifacts {
     predecessors: HashMap<usize, Vec<usize>>,
 }
 
+#[derive(Debug, Clone)]
+struct PendingSimulation {
+    block_id: usize,
+    initiator: Option<u32>,
+    stack_state: StackFrame,
+    heap_state: HeapLiteralState,
+}
+
 pub fn build_cfgs_and_discover_entries(ctx: &mut DecompileContext) -> Result<CfgBuildOutput> {
     debug!("running stack simulation, discovering functions and building control flow graphs...");
 
@@ -130,9 +138,10 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
     let initial_heap_literals = build_heap_literal_u32_map(ctx);
 
     let mut out = SimulationArtifacts::default();
-    // block id, stack state, heap state
-    let mut pending = VecDeque::<(usize, StackFrame, HeapLiteralState)>::new();
-    let mut processed_blocks = HashSet::<usize>::new();
+    let mut pending = VecDeque::<PendingSimulation>::new();
+    let mut processed_blocks = HashSet::<(u32, usize)>::new();
+    let mut jump_callsite_blocks = HashMap::<u32, Vec<usize>>::new();
+    let mut block_entry_states = HashMap::<usize, (StackFrame, HeapLiteralState)>::new();
 
     for entry in &ctx.entry_points {
         let block_id = ctx.basic_block_id_by_start(entry.address).ok_or_else(|| {
@@ -141,20 +150,40 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                 entry.name, entry.address
             ))
         })?;
-        pending.push_back((
+        pending.push_back(PendingSimulation {
             block_id,
-            initial_stack_for_entry_point(ctx, entry),
-            initial_heap_literals.clone(),
-        ));
+            initiator: Some(entry.address),
+            stack_state: initial_stack_for_entry_point(ctx, entry),
+            heap_state: initial_heap_literals.clone(),
+        });
     }
 
-    while let Some((block_id, mut stack_state, mut heap_state)) = pending.pop_front() {
-        if !processed_blocks.insert(block_id) {
+    while let Some(PendingSimulation {
+        block_id,
+        initiator,
+        mut stack_state,
+        mut heap_state,
+    }) = pending.pop_front()
+    {
+        if let Some(initiator) = initiator
+            && !processed_blocks.insert((initiator, block_id))
+        {
             continue;
+        }
+        if initiator.is_none() {
+            let Some((saved_stack_state, saved_heap_state)) = block_entry_states.get(&block_id)
+            else {
+                continue;
+            };
+            stack_state = saved_stack_state.clone();
+            heap_state = saved_heap_state.clone();
+        } else {
+            block_entry_states.insert(block_id, (stack_state.clone(), heap_state.clone()));
         }
 
         let block_instructions = ctx.basic_blocks.blocks[block_id].instructions.clone();
         let mut terminated = false;
+        let mut block_successors = Vec::<usize>::new();
 
         for (_block_inst_id, addr, inst) in block_instructions.iter() {
             let global_inst_id = ctx.instructions.id_at_address(addr).ok_or_else(|| {
@@ -162,10 +191,11 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     "missing global instruction id for address 0x{addr:08X} in block {block_id}"
                 ))
             })?;
-            out.stack_results
-                .instruction_states
-                .entry(addr)
-                .or_insert_with(|| stack_state.clone());
+            if initiator.is_some() {
+                out.stack_results
+                    .instruction_states
+                    .insert(addr, stack_state.clone());
+            }
 
             match inst.opcode {
                 OpCode::Push => {
@@ -202,8 +232,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     let target_addr = inst.numeric_operand();
                     enqueue_edge(
                         ctx,
-                        &mut out,
+                        &mut block_successors,
                         &mut pending,
+                        initiator,
                         block_id,
                         target_addr,
                         &stack_state,
@@ -220,8 +251,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                             })?;
                     enqueue_edge(
                         ctx,
-                        &mut out,
+                        &mut block_successors,
                         &mut pending,
+                        initiator,
                         block_id,
                         next_addr,
                         &stack_state,
@@ -234,6 +266,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     terminated = true;
 
                     let target_addr = inst.numeric_operand();
+                    register_jump_callsite(&mut jump_callsite_blocks, target_addr, block_id);
                     if ctx.is_out_of_program_counter_range(target_addr) {
                         ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Return;
                         break;
@@ -252,6 +285,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                             &mut entry_set,
                             &mut out.discovered_entry_addresses,
                             &mut pending,
+                            &jump_callsite_blocks,
                             target_addr,
                             &initial_heap_literals,
                         )?;
@@ -267,8 +301,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                         })?;
                         enqueue_edge(
                             ctx,
-                            &mut out,
+                            &mut block_successors,
                             &mut pending,
+                            initiator,
                             block_id,
                             fallthrough,
                             &stack_state,
@@ -284,6 +319,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                             &mut entry_set,
                             &mut out.discovered_entry_addresses,
                             &mut pending,
+                            &jump_callsite_blocks,
                             target_addr,
                             &initial_heap_literals,
                         )?;
@@ -294,8 +330,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     // normal jump
                     enqueue_edge(
                         ctx,
-                        &mut out,
+                        &mut block_successors,
                         &mut pending,
+                        initiator,
                         block_id,
                         target_addr,
                         &stack_state,
@@ -322,8 +359,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                         for target in &info.targets {
                             enqueue_edge(
                                 ctx,
-                                &mut out,
+                                &mut block_successors,
                                 &mut pending,
+                                initiator,
                                 block_id,
                                 *target,
                                 &stack_state,
@@ -371,8 +409,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
             if let Some(next_addr) = ctx.instructions.next_address_of(global_last_inst_id) {
                 enqueue_edge(
                     ctx,
-                    &mut out,
+                    &mut block_successors,
                     &mut pending,
+                    initiator,
                     block_id,
                     next_addr,
                     &stack_state,
@@ -382,9 +421,12 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
             ctx.basic_blocks.blocks[block_id].block_type = BasicBlockType::Normal;
         }
 
-        out.stack_results
-            .block_exit_states
-            .insert(block_id, stack_state);
+        replace_block_successors(&mut out, block_id, block_successors);
+        if initiator.is_some() {
+            out.stack_results
+                .block_exit_states
+                .insert(block_id, stack_state);
+        }
     }
 
     out.discovered_entry_addresses.sort_unstable();
@@ -394,9 +436,10 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
 
 fn enqueue_edge(
     ctx: &DecompileContext,
-    artifacts: &mut SimulationArtifacts,
-    pending: &mut VecDeque<(usize, StackFrame, HeapLiteralState)>,
-    source_block_id: usize,
+    block_successors: &mut Vec<usize>,
+    pending: &mut VecDeque<PendingSimulation>,
+    initiator: Option<u32>,
+    _source_block_id: usize,
     target_address: u32,
     stack_state: &StackFrame,
     heap_state: &HeapLiteralState,
@@ -406,20 +449,64 @@ fn enqueue_edge(
             "cannot enqueue edge to non-block target 0x{target_address:08X}"
         ))
     })?;
-    push_unique_edge(&mut artifacts.successors, source_block_id, target_block_id);
-    push_unique_edge(
-        &mut artifacts.predecessors,
-        target_block_id,
-        source_block_id,
-    );
-    pending.push_back((target_block_id, stack_state.clone(), heap_state.clone()));
+    append_unique_successor(block_successors, target_block_id);
+    if let Some(initiator) = initiator {
+        pending.push_back(PendingSimulation {
+            block_id: target_block_id,
+            initiator: Some(initiator),
+            stack_state: stack_state.clone(),
+            heap_state: heap_state.clone(),
+        });
+    }
     Ok(())
 }
 
-fn push_unique_edge(map: &mut HashMap<usize, Vec<usize>>, from: usize, to: usize) {
-    let edges = map.entry(from).or_default();
-    if !edges.contains(&to) {
-        edges.push(to);
+fn append_unique_successor(successor_block_ids: &mut Vec<usize>, target_block_id: usize) {
+    if !successor_block_ids.contains(&target_block_id) {
+        successor_block_ids.push(target_block_id);
+    }
+}
+
+fn replace_block_successors(
+    artifacts: &mut SimulationArtifacts,
+    source_block_id: usize,
+    new_successors: Vec<usize>,
+) {
+    // A block can be re-simulated after new entry discovery.
+    // In that case we need to replace this block's outgoing edges with the
+    // latest result instead of only appending new edges, otherwise stale
+    // successor/predecessor links from the previous classification remain.
+
+    // insert new successors & get old successors
+    let old_successors = artifacts
+        .successors
+        .insert(source_block_id, new_successors.clone())
+        .unwrap_or_default();
+
+    // remove predecessor of successors
+    for old_target in old_successors {
+        if let Some(predecessors) = artifacts.predecessors.get_mut(&old_target) {
+            predecessors.retain(|pred| *pred != source_block_id);
+        }
+    }
+
+    // add predecessor of new successors
+    for new_target in new_successors {
+        let predecessors = artifacts.predecessors.entry(new_target).or_default();
+        if !predecessors.contains(&source_block_id) {
+            predecessors.push(source_block_id);
+        }
+    }
+}
+
+fn register_jump_callsite(
+    jump_callsite_blocks: &mut HashMap<u32, Vec<usize>>,
+    target_addr: u32,
+    block_id: usize,
+) {
+    let blocks = jump_callsite_blocks.entry(target_addr).or_default();
+    if !blocks.contains(&block_id) {
+        blocks.push(block_id);
     }
 }
 
@@ -666,7 +753,8 @@ fn register_entry_target(
     ctx: &DecompileContext,
     entry_set: &mut HashSet<u32>,
     discovered_entry_addresses: &mut Vec<u32>,
-    pending: &mut VecDeque<(usize, StackFrame, HeapLiteralState)>,
+    pending: &mut VecDeque<PendingSimulation>,
+    jump_callsite_blocks: &HashMap<u32, Vec<usize>>,
     target_addr: u32,
     initial_heap_literals: &HeapLiteralState,
 ) -> Result<()> {
@@ -680,11 +768,22 @@ fn register_entry_target(
             "discovered entry target 0x{target_addr:08X} has no basic block"
         ))
     })?;
-    pending.push_back((
-        target_block,
-        initial_stack_for_hidden_entry(),
-        initial_heap_literals.clone(),
-    ));
+    pending.push_back(PendingSimulation {
+        block_id: target_block,
+        initiator: Some(target_addr),
+        stack_state: initial_stack_for_hidden_entry(),
+        heap_state: initial_heap_literals.clone(),
+    });
+    if let Some(caller_blocks) = jump_callsite_blocks.get(&target_addr) {
+        for block_id in caller_blocks {
+            pending.push_back(PendingSimulation {
+                block_id: *block_id,
+                initiator: None,
+                stack_state: StackFrame::default(),
+                heap_state: HashMap::default(),
+            });
+        }
+    }
     Ok(())
 }
 
