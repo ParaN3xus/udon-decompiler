@@ -23,7 +23,7 @@ public class TempSourceText : UdonSharpBehaviour
     private string jsonOutput = "";
     private Vector2 scrollPosition;
 
-    [MenuItem("Tools/Udon Source Compiler")]
+    [MenuItem("Tools/Udon Decompiler/Udon Source Compiler")]
     public static void ShowWindow()
     {
         GetWindow<UdonSharpSourceTextCompilerGUI>("Udon Compiler");

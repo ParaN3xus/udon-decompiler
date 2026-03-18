@@ -48,7 +48,7 @@ public class UdonModuleInfoExtractor : EditorWindow
         public bool returnsVoid;
     }
 
-    [MenuItem("Tools/Extract Udon Module Info")]
+    [MenuItem("Tools/Udon Decompiler/Extract Udon Module Info")]
     public static void ExtractModuleInfo()
     {
         var registryLookup = BuildRegistryLookup();
