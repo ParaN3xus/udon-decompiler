@@ -354,7 +354,7 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
             let program = UdonProgramBinary::parse_bytes(&bytes).with_context(|| {
                 format!("failed to parse program from {}", input_file.display())
             })?;
-            let mut ctx = DecompileContext::from_program_with_input_file_name(
+            let mut ctx = DecompileContext::from_program(
                 &program,
                 input_file
                     .file_name()

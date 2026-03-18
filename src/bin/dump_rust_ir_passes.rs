@@ -44,7 +44,7 @@ fn main() -> Result<()> {
         .map_err(|e| anyhow::anyhow!("failed to configure module info path: {}", e))?;
 
     let hex_text = load_code_fence(&cli.case, "hex")?;
-    let mut ctx = DecompileContext::from_compressed_hex_text(
+    let mut ctx = DecompileContext::from_hex_text(
         &hex_text,
         cli.case
             .file_name()

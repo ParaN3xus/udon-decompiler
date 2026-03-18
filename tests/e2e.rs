@@ -152,7 +152,7 @@ fn e2e_smoke() {
             .to_string();
 
         let result = (|| {
-            let mut ctx = DecompileContext::from_compressed_hex_text(&hex_text, Some(file_name))?;
+            let mut ctx = DecompileContext::from_hex_text(&hex_text, Some(file_name))?;
             ctx.set_clang_format_override(Some(clang_format_path().clone()));
             let _ = ctx.run_decompile()?;
             Ok::<(), udon_decompiler::decompiler::DecompileError>(())
@@ -197,9 +197,8 @@ fn e2e_snapshot() {
             .unwrap_or("case")
             .to_string();
 
-        let mut ctx =
-            DecompileContext::from_compressed_hex_text(&hex_text, Some(format!("{stem}.hex")))
-                .expect("load context from compressed hex");
+        let mut ctx = DecompileContext::from_hex_text(&hex_text, Some(format!("{stem}.hex")))
+            .expect("load context from compressed hex");
         ctx.set_clang_format_override(Some(clang_format_path().clone()));
         let output = ctx.run_decompile().expect("run pipeline");
 

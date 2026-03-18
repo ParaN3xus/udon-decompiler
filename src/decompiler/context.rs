@@ -97,7 +97,7 @@ impl DecompileContext {
         let bytes =
             read_program_bytes(path).map_err(|e| super::DecompileError::new(e.to_string()))?;
         let program = UdonProgramBinary::parse_bytes(&bytes)?;
-        let mut ctx = Self::from_program_with_input_file_name(
+        let mut ctx = Self::from_program(
             &program,
             path.file_name()
                 .and_then(|x| x.to_str())
@@ -107,17 +107,7 @@ impl DecompileContext {
         Ok(ctx)
     }
 
-    pub fn from_base64_text(text: &str, input_file_name: Option<String>) -> Result<Self> {
-        debug!(
-            input_file_name = ?input_file_name,
-            input_len = text.len(),
-            "loading decompile context from base64 text"
-        );
-        let program = UdonProgramBinary::parse_base64(text)?;
-        Self::from_program_with_input_file_name(&program, input_file_name)
-    }
-
-    pub fn from_compressed_hex_text(text: &str, input_file_name: Option<String>) -> Result<Self> {
+    pub fn from_hex_text(text: &str, input_file_name: Option<String>) -> Result<Self> {
         debug!(
             input_file_name = ?input_file_name,
             input_len = text.len(),
@@ -126,14 +116,10 @@ impl DecompileContext {
         let bytes = decode_compressed_hex_text(text)
             .map_err(|e| super::DecompileError::new(e.to_string()))?;
         let program = UdonProgramBinary::parse_bytes(&bytes)?;
-        Self::from_program_with_input_file_name(&program, input_file_name)
+        Self::from_program(&program, input_file_name)
     }
 
-    pub fn from_program(program: &UdonProgramBinary) -> Result<Self> {
-        Self::from_program_with_input_file_name(program, None)
-    }
-
-    pub fn from_program_with_input_file_name(
+    pub fn from_program(
         program: &UdonProgramBinary,
         input_file_name: Option<String>,
     ) -> Result<Self> {
