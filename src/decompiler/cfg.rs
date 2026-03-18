@@ -162,9 +162,8 @@ pub fn build_cfgs_and_discover_entries(ctx: &mut DecompileContext) -> Result<Cfg
         &artifacts.predecessors,
     );
     append_discovered_entries(ctx, artifacts.discovered_entry_addresses);
-    assign_hidden_entry_names(ctx);
-
-    let functions = build_function_cfgs(ctx);
+    let mut functions = build_function_cfgs(ctx);
+    assign_hidden_entry_names(ctx, &mut functions);
 
     info!(
         "{} functions discovered with their cfgs built",
@@ -639,7 +638,7 @@ fn append_discovered_entries(ctx: &mut DecompileContext, discovered_addresses: V
     ctx.entry_points.sort_by_key(|x| x.address);
 }
 
-fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
+fn assign_hidden_entry_names(ctx: &mut DecompileContext, functions: &mut [FunctionCfg]) {
     if ctx.entry_points.is_empty() {
         return;
     }
@@ -658,21 +657,19 @@ fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
         .map(|x| (x.address, x.name.as_str()))
         .collect::<HashMap<_, _>>();
 
-    for entry_index in 0..ctx.entry_points.len() {
-        if ctx.entry_points[entry_index].exported {
+    for function in functions.iter_mut() {
+        if function.is_function_public {
             continue;
         }
 
-        let entry_address = ctx.entry_points[entry_index].address;
-        let Some(entry_block) = ctx.basic_block_id_by_start(entry_address) else {
+        let entry_address = function.entry_address;
+        let Some(entry_index) = ctx.entry_point_index_by_address(entry_address) else {
             continue;
         };
-        let mut reachable = collect_reachable_blocks(&ctx.basic_blocks, entry_block);
-        reachable.sort_by_key(|x| ctx.basic_blocks.blocks[*x].start_address());
 
         let mut instruction_addresses = Vec::<u32>::new();
-        for block_id in reachable {
-            for (_inst_id, address, _inst) in ctx.basic_blocks.blocks[block_id].instructions.iter()
+        for block_id in &function.block_ids {
+            for (_inst_id, address, _inst) in ctx.basic_blocks.blocks[*block_id].instructions.iter()
             {
                 instruction_addresses.push(address);
             }
@@ -727,6 +724,7 @@ fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
             generated_id += 1;
             used_names.insert(generated.clone());
             ctx.entry_points[entry_index].name = generated;
+            function.function_name = ctx.entry_points[entry_index].name.clone();
             continue;
         }
 
@@ -745,6 +743,7 @@ fn assign_hidden_entry_names(ctx: &mut DecompileContext) {
         }
         used_names.insert(first.clone());
         ctx.entry_points[entry_index].name = first;
+        function.function_name = ctx.entry_points[entry_index].name.clone();
     }
 }
 
