@@ -30,9 +30,10 @@
     - #chapter("dev/internals/main.typ")[内部机制]
       - #chapter("dev/internals/overview.typ")[概览]
       - #chapter("dev/internals/extract-udon-module-info.typ")[提取 `UdonModuleInfo.json`]
-      - #chapter("dev/internals/bytecode-parser.typ")[反汇编]
-      - #chapter("dev/internals/data-flow-analyzer.typ")[数据流分析]
-      - #chapter("dev/internals/code-generator.typ")[代码生成]
+      - #chapter("dev/internals/odin.typ")[Odin]
+      - #chapter("dev/internals/data-flow-analysis.typ")[数据流分析]
+      - #chapter("dev/internals/ir-transform.typ")[IR 和 IR 变换]
+      - #chapter("dev/internals/code-generation.typ")[代码生成]
     - #chapter("dev/contributing.typ")[贡献]
     = 关于
     - #chapter("about/motivation.typ")[动机]
