@@ -215,6 +215,8 @@ fn process_single_file(
     output_dir: Option<&Path>,
     template: Option<&Path>,
 ) -> Result<PathBuf> {
+    info!("processing {:?}", input_file.as_os_str());
+
     let mut prepared = prepare_single_input(mode, input_file)?;
     let default_filename = default_output_filename(mode, input_file, &prepared);
     let output_file = if let Some(output_dir) = output_dir {
