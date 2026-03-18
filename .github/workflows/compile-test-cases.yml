@@ -5,7 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "tests/cases/**/*.md"
-      - "Editor/UdonSharpSourceTextCompiler*.cs"
+      - "tools/Editor/UdonSharpSourceTextCompiler*.cs"
       - "tools/case-md.ts"
       - "package.json"
   workflow_dispatch:
