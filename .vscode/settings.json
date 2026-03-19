@@ -12,8 +12,8 @@
   "[csharp]": {
     "editor.defaultFormatter": "seaube.clangformat"
   },
-  "clang-format.executable": "${workspaceFolder}/node_modules/.bin/clang-format",
-  "clang-format.executable.windows": "${workspaceFolder}/node_modules/.bin/clang-format.cmd",
+  "clangFormat.executable.default": "${workspaceFolder}/node_modules/.bin/clang-format",
+  "clangFormat.executable.windows": "${workspaceFolder}/node_modules/.bin/clang-format.cmd",
   "[json]": {
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
