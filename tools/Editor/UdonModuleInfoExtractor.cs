@@ -118,6 +118,7 @@ public class UdonModuleInfoExtractor : EditorWindow
                 }
                 if (udonNodeDef.parameters.Count == 0)
                 {
+                    isStatic = true;
                     returnsVoid = true;
                 }
 
