@@ -1,59 +1,46 @@
+using CommandLine;
+
 internal static partial class Program
 {
     public static int Main(string[] args)
     {
-        if (!AreValidInputs(args))
+        return Parser.Default.ParseArguments<DumpOptions, DecryptOptions>(args)
+            .MapResult(
+                (DumpOptions options) => RunDump(options),
+                (DecryptOptions options) => RunDecrypt(options),
+                _ => 1);
+    }
+
+    private static int RunDump(DumpOptions options)
+    {
+        try
         {
-            PrintUsage();
+            var result = DumpProgramsFromBundle(options.Input);
+            Console.WriteLine(
+                $"[{Path.GetFileName(options.Input)}] dumped {result.DumpedCount} program(s) " +
+                $"to {result.OutputDirectory}");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[{options.Input}] {ex.Message}");
             return 1;
         }
-
-        var hadFailure = false;
-        foreach (var input in args)
-        {
-            try
-            {
-                var result = DumpProgramsFromBundle(input);
-                Console.WriteLine(
-                    $"[{Path.GetFileName(input)}] dumped {result.DumpedCount} program(s) " +
-                    $"to {result.OutputDirectory}");
-            }
-            catch (Exception ex)
-            {
-                hadFailure = true;
-                Console.Error.WriteLine($"[{input}] {ex.Message}");
-            }
-        }
-
-        return hadFailure ? 1 : 0;
     }
 
-    private static bool AreValidInputs(string[] args)
+    private static int RunDecrypt(DecryptOptions options)
     {
-        if (args.Length == 0)
+        try
         {
-            return false;
+            var result = DecryptBundles(options);
+            Console.WriteLine(
+                $"Decrypted {result.InputPath} to {result.OutputPath}.");
+            return 0;
         }
-
-        foreach (var input in args)
+        catch (Exception ex)
         {
-            if (!File.Exists(input))
-            {
-                return false;
-            }
+            Console.Error.WriteLine(ex.Message);
+            return 1;
         }
-
-        return true;
-    }
-
-    private static void PrintUsage()
-    {
-        var fileName = Path.GetFileName(Environment.ProcessPath);
-        if (string.IsNullOrWhiteSpace(fileName))
-        {
-            fileName = AppDomain.CurrentDomain.FriendlyName;
-        }
-
-        Console.WriteLine($"Usage: {fileName} <world1.vrcw> [world2.vrcw] ...");
     }
 }
