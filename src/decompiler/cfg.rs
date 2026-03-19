@@ -31,11 +31,16 @@ pub enum StackValue {
 }
 
 impl StackValue {
-    pub fn heap_address(&self) -> u32 {
+    pub fn maybe_heap_address(&self) -> Option<u32> {
         match self {
-            Self::HeapAddress(address) => *address,
-            _ => panic!("trying to get the heap_address of a phantom stack value"),
+            Self::HeapAddress(address) => Some(*address),
+            Self::HaltJump => None,
         }
+    }
+
+    pub fn heap_address(&self) -> u32 {
+        self.maybe_heap_address()
+            .expect("trying to get the heap_address of a phantom stack value")
     }
 
     pub fn resolve_u32_literal(&self, ctx: &DecompileContext) -> Option<u32> {

@@ -108,7 +108,7 @@ fn resolve_internal_call_bind(
 ) -> Option<(String, u32)> {
     let state = ctx.stack_simulation.get_instruction_state(address)?;
     let top = state.peek(0)?;
-    let top_address = top.heap_address();
+    let top_address = top.maybe_heap_address()?;
     let symbol_name = ctx.symbol_name_by_address.get(&top_address)?.clone();
     let next_address = ctx
         .instructions
@@ -154,7 +154,7 @@ fn render_extern_instruction_comment(
     let args = (0..function_info.parameter_count())
         .map(|index| {
             let depth = function_info.parameter_count() - 1 - index;
-            state.peek(depth).map(StackValue::heap_address)
+            state.peek(depth).and_then(StackValue::maybe_heap_address)
         })
         .collect::<Option<Vec<_>>>()?;
     Some(render_extern_comment(ctx, &function_info, &args))
@@ -164,8 +164,8 @@ fn render_copy_instruction_comment(ctx: &DecompileContext, address: u32) -> Opti
     let state = ctx.stack_simulation.get_instruction_state(address)?;
     let target = state.peek(0)?;
     let source = state.peek(1)?;
-    let target_name = render_variable_expression(target.heap_address(), ctx);
-    let source_name = render_variable_expression(source.heap_address(), ctx);
+    let target_name = render_variable_expression(target.maybe_heap_address()?, ctx);
+    let source_name = render_variable_expression(source.maybe_heap_address()?, ctx);
     if target_name == source_name {
         return None;
     }
@@ -175,7 +175,7 @@ fn render_copy_instruction_comment(ctx: &DecompileContext, address: u32) -> Opti
 fn render_jump_if_false_comment(ctx: &DecompileContext, address: u32) -> Option<String> {
     let state = ctx.stack_simulation.get_instruction_state(address)?;
     let condition = state.peek(0)?;
-    let condition_name = render_variable_expression(condition.heap_address(), ctx);
+    let condition_name = render_variable_expression(condition.maybe_heap_address()?, ctx);
     Some(format!("if (!{condition_name})"))
 }
 
