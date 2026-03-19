@@ -16,8 +16,8 @@ internal static partial class Program
         {
             var result = DumpProgramsFromBundle(options.Input);
             Console.WriteLine(
-                $"[{Path.GetFileName(options.Input)}] dumped {result.DumpedCount} program(s) " +
-                $"to {result.OutputDirectory}");
+                $"[{Path.GetFileName(options.Input)}] dumped {result.DumpedCount} program(s), " +
+                $"{result.DumpedVarCount} public var file(s) to {result.DumpRootDirectory}");
             return 0;
         }
         catch (Exception ex)

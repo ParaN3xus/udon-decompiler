@@ -1,26 +1,42 @@
+using System.Text.Json;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
 
 internal static partial class Program
 {
     private const string SerializedUdonProgramAssetClassName = "SerializedUdonProgramAsset";
+    private const string UdonBehaviourClassName = "UdonBehaviour";
     private const string CompressedProgramFieldPath = "serializedProgramCompressedBytes.Array";
+    private const string SerializedPublicVariablesFieldPath =
+        "serializedPublicVariablesBytesString";
+    private const string SerializedProgramAssetPointerFieldPath = "serializedProgramAsset";
+    private const string GameObjectPointerFieldPath = "m_GameObject";
+    private const string PointerPathIdFieldName = "m_PathID";
     private static readonly HashSet<char> InvalidFileNameChars =
         [..Path.GetInvalidFileNameChars()];
 
     private static DumpResult DumpProgramsFromBundle(string inputPath)
     {
         var fullInputPath = Path.GetFullPath(inputPath);
-        var outputDirectory = BuildOutputDirectory(fullInputPath);
-        Directory.CreateDirectory(outputDirectory);
+        var dumpRootDirectory = BuildOutputDirectory(fullInputPath, "-dumped");
+        var programsDirectory = Path.Combine(dumpRootDirectory, "programs");
+        var varsDirectory = Path.Combine(dumpRootDirectory, "vars");
+        var mapOutputPath = Path.Combine(dumpRootDirectory, "program-var-map.json");
 
-        var dumpCount = 0;
+        Directory.CreateDirectory(programsDirectory);
+        Directory.CreateDirectory(varsDirectory);
+
         var assetsFileCount = 0;
-        var usedOutputNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var programsByPathId = new Dictionary<long, ProgramDumpInfo>();
+        var usedProgramNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pendingBehaviours = new List<UdonBehaviourInfo>();
 
-        var manager = new AssetsManager { UseQuickLookup = true, UseTemplateFieldCache = true,
-                                          UseMonoTemplateFieldCache = true,
-                                          UseRefTypeManagerCache = true };
+        var manager = new AssetsManager {
+            UseQuickLookup = true,
+            UseTemplateFieldCache = true,
+            UseMonoTemplateFieldCache = true,
+            UseRefTypeManagerCache = true,
+        };
 
         try
         {
@@ -39,38 +55,8 @@ internal static partial class Program
                 }
 
                 assetsFileCount++;
-                var assetsFileData = assetsFile.file;
-                var serializedUdonProgramScriptCache = new Dictionary<ushort, bool>();
-
-                foreach (var assetInfo in assetsFileData.GetAssetsOfType(
-                             AssetClassID.MonoBehaviour))
-                {
-                    if (!IsSerializedUdonProgramAsset(manager, assetsFile, assetInfo,
-                                                      serializedUdonProgramScriptCache))
-                    {
-                        continue;
-                    }
-
-                    var baseField = manager.GetBaseField(assetsFile, assetInfo);
-                    var compressedField = baseField[CompressedProgramFieldPath];
-                    if (compressedField.IsDummy)
-                    {
-                        continue;
-                    }
-
-                    var compressedBytes = ReadByteArrayField(compressedField);
-                    if (compressedBytes.Length == 0)
-                    {
-                        continue;
-                    }
-
-                    var assetName = GetAssetName(baseField, assetInfo);
-                    var outputPath = GetUniqueOutputPath(outputDirectory, assetName, ".hex",
-                                                         usedOutputNames);
-                    File.WriteAllText(outputPath,
-                                      Convert.ToHexString(compressedBytes).ToLowerInvariant());
-                    dumpCount++;
-                }
+                CollectBundleData(manager, assetsFile, programsDirectory, usedProgramNames,
+                                  programsByPathId, pendingBehaviours);
             }
         }
         finally
@@ -84,22 +70,138 @@ internal static partial class Program
                 "The bundle did not contain any readable Unity assets files.");
         }
 
-        if (dumpCount == 0)
+        if (programsByPathId.Count == 0)
         {
             throw new InvalidOperationException(
                 "No SerializedUdonProgramAsset objects were found in the bundle.");
         }
 
-        return new DumpResult(outputDirectory, dumpCount);
+        var programVarMap =
+            BuildProgramVarMap(pendingBehaviours, programsByPathId, varsDirectory);
+        WriteProgramVarMap(mapOutputPath, programVarMap);
+
+        return new DumpResult(dumpRootDirectory, programsDirectory, varsDirectory,
+                              programsByPathId.Count, pendingBehaviours.Count);
     }
 
-    private static bool IsSerializedUdonProgramAsset(
+    private static void CollectBundleData(AssetsManager manager, AssetsFileInstance assetsFile,
+                                          string programsDirectory,
+                                          ISet<string> usedProgramNames,
+                                          IDictionary<long, ProgramDumpInfo> programsByPathId,
+                                          ICollection<UdonBehaviourInfo> pendingBehaviours)
+    {
+        var assetsFileData = assetsFile.file;
+        var monoScriptClassNameCache = new Dictionary<ushort, string?>();
+
+        foreach (var assetInfo in assetsFileData.GetAssetsOfType(AssetClassID.MonoBehaviour))
+        {
+            var className = GetMonoBehaviourClassName(manager, assetsFile, assetInfo,
+                                                      monoScriptClassNameCache);
+            if (className == null)
+            {
+                continue;
+            }
+
+            var baseField = manager.GetBaseField(assetsFile, assetInfo);
+            if (string.Equals(className, SerializedUdonProgramAssetClassName,
+                              StringComparison.Ordinal))
+            {
+                var programInfo = TryDumpProgramAsset(baseField, assetInfo, programsDirectory,
+                                                      usedProgramNames);
+                if (programInfo != null)
+                {
+                    programsByPathId[assetInfo.PathId] = programInfo;
+                }
+
+                continue;
+            }
+
+            if (!string.Equals(className, UdonBehaviourClassName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            pendingBehaviours.Add(new UdonBehaviourInfo(
+                GetPointerPathId(baseField[GameObjectPointerFieldPath]),
+                GetPointerPathId(baseField[SerializedProgramAssetPointerFieldPath]),
+                ReadStringField(baseField[SerializedPublicVariablesFieldPath])));
+        }
+    }
+
+    private static ProgramDumpInfo? TryDumpProgramAsset(AssetTypeValueField baseField,
+                                                        AssetFileInfo assetInfo,
+                                                        string programsDirectory,
+                                                        ISet<string> usedProgramNames)
+    {
+        var compressedField = baseField[CompressedProgramFieldPath];
+        if (compressedField.IsDummy)
+        {
+            return null;
+        }
+
+        var compressedBytes = ReadByteArrayField(compressedField);
+        if (compressedBytes.Length == 0)
+        {
+            return null;
+        }
+
+        var programHex = Convert.ToHexString(compressedBytes).ToLowerInvariant();
+
+        var assetName = GetAssetName(baseField, assetInfo);
+        var outputPath =
+            GetUniqueOutputPath(programsDirectory, assetName, ".hex", usedProgramNames);
+        File.WriteAllText(outputPath, programHex);
+        return new ProgramDumpInfo(assetInfo.PathId,
+                                   Path.GetFileNameWithoutExtension(outputPath));
+    }
+
+    private static Dictionary<string, List<ProgramVarMapEntry>> BuildProgramVarMap(
+        IEnumerable<UdonBehaviourInfo> behaviours,
+        IReadOnlyDictionary<long, ProgramDumpInfo> programsByPathId, string varsDirectory)
+    {
+        var result = new Dictionary<string, List<ProgramVarMapEntry>>(StringComparer.Ordinal);
+
+        foreach (var behaviour in behaviours)
+        {
+            if (!programsByPathId.TryGetValue(behaviour.ProgramPathId, out var programInfo))
+            {
+                continue;
+            }
+
+            var publicVarFileName =
+                $"{SanitizeFileName(programInfo.OutputName)}-{behaviour.GameObjectId}.b64";
+            var publicVarOutputPath = Path.Combine(varsDirectory, publicVarFileName);
+            File.WriteAllText(publicVarOutputPath, behaviour.SerializedPublicVariables);
+
+            if (!result.TryGetValue(programInfo.OutputName, out var entries))
+            {
+                entries = [];
+                result[programInfo.OutputName] = entries;
+            }
+
+            entries.Add(new ProgramVarMapEntry(behaviour.GameObjectId, publicVarFileName));
+        }
+
+        return result;
+    }
+
+    private static void WriteProgramVarMap(string outputPath,
+                                           Dictionary<string, List<ProgramVarMapEntry>> map)
+    {
+        var options = new JsonSerializerOptions {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+        };
+        File.WriteAllText(outputPath, JsonSerializer.Serialize(map, options));
+    }
+
+    private static string? GetMonoBehaviourClassName(
         AssetsManager manager, AssetsFileInstance assetsFile, AssetFileInfo assetInfo,
-        Dictionary<ushort, bool> serializedUdonProgramScriptCache)
+        IDictionary<ushort, string?> monoScriptClassNameCache)
     {
         if (assetInfo.TypeId != (int)AssetClassID.MonoBehaviour)
         {
-            return false;
+            return null;
         }
 
         ushort scriptIndex;
@@ -109,25 +211,23 @@ internal static partial class Program
         }
         catch
         {
-            return false;
+            return null;
         }
 
         if (scriptIndex == ushort.MaxValue)
         {
-            return false;
+            return null;
         }
 
-        if (serializedUdonProgramScriptCache.TryGetValue(scriptIndex, out var cachedResult))
+        if (monoScriptClassNameCache.TryGetValue(scriptIndex, out var cachedClassName))
         {
-            return cachedResult;
+            return cachedClassName;
         }
 
-        if (TryGetTypeTreeRootClassName(assetsFile, scriptIndex, out var typeTreeClassName) &&
-            string.Equals(typeTreeClassName, SerializedUdonProgramAssetClassName,
-                          StringComparison.Ordinal))
+        if (TryGetTypeTreeRootClassName(assetsFile, scriptIndex, out var typeTreeClassName))
         {
-            serializedUdonProgramScriptCache[scriptIndex] = true;
-            return true;
+            monoScriptClassNameCache[scriptIndex] = typeTreeClassName;
+            return typeTreeClassName;
         }
 
         AssetTypeReference? scriptInfo;
@@ -137,14 +237,11 @@ internal static partial class Program
         }
         catch
         {
-            return false;
+            return null;
         }
 
-        var isSerializedUdonProgram =
-            string.Equals(scriptInfo?.ClassName, SerializedUdonProgramAssetClassName,
-                          StringComparison.Ordinal);
-        serializedUdonProgramScriptCache[scriptIndex] = isSerializedUdonProgram;
-        return isSerializedUdonProgram;
+        monoScriptClassNameCache[scriptIndex] = scriptInfo?.ClassName;
+        return scriptInfo?.ClassName;
     }
 
     private static bool TryGetTypeTreeRootClassName(AssetsFileInstance assetsFile,
@@ -192,11 +289,32 @@ internal static partial class Program
             {
                 bytes[index] = dataField[index].AsByte;
             }
+
             return bytes;
         }
 
         throw new InvalidOperationException(
             $"Unsupported field value type {dataField.TemplateField.ValueType}.");
+    }
+
+    private static string ReadStringField(AssetTypeValueField field)
+    {
+        if (field.IsDummy)
+        {
+            return string.Empty;
+        }
+
+        return field.AsString ?? string.Empty;
+    }
+
+    private static long GetPointerPathId(AssetTypeValueField pointerField)
+    {
+        if (pointerField.IsDummy)
+        {
+            return 0;
+        }
+
+        return pointerField[PointerPathIdFieldName].AsLong;
     }
 
     private static string GetAssetName(AssetTypeValueField baseField, AssetFileInfo assetInfo)
@@ -213,16 +331,15 @@ internal static partial class Program
         {
         }
 
-        // fallback
         return $"pathid_{assetInfo.PathId}";
     }
 
-    private static string BuildOutputDirectory(string inputPath)
+    private static string BuildOutputDirectory(string inputPath, string suffix)
     {
         var parentDirectory =
             Path.GetDirectoryName(inputPath) ?? Directory.GetCurrentDirectory();
         var stem = Path.GetFileNameWithoutExtension(inputPath);
-        return Path.Combine(parentDirectory, $"{stem}-dumped-programs");
+        return Path.Combine(parentDirectory, $"{stem}{suffix}");
     }
 
     private static string GetUniqueOutputPath(string directory, string rawFileNameStem,
@@ -261,5 +378,10 @@ internal static partial class Program
         return new string(cleanedChars);
     }
 
-    private sealed record DumpResult(string OutputDirectory, int DumpedCount);
+    private sealed record DumpResult(string DumpRootDirectory, string ProgramsDirectory,
+                                     string VarsDirectory, int DumpedCount, int DumpedVarCount);
+    private sealed record ProgramDumpInfo(long PathId, string OutputName);
+    private sealed record UdonBehaviourInfo(long GameObjectId, long ProgramPathId,
+                                            string SerializedPublicVariables);
+    private sealed record ProgramVarMapEntry(long GameObjectId, string PublicVar);
 }
