@@ -1,6 +1,8 @@
 using CommandLine;
 
-[Verb("dump", HelpText = "Dump SerializedUdonProgramAsset programs from one or more Unity asset bundles.")]
+[Verb("dump",
+      HelpText =
+          "Dump SerializedUdonProgramAsset programs from one or more Unity asset bundles.")]
 internal sealed class DumpOptions
 {
     [Value(0, Required = true, MetaName = "bundle",
@@ -15,12 +17,10 @@ internal sealed class DecryptOptions
             HelpText = "The VRChat blueprint ID used to derive the decryption key.")]
     public string Bpid { get; init; } = string.Empty;
 
-    [Value(0, Required = false, MetaName = "input",
-           HelpText = "A bundle file to decrypt.")]
+    [Value(0, Required = false, MetaName = "input", HelpText = "A bundle file to decrypt.")]
     public string? PositionalInputPath { get; init; }
 
-    [Option('i', "input", Required = false,
-            HelpText = "A bundle file to decrypt.")]
+    [Option('i', "input", Required = false, HelpText = "A bundle file to decrypt.")]
     public string? InputPath { get; init; }
 
     [Option('o', "output", Required = false,

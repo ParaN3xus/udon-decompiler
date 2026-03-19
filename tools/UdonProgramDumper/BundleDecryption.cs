@@ -80,7 +80,8 @@ internal static partial class Program
         var blockDataStart = GetBlockDataStartOffset(input.Length, header);
         var blockDataEnd = GetBlockDataEndOffset(input.Length, header);
         var blockJobs = BuildBlockJobs(blocksInfo.Blocks, blockDataStart, blockDataEnd);
-        var decryptedBlocks = DecryptBlocksInParallel(inputPath, blockJobs, keyBytes, blocksInfo);
+        var decryptedBlocks =
+            DecryptBlocksInParallel(inputPath, blockJobs, keyBytes, blocksInfo);
 
         var rebuiltBlocksInfoBytes = BuildBlocksInfoBytes(blocksInfo);
         var decryptedFlags =
@@ -211,7 +212,8 @@ internal static partial class Program
         return stream.ToArray();
     }
 
-    private static byte[][] DecryptBlocksInParallel(string inputPath, IReadOnlyList<BlockJob> blockJobs,
+    private static byte[][] DecryptBlocksInParallel(string inputPath,
+                                                    IReadOnlyList<BlockJob> blockJobs,
                                                     byte[] keyBytes, BlocksInfo blocksInfo)
     {
         var decryptedBlocks = new byte[blockJobs.Count][];
@@ -274,8 +276,8 @@ internal static partial class Program
         return output.ToArray();
     }
 
-    private static IReadOnlyList<BlockJob> BuildBlockJobs(IReadOnlyList<StorageBlockInfo> blocks,
-                                                          long blockDataStart, long blockDataEnd)
+    private static IReadOnlyList<BlockJob> BuildBlockJobs(
+        IReadOnlyList<StorageBlockInfo> blocks, long blockDataStart, long blockDataEnd)
     {
         var jobs = new List<BlockJob>(blocks.Count);
         var offset = blockDataStart;

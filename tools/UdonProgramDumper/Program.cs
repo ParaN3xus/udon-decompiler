@@ -4,11 +4,10 @@ internal static partial class Program
 {
     public static int Main(string[] args)
     {
-        return Parser.Default.ParseArguments<DumpOptions, DecryptOptions>(args)
-            .MapResult(
-                (DumpOptions options) => RunDump(options),
-                (DecryptOptions options) => RunDecrypt(options),
-                _ => 1);
+        return Parser.Default.ParseArguments<DumpOptions, DecryptOptions>(args).MapResult(
+            (DumpOptions options) => RunDump(options),
+            (DecryptOptions options) => RunDecrypt(options),
+            _ => 1);
     }
 
     private static int RunDump(DumpOptions options)
@@ -33,8 +32,7 @@ internal static partial class Program
         try
         {
             var result = DecryptBundles(options);
-            Console.WriteLine(
-                $"Decrypted {result.InputPath} to {result.OutputPath}.");
+            Console.WriteLine($"Decrypted {result.InputPath} to {result.OutputPath}.");
             return 0;
         }
         catch (Exception ex)
