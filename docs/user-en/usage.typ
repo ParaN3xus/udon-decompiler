@@ -17,11 +17,11 @@ This project does not provide guidance on this. You should have a `.vrcw` file.
 + Use the `UdonProgramDumper` program downloaded in the [= Installation] section of #cross-link-heading("/user-en/installation.typ", [= Installation])[Installation] to extract program files from `.vrcw`. Specifically:
 - Use the command line
   ```shell-unix-generic
-  UdonProgramDumper <world.vrcw>
+  UdonProgramDumper dump <world.vrcw>
   ```
   You should get output like this
   ```
-  $ UdonProgramDumper example.vrcw
+  $ UdonProgramDumper dump example.vrcw
   [example.vrcw] dumped 8 program(s) to example-dumped-programs
   ```
 - Drag and drop a `.vrcw` file directly onto `UdonProgramDumper`. This is effectively equivalent to the previous method.
