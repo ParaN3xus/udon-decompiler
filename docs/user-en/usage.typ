@@ -17,7 +17,7 @@ This project does not provide guidance on this. You should have a `.vrcw` file.
 + Use the `UdonProgramDumper` program downloaded in the [= Installation] section of #cross-link-heading("/user-en/installation.typ", [= Installation])[Installation] to extract program files from `.vrcw`. Specifically:
 - Use the command line
   ```shell-unix-generic
-  UdonProgramDumper <world1.vrcw> [world2.vrcw] ...
+  UdonProgramDumper <world.vrcw>
   ```
   You should get output like this
   ```

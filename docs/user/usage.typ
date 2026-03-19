@@ -17,7 +17,7 @@ For English version, refer to #cross-link("/user-en/usage.typ")[Usage].
 使用 #cross-link-heading("/user/installation.typ", [= 安装])[安装]一节下载的 `UdonProgramDumper` 程序提取 `.vrcw` 中的程序文件, 具体而言:
 - 使用命令行
   ```shell-unix-generic
-  UdonProgramDumper <world1.vrcw> [world2.vrcw] ...
+  UdonProgramDumper <world.vrcw>
   ```
   你应该得到类似这样的输出
   ```shell-unix-generic
