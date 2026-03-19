@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use serde_json::to_string_pretty;
 use tracing::{debug, info};
 use udon_decompiler::decompiler::{DecompileContext, UdonModuleInfo};
 use udon_decompiler::logging::init_logging;
@@ -194,7 +195,7 @@ fn cli_process_directory(
     input_files.sort();
     debug!(count = input_files.len(), "matched input files");
 
-    // todo: parallel
+    let mut output_map = Vec::new();
     for input_file in input_files {
         let file_template = match mode {
             Mode::Asm => template,
@@ -203,6 +204,18 @@ fn cli_process_directory(
         let output_file =
             process_single_file(mode, &input_file, None, Some(&output_dir), file_template)?;
         info!("{} -> {}", input_file.display(), output_file.display());
+        if should_emit_directory_map(mode) {
+            output_map.push((
+                display_name_for_map(&input_file),
+                display_name_for_map(&output_file),
+            ));
+        }
+    }
+
+    if should_emit_directory_map(mode) {
+        let map_output_path = directory_map_output_path(&output_dir)?;
+        write_directory_output_map(&map_output_path, &output_map)?;
+        info!("wrote directory output map to {}", map_output_path.display());
     }
 
     Ok(())
@@ -595,6 +608,37 @@ fn default_output_dir_suffix(mode: Mode) -> &'static str {
         Mode::Dasm => "disassembled",
         Mode::Asm => "decompiled",
     }
+}
+
+fn should_emit_directory_map(mode: Mode) -> bool {
+    matches!(mode, Mode::Dc | Mode::Dasm)
+}
+
+fn directory_map_output_path(output_dir: &Path) -> Result<PathBuf> {
+    let file_name = output_dir
+        .file_name()
+        .and_then(|x| x.to_str())
+        .filter(|x| !x.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("failed to derive map filename from {}", output_dir.display()))?;
+    Ok(output_dir.with_file_name(format!("{file_name}-map.json")))
+}
+
+fn display_name_for_map(path: &Path) -> String {
+    path.file_name()
+        .and_then(|x| x.to_str())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| path.display().to_string())
+}
+
+fn write_directory_output_map(output_path: &Path, entries: &[(String, String)]) -> Result<()> {
+    let map = entries
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let json = to_string_pretty(&map)
+        .with_context(|| format!("failed to serialize {}", output_path.display()))?;
+    fs::write(output_path, json)
+        .with_context(|| format!("failed to write {}", output_path.display()))
 }
 
 fn is_asset_file(path: &Path) -> bool {
