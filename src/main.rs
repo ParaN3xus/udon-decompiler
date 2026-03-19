@@ -215,7 +215,10 @@ fn cli_process_directory(
     if should_emit_directory_map(mode) {
         let map_output_path = directory_map_output_path(&output_dir)?;
         write_directory_output_map(&map_output_path, &output_map)?;
-        info!("wrote directory output map to {}", map_output_path.display());
+        info!(
+            "wrote directory output map to {}",
+            map_output_path.display()
+        );
     }
 
     Ok(())
@@ -619,7 +622,12 @@ fn directory_map_output_path(output_dir: &Path) -> Result<PathBuf> {
         .file_name()
         .and_then(|x| x.to_str())
         .filter(|x| !x.is_empty())
-        .ok_or_else(|| anyhow::anyhow!("failed to derive map filename from {}", output_dir.display()))?;
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "failed to derive map filename from {}",
+                output_dir.display()
+            )
+        })?;
     Ok(output_dir.with_file_name(format!("{file_name}-map.json")))
 }
 
