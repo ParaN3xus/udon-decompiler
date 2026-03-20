@@ -1,10 +1,10 @@
 {
   "latest_attempt": {
-    "status": "failure",
-    "attempted_sha": "f90f95d14ad3d7e2fc0940e3febf3beff6f8734f",
-    "attempted_run_id": "23334459091",
-    "attempted_at": "2026-03-20T08:13:48Z",
-    "result": "failure"
+    "status": "building",
+    "attempted_sha": "cd5405ae56a82bc9c8746d978c097f280f965630",
+    "attempted_run_id": "23334908658",
+    "attempted_at": "2026-03-20T08:29:53Z",
+    "result": "building"
   },
   "current_artifact": {
     "published_sha": "",
