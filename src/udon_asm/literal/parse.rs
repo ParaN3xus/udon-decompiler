@@ -947,9 +947,17 @@ fn array_element_node_ids(doc: &OdinDocument, array_node_id: NodeId) -> Vec<Node
         .children()
         .iter()
         .copied()
-        .filter(|id| doc.node(*id).and_then(|child| child.array_index()).is_some())
+        .filter(|id| {
+            doc.node(*id)
+                .and_then(|child| child.array_index())
+                .is_some()
+        })
         .collect::<Vec<_>>();
-    ids.sort_by_key(|id| doc.node(*id).and_then(|child| child.array_index()).unwrap_or(usize::MAX));
+    ids.sort_by_key(|id| {
+        doc.node(*id)
+            .and_then(|child| child.array_index())
+            .unwrap_or(usize::MAX)
+    });
     ids
 }
 
