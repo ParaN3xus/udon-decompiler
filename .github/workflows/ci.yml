@@ -51,7 +51,7 @@ jobs:
           git ls-files '*.cs' | xargs yarn run clang-format --dry-run --Werror --style=file:.clang-format
 
       - name: Dotnet build
-        run: dotnet build
+        run: dotnet build -p:PublishAot=true
 
       - name: Download UdonModuleInfo.json
         shell: bash
