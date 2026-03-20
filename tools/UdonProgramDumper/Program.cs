@@ -1,13 +1,66 @@
-using CommandLine;
+using System.CommandLine;
 
 internal static partial class Program
 {
     public static int Main(string[] args)
     {
-        return Parser.Default.ParseArguments<DumpOptions, DecryptOptions>(args).MapResult(
-            (DumpOptions options) => RunDump(options),
-            (DecryptOptions options) => RunDecrypt(options),
-            _ => 1);
+        var bundleArgument = new Argument<string>("bundle") {
+            Description = "A Unity asset bundle file to dump.",
+        };
+
+        var dumpCommand = new Command(
+            "dump",
+            "Dump SerializedUdonProgramAsset programs from one or more Unity asset bundles.")
+        {
+            bundleArgument,
+        };
+        dumpCommand.SetAction(parseResult =>
+        {
+            var options = new DumpOptions { Input = parseResult.GetValue(bundleArgument)! };
+            return RunDump(options);
+        });
+
+        var bpidOption = new Option<string>("--bpid", "-b") {
+            Description =
+                "The VRChat blueprint ID used to derive the decryption key.",
+            Required = true,
+        };
+        var inputOption = new Option<string?>("--input", "-i") {
+            Description = "A bundle file to decrypt.",
+        };
+        var outputOption = new Option<string?>("--output", "-o") {
+            Description = "Output file path. Defaults to a derived sibling path.",
+        };
+        var positionalInputArgument = new Argument<string?>("input") {
+            Description = "A bundle file to decrypt.",
+            Arity = ArgumentArity.ZeroOrOne,
+        };
+
+        var decryptCommand =
+            new Command("decrypt", "Decrypt VRChat asset bundle files using a BPID.")
+        {
+            bpidOption,
+            inputOption,
+            outputOption,
+            positionalInputArgument,
+        };
+        decryptCommand.SetAction(parseResult =>
+        {
+            var options = new DecryptOptions {
+                Bpid = parseResult.GetValue(bpidOption)!,
+                InputPath = parseResult.GetValue(inputOption),
+                OutputPath = parseResult.GetValue(outputOption),
+                PositionalInputPath = parseResult.GetValue(positionalInputArgument),
+            };
+            return RunDecrypt(options);
+        });
+
+        var rootCommand = new RootCommand("Dump and decrypt Udon-related Unity asset bundles.")
+        {
+            dumpCommand,
+            decryptCommand,
+        };
+        return rootCommand.Parse(args).Invoke();
     }
 
     private static int RunDump(DumpOptions options)
