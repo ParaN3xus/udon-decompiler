@@ -9,6 +9,7 @@
 #let asset-ripper = link("https://github.com/AssetRipper/AssetRipper")[Asset Ripper]
 #let numba-scfg = link("https://github.com/numba/numba-scfg")[numba-scfg]
 #let release = link("https://github.com/ParaN3xus/udon-decompiler/releases")[Release]
+#let nightly-release = link("https://github.com/ParaN3xus/udon-decompiler/releases/tag/nightly")[Nightly Release]
 #let release-workflow = link("https://github.com/ParaN3xus/udon-decompiler/actions/workflows/release.yml")[Release]
 
 

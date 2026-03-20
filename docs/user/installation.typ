@@ -10,7 +10,7 @@ For English version, refer to #cross-link("/user-en/installation.typ")[Installat
 
 = 安装本反编译器
 
-请从本仓库的 #release 页面获取发布版本或者从 #release-workflow 工作流页面获取每日构建版本. 其中:
+请从本仓库的 #release 页面获取稳定发布版本, 或从固定的 #nightly-release 页面获取每日构建版本. 其中:
 
 - `linux-x64.zip` 和 `windows-x64.zip` 提供可执行文件
 - `editor-scripts.zip` 提供 Unity Editor Script
@@ -22,7 +22,7 @@ For English version, refer to #cross-link("/user-en/installation.typ")[Installat
 
 + 按 VRChat 创作文档的#link("https://creators.vrchat.com/sdk/")[指引], 创建一个安装了 VRChat Base SDK 和 VRChat *World* SDK 的 Unity 项目
 + 使用 #vcc 确认上述两个 SDK 包均已升级到最新版本
-+ 从本项目的发布产物中下载 `editor-scripts.zip`
++ 解压上一步中下载的 `editor-scripts.zip`
 + 在该项目中新建 `Assets/Editor` 目录, 将得到的所有编辑器脚本复制到该目录中
 + 在 Unity 的顶部菜单栏点击 `Tools/Extract Udon Module Info`
 + 控制台中应该出现日志(数值可能略有不同)

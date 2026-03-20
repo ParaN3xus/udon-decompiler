@@ -9,7 +9,7 @@ This section describes how to install this project.
 
 = Install the decompiler
 
-Please download a release build from this repository's #release page, or a nightly build from the #release-workflow workflow page. In particular:
+Please download a stable release from this repository's #release page, or a nightly build from the fixed #nightly-release page. In particular:
 
 - `linux-x64.zip` and `windows-x64.zip` contain the executables
 - `editor-scripts.zip` contains the Unity Editor scripts
@@ -21,7 +21,7 @@ You can of course obtain this file from other sources, but we recommend generati
 
 + Follow the VRChat creator documentation #link("https://creators.vrchat.com/sdk/")[guide] to create a Unity project with both VRChat Base SDK and VRChat *World* SDK installed
 + Use #vcc to ensure both SDK packages above are upgraded to the latest versions
-+ Download `editor-scripts.zip` from this project's release artifacts
++ Extract `editor-scripts.zip` downloaded in the previous step
 + Create an `Assets/Editor` directory in that project and copy all editor scripts into that directory
 + In Unity's top menu bar, click `Tools/Extract Udon Module Info`
 + The console should show logs like (numbers may differ)
