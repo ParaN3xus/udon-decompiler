@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
 
@@ -155,11 +156,11 @@ internal static partial class Program
                                    Path.GetFileNameWithoutExtension(outputPath));
     }
 
-    private static Dictionary<string, List<ProgramVarMapEntry>> BuildProgramVarMap(
+    private static ProgramVarMap BuildProgramVarMap(
         IEnumerable<UdonBehaviourInfo> behaviours,
         IReadOnlyDictionary<long, ProgramDumpInfo> programsByPathId, string varsDirectory)
     {
-        var result = new Dictionary<string, List<ProgramVarMapEntry>>(StringComparer.Ordinal);
+        var result = new ProgramVarMap();
 
         foreach (var behaviour in behaviours)
         {
@@ -186,13 +187,12 @@ internal static partial class Program
     }
 
     private static void WriteProgramVarMap(string outputPath,
-                                           Dictionary<string, List<ProgramVarMapEntry>> map)
+                                           ProgramVarMap map)
     {
-        var options = new JsonSerializerOptions {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true,
-        };
-        File.WriteAllText(outputPath, JsonSerializer.Serialize(map, options));
+        File.WriteAllText(outputPath,
+                          JsonSerializer.Serialize(map,
+                                                   ProgramVarMapJsonContext.Default
+                                                       .ProgramVarMap));
     }
 
     private static string? GetMonoBehaviourClassName(
@@ -380,8 +380,19 @@ internal static partial class Program
 
     private sealed record DumpResult(string DumpRootDirectory, string ProgramsDirectory,
                                      string VarsDirectory, int DumpedCount, int DumpedVarCount);
+    private sealed class ProgramVarMap : Dictionary<string, List<ProgramVarMapEntry>>
+    {
+        public ProgramVarMap() : base(StringComparer.Ordinal)
+        {
+        }
+    }
     private sealed record ProgramDumpInfo(long PathId, string OutputName);
     private sealed record UdonBehaviourInfo(long GameObjectId, long ProgramPathId,
                                             string SerializedPublicVariables);
     private sealed record ProgramVarMapEntry(long GameObjectId, string PublicVar);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+                                 WriteIndented = true)]
+    [JsonSerializable(typeof(ProgramVarMap))]
+    private sealed partial class ProgramVarMapJsonContext : JsonSerializerContext;
 }
