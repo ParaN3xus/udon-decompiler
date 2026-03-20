@@ -186,13 +186,10 @@ internal static partial class Program
         return result;
     }
 
-    private static void WriteProgramVarMap(string outputPath,
-                                           ProgramVarMap map)
+    private static void WriteProgramVarMap(string outputPath, ProgramVarMap map)
     {
-        File.WriteAllText(outputPath,
-                          JsonSerializer.Serialize(map,
-                                                   ProgramVarMapJsonContext.Default
-                                                       .ProgramVarMap));
+        File.WriteAllText(outputPath, JsonSerializer.Serialize(
+                                          map, ProgramVarMapJsonContext.Default.ProgramVarMap));
     }
 
     private static string? GetMonoBehaviourClassName(
@@ -382,9 +379,7 @@ internal static partial class Program
                                      string VarsDirectory, int DumpedCount, int DumpedVarCount);
     private sealed class ProgramVarMap : Dictionary<string, List<ProgramVarMapEntry>>
     {
-        public ProgramVarMap() : base(StringComparer.Ordinal)
-        {
-        }
+        public ProgramVarMap() : base(StringComparer.Ordinal) {}
     }
     private sealed record ProgramDumpInfo(long PathId, string OutputName);
     private sealed record UdonBehaviourInfo(long GameObjectId, long ProgramPathId,
