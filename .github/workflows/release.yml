@@ -13,9 +13,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.event.inputs.version || 'nightly' }}
+  cancel-in-progress: true
+
 env:
   DOTNET_VERSION: "10.0.x"
   NODE_VERSION: "24"
+  NIGHTLY_BADGE_BRANCH: "badges"
 
 jobs:
   prepare:
@@ -53,6 +58,179 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "ref=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+  prepare-nightly-metadata:
+    name: Prepare nightly metadata
+    needs: prepare
+    if: needs.prepare.outputs.is_nightly == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update nightly status assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ env.NIGHTLY_BADGE_BRANCH }}
+          RUN_ID: ${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          SHA: ${{ needs.prepare.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p prior-meta out
+
+          if gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.content' > prior-meta/nightly-meta.base64 2>/dev/null; then
+            tr -d '\n' < prior-meta/nightly-meta.base64 | base64 -d > prior-meta/nightly-meta.json
+          fi
+
+          PRIOR_META="prior-meta/nightly-meta.json"
+          HAS_PUBLISHED_ARTIFACT="false"
+          PUBLISHED_SHA=""
+          PUBLISHED_RUN_ID=""
+          PUBLISHED_RUN_URL=""
+          PUBLISHED_EVENT=""
+          PUBLISHED_AT=""
+
+          if [ -f "${PRIOR_META}" ]; then
+            HAS_PUBLISHED_ARTIFACT="$(jq -r 'if (.current_artifact.published_sha // "") != "" then "true" else "false" end' "${PRIOR_META}")"
+            PUBLISHED_SHA="$(jq -r '.current_artifact.published_sha // ""' "${PRIOR_META}")"
+            PUBLISHED_RUN_ID="$(jq -r '.current_artifact.published_run_id // ""' "${PRIOR_META}")"
+            PUBLISHED_EVENT="$(jq -r '.current_artifact.published_event // ""' "${PRIOR_META}")"
+            PUBLISHED_AT="$(jq -r '.current_artifact.published_at // ""' "${PRIOR_META}")"
+          fi
+
+          RUN_URL="https://github.com/${REPO}/actions/runs/${RUN_ID}"
+          if [ -n "${PUBLISHED_RUN_ID}" ]; then
+            PUBLISHED_RUN_URL="https://github.com/${REPO}/actions/runs/${PUBLISHED_RUN_ID}"
+          fi
+          ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          SHORT_SHA="${SHA:0:7}"
+          SHORT_PUBLISHED_SHA="${PUBLISHED_SHA:0:7}"
+
+          jq -n \
+            --arg label "nightly" \
+            --arg message "building" \
+            --arg color "yellow" \
+            '{
+              schemaVersion: 1,
+              label: $label,
+              message: $message,
+              color: $color
+            }' > out/nightly-badge.json
+
+          jq -n \
+            --arg status "building" \
+            --arg attempted_sha "${SHA}" \
+            --arg attempted_run_id "${RUN_ID}" \
+            --arg attempted_at "${ATTEMPTED_AT}" \
+            --arg result "building" \
+            --arg published_sha "${PUBLISHED_SHA}" \
+            --arg published_run_id "${PUBLISHED_RUN_ID}" \
+            --arg published_event "${PUBLISHED_EVENT}" \
+            --arg published_at "${PUBLISHED_AT}" \
+            '{
+              latest_attempt: {
+                status: $status,
+                attempted_sha: $attempted_sha,
+                attempted_run_id: $attempted_run_id,
+                attempted_at: $attempted_at,
+                result: $result
+              },
+              current_artifact: {
+                published_sha: $published_sha,
+                published_run_id: $published_run_id,
+                published_event: $published_event,
+                published_at: $published_at
+              }
+            }' > out/nightly-meta.json
+
+          {
+            echo "## Latest attempt"
+            echo "- Status: building"
+            echo "- Trigger: \`${EVENT_NAME}\`"
+            echo "- Commit: ${SHORT_SHA}"
+            echo "- Run: [${RUN_ID}](${RUN_URL})"
+            echo "- Updated at: ${ATTEMPTED_AT}"
+            echo
+            echo "## Current downloadable artifacts"
+            if [ "${HAS_PUBLISHED_ARTIFACT}" = "true" ]; then
+              echo "These assets are still the most recent successful nightly build."
+              echo
+              echo "- Commit: ${SHORT_PUBLISHED_SHA}"
+              echo "- Source trigger: \`${PUBLISHED_EVENT}\`"
+              echo "- Source run: [${PUBLISHED_RUN_ID}](${PUBLISHED_RUN_URL})"
+              echo "- Published at: ${PUBLISHED_AT}"
+            else
+              echo "No successful nightly artifacts have been published yet."
+            fi
+          } > out/release-notes.md
+
+          if gh release view nightly -R "${REPO}" >/dev/null 2>&1; then
+            gh release edit nightly -R "${REPO}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          else
+            gh release create nightly -R "${REPO}" \
+              --target "${SHA}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          fi
+
+      - name: Publish nightly metadata branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ env.NIGHTLY_BADGE_BRANCH }}
+        run: |
+          set -euo pipefail
+
+          DEFAULT_SHA="$(gh api "repos/${REPO}/git/ref/heads/${GITHUB_REF_NAME}" --jq '.object.sha')"
+
+          if ! gh api "repos/${REPO}/git/ref/heads/${BRANCH}" >/dev/null 2>&1; then
+            gh api "repos/${REPO}/git/refs" \
+              --method POST \
+              -f ref="refs/heads/${BRANCH}" \
+              -f sha="${DEFAULT_SHA}" >/dev/null
+          fi
+
+          BADGE_CONTENT="$(base64 -w 0 out/nightly-badge.json)"
+          META_CONTENT="$(base64 -w 0 out/nightly-meta.json)"
+
+          BADGE_SHA="$(gh api "repos/${REPO}/contents/nightly-badge.json?ref=${BRANCH}" --jq '.sha' 2>/dev/null || true)"
+          META_SHA="$(gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.sha' 2>/dev/null || true)"
+
+          if [ -n "${BADGE_SHA}" ]; then
+            gh api "repos/${REPO}/contents/nightly-badge.json" \
+              --method PUT \
+              -f message="chore: update nightly badge metadata" \
+              -f content="${BADGE_CONTENT}" \
+              -f branch="${BRANCH}" \
+              -f sha="${BADGE_SHA}" >/dev/null
+          else
+            gh api "repos/${REPO}/contents/nightly-badge.json" \
+              --method PUT \
+              -f message="chore: add nightly badge metadata" \
+              -f content="${BADGE_CONTENT}" \
+              -f branch="${BRANCH}" >/dev/null
+          fi
+
+          if [ -n "${META_SHA}" ]; then
+            gh api "repos/${REPO}/contents/nightly-meta.json" \
+              --method PUT \
+              -f message="chore: update nightly release metadata" \
+              -f content="${META_CONTENT}" \
+              -f branch="${BRANCH}" \
+              -f sha="${META_SHA}" >/dev/null
+          else
+            gh api "repos/${REPO}/contents/nightly-meta.json" \
+              --method PUT \
+              -f message="chore: add nightly release metadata" \
+              -f content="${META_CONTENT}" \
+              -f branch="${BRANCH}" >/dev/null
+          fi
 
   bump-version:
     name: Bump version, tag, and push
@@ -229,6 +407,268 @@ jobs:
           path: dist/editor-scripts
           if-no-files-found: error
           retention-days: 14
+
+  publish-nightly:
+    name: Publish nightly GitHub release
+    needs:
+      - prepare
+      - prepare-nightly-metadata
+      - build
+      - package-editor-scripts
+    if: always() && needs.prepare.outputs.is_nightly == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build nightly release metadata
+        id: nightly-status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ env.NIGHTLY_BADGE_BRANCH }}
+          SHA: ${{ needs.prepare.outputs.ref }}
+          RUN_ID: ${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PACKAGE_RESULT: ${{ needs.package-editor-scripts.result }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p prior-meta out
+
+          if gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.content' > prior-meta/nightly-meta.base64 2>/dev/null; then
+            tr -d '\n' < prior-meta/nightly-meta.base64 | base64 -d > prior-meta/nightly-meta.json
+          fi
+
+          PRIOR_META="prior-meta/nightly-meta.json"
+          HAS_PUBLISHED_ARTIFACT="false"
+          PUBLISHED_SHA=""
+          PUBLISHED_RUN_ID=""
+          PUBLISHED_RUN_URL=""
+          PUBLISHED_EVENT=""
+          PUBLISHED_AT=""
+
+          if [ -f "${PRIOR_META}" ]; then
+            HAS_PUBLISHED_ARTIFACT="$(jq -r 'if (.current_artifact.published_sha // "") != "" then "true" else "false" end' "${PRIOR_META}")"
+            PUBLISHED_SHA="$(jq -r '.current_artifact.published_sha // ""' "${PRIOR_META}")"
+            PUBLISHED_RUN_ID="$(jq -r '.current_artifact.published_run_id // ""' "${PRIOR_META}")"
+            PUBLISHED_EVENT="$(jq -r '.current_artifact.published_event // ""' "${PRIOR_META}")"
+            PUBLISHED_AT="$(jq -r '.current_artifact.published_at // ""' "${PRIOR_META}")"
+          fi
+
+          RESULT="failure"
+          BADGE_MESSAGE="failed"
+          BADGE_COLOR="red"
+          if [ "${BUILD_RESULT}" = "success" ] && [ "${PACKAGE_RESULT}" = "success" ]; then
+            RESULT="success"
+            BADGE_MESSAGE="passing"
+            BADGE_COLOR="green"
+          elif [ "${BUILD_RESULT}" = "cancelled" ] || [ "${PACKAGE_RESULT}" = "cancelled" ]; then
+            RESULT="cancelled"
+            BADGE_MESSAGE="cancelled"
+            BADGE_COLOR="lightgrey"
+          fi
+
+          RUN_URL="https://github.com/${REPO}/actions/runs/${RUN_ID}"
+          if [ -n "${PUBLISHED_RUN_ID}" ]; then
+            PUBLISHED_RUN_URL="https://github.com/${REPO}/actions/runs/${PUBLISHED_RUN_ID}"
+          fi
+          ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          SHORT_SHA="${SHA:0:7}"
+
+          if [ "${RESULT}" = "success" ]; then
+            HAS_PUBLISHED_ARTIFACT="true"
+            PUBLISHED_SHA="${SHA}"
+            PUBLISHED_RUN_ID="${RUN_ID}"
+            PUBLISHED_RUN_URL="${RUN_URL}"
+            PUBLISHED_EVENT="${EVENT_NAME}"
+            PUBLISHED_AT="${ATTEMPTED_AT}"
+          fi
+
+          SHORT_PUBLISHED_SHA="${PUBLISHED_SHA:0:7}"
+
+          jq -n \
+            --arg label "nightly" \
+            --arg message "${BADGE_MESSAGE}" \
+            --arg color "${BADGE_COLOR}" \
+            '{
+              schemaVersion: 1,
+              label: $label,
+              message: $message,
+              color: $color
+            }' > out/nightly-badge.json
+
+          jq -n \
+            --arg status "${RESULT}" \
+            --arg attempted_sha "${SHA}" \
+            --arg attempted_run_id "${RUN_ID}" \
+            --arg attempted_at "${ATTEMPTED_AT}" \
+            --arg result "${RESULT}" \
+            --arg published_sha "${PUBLISHED_SHA}" \
+            --arg published_run_id "${PUBLISHED_RUN_ID}" \
+            --arg published_event "${PUBLISHED_EVENT}" \
+            --arg published_at "${PUBLISHED_AT}" \
+            '{
+              latest_attempt: {
+                status: $status,
+                attempted_sha: $attempted_sha,
+                attempted_run_id: $attempted_run_id,
+                attempted_at: $attempted_at,
+                result: $result
+              },
+              current_artifact: {
+                published_sha: $published_sha,
+                published_run_id: $published_run_id,
+                published_event: $published_event,
+                published_at: $published_at
+              }
+            }' > out/nightly-meta.json
+
+          {
+            echo "## Latest attempt"
+            echo "- Status: ${RESULT}"
+            echo "- Trigger: \`${EVENT_NAME}\`"
+            echo "- Commit: ${SHORT_SHA}"
+            echo "- Run: [${RUN_ID}](${RUN_URL})"
+            echo "- Updated at: ${ATTEMPTED_AT}"
+            echo
+            echo "## Current downloadable artifacts"
+            if [ "${HAS_PUBLISHED_ARTIFACT}" = "true" ]; then
+              if [ "${RESULT}" = "success" ]; then
+                echo "These assets were refreshed by the latest successful nightly build."
+              else
+                echo "The latest nightly attempt did not publish new binaries. These assets are from the most recent successful nightly build."
+              fi
+              echo
+              echo "- Commit: ${SHORT_PUBLISHED_SHA}"
+              echo "- Source trigger: \`${PUBLISHED_EVENT}\`"
+              echo "- Source run: [${PUBLISHED_RUN_ID}](${PUBLISHED_RUN_URL})"
+              echo "- Published at: ${PUBLISHED_AT}"
+            else
+              echo "No successful nightly artifacts have been published yet."
+            fi
+          } > out/release-notes.md
+
+          echo "result=${RESULT}" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        if: steps.nightly-status.outputs.result == 'success'
+        uses: actions/download-artifact@v5
+        with:
+          path: release-assets
+
+      - name: Package nightly assets
+        if: steps.nightly-status.outputs.result == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for dir in */; do
+            [ -d "$dir" ] || continue
+            name="${dir%/}"
+            zip -r "${name}.zip" "$name"
+          done
+
+      - name: Checkout repository
+        if: steps.nightly-status.outputs.result == 'success'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          path: repo
+          ref: ${{ needs.prepare.outputs.ref }}
+
+      - name: Move nightly tag to current commit
+        if: steps.nightly-status.outputs.result == 'success'
+        shell: bash
+        env:
+          SHA: ${{ needs.prepare.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          git -C repo config user.name "github-actions[bot]"
+          git -C repo config user.email "github-actions[bot]@users.noreply.github.com"
+          git -C repo tag -f nightly "${SHA}"
+          git -C repo push origin refs/tags/nightly --force
+
+      - name: Update nightly release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ needs.prepare.outputs.ref }}
+          RESULT: ${{ steps.nightly-status.outputs.result }}
+        run: |
+          set -euo pipefail
+
+          if gh release view nightly -R "${REPO}" >/dev/null 2>&1; then
+            gh release edit nightly -R "${REPO}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          else
+            gh release create nightly -R "${REPO}" \
+              --target "${SHA}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          fi
+
+          if [ "${RESULT}" = "success" ]; then
+            gh release upload nightly -R "${REPO}" release-assets/*.zip --clobber
+          fi
+
+      - name: Publish nightly metadata branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ env.NIGHTLY_BADGE_BRANCH }}
+        run: |
+          set -euo pipefail
+
+          DEFAULT_SHA="$(gh api "repos/${REPO}/git/ref/heads/${GITHUB_REF_NAME}" --jq '.object.sha')"
+
+          if ! gh api "repos/${REPO}/git/ref/heads/${BRANCH}" >/dev/null 2>&1; then
+            gh api "repos/${REPO}/git/refs" \
+              --method POST \
+              -f ref="refs/heads/${BRANCH}" \
+              -f sha="${DEFAULT_SHA}" >/dev/null
+          fi
+
+          BADGE_CONTENT="$(base64 -w 0 out/nightly-badge.json)"
+          META_CONTENT="$(base64 -w 0 out/nightly-meta.json)"
+
+          BADGE_SHA="$(gh api "repos/${REPO}/contents/nightly-badge.json?ref=${BRANCH}" --jq '.sha' 2>/dev/null || true)"
+          META_SHA="$(gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.sha' 2>/dev/null || true)"
+
+          if [ -n "${BADGE_SHA}" ]; then
+            gh api "repos/${REPO}/contents/nightly-badge.json" \
+              --method PUT \
+              -f message="chore: update nightly badge metadata" \
+              -f content="${BADGE_CONTENT}" \
+              -f branch="${BRANCH}" \
+              -f sha="${BADGE_SHA}" >/dev/null
+          else
+            gh api "repos/${REPO}/contents/nightly-badge.json" \
+              --method PUT \
+              -f message="chore: add nightly badge metadata" \
+              -f content="${BADGE_CONTENT}" \
+              -f branch="${BRANCH}" >/dev/null
+          fi
+
+          if [ -n "${META_SHA}" ]; then
+            gh api "repos/${REPO}/contents/nightly-meta.json" \
+              --method PUT \
+              -f message="chore: update nightly release metadata" \
+              -f content="${META_CONTENT}" \
+              -f branch="${BRANCH}" \
+              -f sha="${META_SHA}" >/dev/null
+          else
+            gh api "repos/${REPO}/contents/nightly-meta.json" \
+              --method PUT \
+              -f message="chore: add nightly release metadata" \
+              -f content="${META_CONTENT}" \
+              -f branch="${BRANCH}" >/dev/null
+          fi
 
   draft-release:
     name: Create draft GitHub release
