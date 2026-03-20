@@ -40,11 +40,15 @@ pub const EXT_HEX: &str = "hex";
 pub const EXT_ASSET: &str = "asset";
 pub const EXT_ASM: &str = "asm";
 pub const EXT_CS: &str = "cs";
+pub const EXT_TXT: &str = "txt";
+pub const EXT_B64: &str = "b64";
 pub const INPUT_GLOB_HEX: &str = "*.hex";
 pub const INPUT_GLOB_ASSET: &str = "*.asset";
 pub const INPUT_GLOB_ASM: &str = "*.asm";
 pub const ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES: &str =
     "serializedProgramCompressedBytes";
+pub const ASSET_FIELD_SERIALIZED_PUBLIC_VARIABLES_BYTES_STRING: &str =
+    "serializedPublicVariablesBytesString";
 pub const CLANG_FORMAT_ASSUME_FILENAME_CS: &str = "_.cs";
 pub const CLANG_FORMAT_PATH_ENV_VAR: &str = "CLANG_FORMAT";
 pub const FILE_UDON_MODULE_INFO_JSON: &str = "UdonModuleInfo.json";

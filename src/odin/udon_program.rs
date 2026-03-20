@@ -265,142 +265,6 @@ impl UdonProgramBinary {
             .clone())
     }
 
-    pub fn heap_dump_strongbox_u32_array(&self, index: usize) -> Result<Option<Vec<u32>>> {
-        let Some((bpe, raw)) = self.heap_dump_strongbox_primitive_array_raw(index)? else {
-            return Ok(None);
-        };
-        if bpe != 4 || raw.len() % 4 != 0 {
-            return Ok(None);
-        }
-        let mut out = Vec::<u32>::with_capacity(raw.len() / 4);
-        for chunk in raw.chunks_exact(4) {
-            if chunk.len() != 4 {
-                return Err(OdinError::new(format!(
-                    "HeapDump[{index}] has invalid u32 array element size {}.",
-                    chunk.len()
-                )));
-            }
-            out.push(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
-        }
-        Ok(Some(out))
-    }
-
-    pub fn heap_dump_strongbox_primitive_array_raw(
-        &self,
-        index: usize,
-    ) -> Result<Option<(usize, Vec<u8>)>> {
-        let Some(target) = self.heap_dump_strongbox_primitive_array_node_id(index)? else {
-            return Ok(None);
-        };
-        let (count, bpe) = primitive_array_shape(&self.doc, target)?;
-        let mut raw = Vec::<u8>::with_capacity(count.saturating_mul(bpe));
-        for i in 0..count {
-            raw.extend_from_slice(self.doc.primitive_array_element(target, i)?);
-        }
-        Ok(Some((bpe, raw)))
-    }
-
-    pub fn heap_dump_strongbox_vector3(&self, index: usize) -> Result<Option<(f32, f32, f32)>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        let Some([x_node, y_node, z_node]) = find_vector3_component_node_ids(&self.doc, resolved)
-        else {
-            return Ok(None);
-        };
-
-        let x = read_f32_primitive(&self.doc, x_node)?;
-        let y = read_f32_primitive(&self.doc, y_node)?;
-        let z = read_f32_primitive(&self.doc, z_node)?;
-        Ok(Some((x, y, z)))
-    }
-
-    pub fn heap_dump_strongbox_vector2(&self, index: usize) -> Result<Option<(f32, f32)>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        let Some([x_node, y_node]) = find_vector2_component_node_ids(&self.doc, resolved) else {
-            return Ok(None);
-        };
-
-        let x = read_f32_primitive(&self.doc, x_node)?;
-        let y = read_f32_primitive(&self.doc, y_node)?;
-        Ok(Some((x, y)))
-    }
-
-    pub fn heap_dump_strongbox_quaternion(
-        &self,
-        index: usize,
-    ) -> Result<Option<(f32, f32, f32, f32)>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        let Some([x_node, y_node, z_node, w_node]) =
-            find_quaternion_component_node_ids(&self.doc, resolved)
-        else {
-            return Ok(None);
-        };
-
-        let x = read_f32_primitive(&self.doc, x_node)?;
-        let y = read_f32_primitive(&self.doc, y_node)?;
-        let z = read_f32_primitive(&self.doc, z_node)?;
-        let w = read_f32_primitive(&self.doc, w_node)?;
-        Ok(Some((x, y, z, w)))
-    }
-
-    pub fn heap_dump_strongbox_color(&self, index: usize) -> Result<Option<(f32, f32, f32, f32)>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        let Some([r_node, g_node, b_node, a_node]) =
-            find_color_component_node_ids(&self.doc, resolved)
-        else {
-            return Ok(None);
-        };
-
-        let r = read_f32_primitive(&self.doc, r_node)?;
-        let g = read_f32_primitive(&self.doc, g_node)?;
-        let b = read_f32_primitive(&self.doc, b_node)?;
-        let a = read_f32_primitive(&self.doc, a_node)?;
-        Ok(Some((r, g, b, a)))
-    }
-
-    pub fn heap_dump_strongbox_serialization_result(
-        &self,
-        index: usize,
-    ) -> Result<Option<(bool, i32)>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        let Some([success_node, byte_count_node]) =
-            find_serialization_result_component_node_ids(&self.doc, resolved)
-        else {
-            return Ok(None);
-        };
-        let success = read_bool_primitive(&self.doc, success_node)?;
-        let byte_count = read_i32_like_primitive(&self.doc, byte_count_node)?;
-        Ok(Some((success, byte_count)))
-    }
-
-    pub fn heap_dump_strongbox_system_type_name(&self, index: usize) -> Result<Option<String>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        Ok(extract_system_type_name_from_node(&self.doc, resolved))
-    }
-
     pub fn set_heap_dump_strongbox_vector3(
         &mut self,
         index: usize,
@@ -823,43 +687,12 @@ impl UdonProgramBinary {
             .ok_or_else(|| OdinError::new(format!("HeapDump index {} is out of range.", index)))
     }
 
-    fn heap_dump_strongbox_value_node_id(&self, index: usize) -> Result<NodeId> {
+    pub(crate) fn heap_dump_strongbox_value_node_id(&self, index: usize) -> Result<NodeId> {
         let tuple = self.heap_dump_tuple_node_id(index)?;
         let item2 = named_child(&self.doc, tuple, "Item2")
             .ok_or_else(|| OdinError::new(format!("HeapDump[{index}] missing Item2.")))?;
         named_child(&self.doc, item2, "Value")
             .ok_or_else(|| OdinError::new(format!("HeapDump[{index}] missing Item2.Value.")))
-    }
-
-    fn heap_dump_strongbox_primitive_array_node_id(&self, index: usize) -> Result<Option<NodeId>> {
-        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
-        let resolved = self
-            .doc
-            .resolve_node_payload(value_node)
-            .unwrap_or(value_node);
-        if matches!(
-            self.doc
-                .node(resolved)
-                .ok_or_else(|| OdinError::new("Invalid resolved strongbox value node id."))?
-                .kind(),
-            NodeKind::PrimitiveArray { .. }
-        ) {
-            return Ok(Some(resolved));
-        }
-        let Some(child) = first_child(&self.doc, resolved) else {
-            return Ok(None);
-        };
-        if matches!(
-            self.doc
-                .node(child)
-                .ok_or_else(|| OdinError::new("Invalid strongbox array child node id."))?
-                .kind(),
-            NodeKind::PrimitiveArray { .. }
-        ) {
-            Ok(Some(child))
-        } else {
-            Ok(None)
-        }
     }
 
     fn heap_dump_type_node_id(&self, index: usize) -> Result<NodeId> {
@@ -1018,66 +851,6 @@ fn read_u32_primitive(doc: &OdinDocument, node_id: NodeId, what: &str) -> Result
     }
 }
 
-fn read_f32_primitive(doc: &OdinDocument, node_id: NodeId) -> Result<f32> {
-    let node = doc
-        .node(node_id)
-        .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
-    match node.kind() {
-        NodeKind::Primitive(PrimitiveValue::Float(v)) => Ok(*v),
-        other => Err(OdinError::new(format!(
-            "Node {} is not a Float primitive: {:?}.",
-            node_id, other
-        ))),
-    }
-}
-
-fn read_bool_primitive(doc: &OdinDocument, node_id: NodeId) -> Result<bool> {
-    let node = doc
-        .node(node_id)
-        .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
-    match node.kind() {
-        NodeKind::Primitive(PrimitiveValue::Boolean(v)) => Ok(*v),
-        other => Err(OdinError::new(format!(
-            "Node {} is not a Boolean primitive: {:?}.",
-            node_id, other
-        ))),
-    }
-}
-
-fn read_i32_like_primitive(doc: &OdinDocument, node_id: NodeId) -> Result<i32> {
-    let node = doc
-        .node(node_id)
-        .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", node_id)))?;
-    let value = match node.kind() {
-        NodeKind::Primitive(PrimitiveValue::SByte(v)) => i64::from(*v),
-        NodeKind::Primitive(PrimitiveValue::Byte(v)) => i64::from(*v),
-        NodeKind::Primitive(PrimitiveValue::Short(v)) => i64::from(*v),
-        NodeKind::Primitive(PrimitiveValue::UShort(v)) => i64::from(*v),
-        NodeKind::Primitive(PrimitiveValue::Int(v)) => i64::from(*v),
-        NodeKind::Primitive(PrimitiveValue::UInt(v)) => i64::from(*v),
-        NodeKind::Primitive(PrimitiveValue::Long(v)) => *v,
-        NodeKind::Primitive(PrimitiveValue::ULong(v)) => i64::try_from(*v).map_err(|_| {
-            OdinError::new(format!(
-                "Node {} ULong value {} does not fit in i32.",
-                node_id, v
-            ))
-        })?,
-        other => {
-            return Err(OdinError::new(format!(
-                "Node {} is not an integer primitive: {:?}.",
-                node_id, other
-            )));
-        }
-    };
-
-    i32::try_from(value).map_err(|_| {
-        OdinError::new(format!(
-            "Node {} integer value {} does not fit in i32.",
-            node_id, value
-        ))
-    })
-}
-
 fn set_i32_like_primitive(doc: &mut OdinDocument, node_id: NodeId, value: i32) -> Result<()> {
     let target = doc
         .node(node_id)
@@ -1231,36 +1004,6 @@ fn extract_type_name_from_node(doc: &OdinDocument, node_id: NodeId) -> Option<St
         }
         _ => first_child(doc, node_id).and_then(|child| extract_type_name_from_node(doc, child)),
     }
-}
-
-fn extract_system_type_name_from_node(doc: &OdinDocument, node_id: NodeId) -> Option<String> {
-    let mut stack = vec![node_id];
-    let mut seen = std::collections::HashSet::<NodeId>::new();
-    while let Some(current) = stack.pop() {
-        let resolved = doc.resolve_node_payload(current).unwrap_or(current);
-        if !seen.insert(resolved) {
-            continue;
-        }
-        let node = doc.node(resolved)?;
-        match node.kind() {
-            NodeKind::TypeNameMetadata { name, .. } => return Some(name.value.clone()),
-            NodeKind::TypeIdMetadata {
-                resolved_name: Some(name),
-                ..
-            } => return Some(name.clone()),
-            NodeKind::Primitive(PrimitiveValue::String(v)) => return Some(v.value.clone()),
-            NodeKind::InternalReference(reference_id) => {
-                if let Some(target) = doc.resolve_reference_id(*reference_id) {
-                    stack.push(target);
-                }
-            }
-            _ => {}
-        }
-        for child in node.children().iter().copied().rev() {
-            stack.push(child);
-        }
-    }
-    None
 }
 
 fn find_system_type_storage_node(doc: &OdinDocument, node_id: NodeId) -> Option<NodeId> {

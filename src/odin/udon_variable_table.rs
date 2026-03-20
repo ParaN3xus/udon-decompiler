@@ -1,6 +1,8 @@
 use base64::Engine as _;
 
 use crate::odin::{NodeId, NodeKind, OdinDocument, OdinError, PrimitiveValue, Result};
+use crate::str_constants::TYPE_UNSERIALIZABLE;
+use crate::udon_asm::{literal_from_typed_odin_node, render_heap_literal};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VariableItem {
@@ -202,6 +204,16 @@ impl UdonVariableTableBinary {
         self.insert_variable_clone_by_symbol(len, template_symbol, new_symbol_name)
     }
 
+    pub fn render_public_variables_text(&self) -> Result<String> {
+        let mut lines = Vec::new();
+        for index in 0..self.variables_len()? {
+            let symbol_name = self.variable_symbol_name(index)?;
+            let (type_name, init_text) = self.variable_value_text(index)?;
+            lines.push(format!("+ {symbol_name}: {{ {type_name} }} = {init_text}"));
+        }
+        Ok(lines.join("\n"))
+    }
+
     fn variables_array_node_id(&self) -> Result<NodeId> {
         let root = find_variable_table_root(&self.doc)?;
         let variables_field = named_child(&self.doc, root, "Variables")
@@ -234,6 +246,29 @@ impl UdonVariableTableBinary {
         let payload = self.variable_payload_array_node_id(index)?;
         named_child(&self.doc, payload, "Value")
             .ok_or_else(|| OdinError::new(format!("Variables[{index}] missing Value.")))
+    }
+
+    fn variable_declared_type_node_id(&self, index: usize) -> Result<NodeId> {
+        let payload = self.variable_payload_array_node_id(index)?;
+        variable_declared_type_node_id_from_layout(&self.doc, payload).ok_or_else(|| {
+            OdinError::new(format!(
+                "Variables[{index}] missing type metadata before Value."
+            ))
+        })
+    }
+
+    fn variable_value_text(&self, index: usize) -> Result<(String, String)> {
+        let value_node = self.variable_value_node_id(index)?;
+        let declared_type_node = self.variable_declared_type_node_id(index)?;
+        let declared_type_resolved = self
+            .doc
+            .resolve_node_payload(declared_type_node)
+            .unwrap_or(declared_type_node);
+        let type_name = extract_type_name_from_node(&self.doc, declared_type_node)
+            .or_else(|| extract_type_name_from_node(&self.doc, declared_type_resolved))
+            .unwrap_or_else(|| TYPE_UNSERIALIZABLE.to_string());
+        let literal = literal_from_typed_odin_node(&self.doc, value_node, &type_name);
+        Ok((type_name.clone(), render_heap_literal(&type_name, &literal)))
     }
 }
 
@@ -319,4 +354,52 @@ fn array_element_nodes(doc: &OdinDocument, array_node_id: NodeId) -> Result<Vec<
             .unwrap_or(usize::MAX)
     });
     Ok(ids)
+}
+
+fn variable_declared_type_node_id_from_layout(
+    doc: &OdinDocument,
+    payload: NodeId,
+) -> Option<NodeId> {
+    let value_node = named_child(doc, payload, "Value")?;
+    let value_index = doc.node(value_node)?.array_index()?;
+    let mut candidates = doc
+        .node(payload)?
+        .children()
+        .iter()
+        .copied()
+        .filter(|id| {
+            doc.node(*id)
+                .and_then(|node| node.name())
+                .is_some_and(|name| name.value == "type")
+                && doc
+                    .node(*id)
+                    .and_then(|node| node.array_index())
+                    .is_some_and(|idx| idx < value_index)
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by_key(|id| doc.node(*id).and_then(|node| node.array_index()));
+    candidates.pop()
+}
+
+fn extract_type_name_from_node(doc: &OdinDocument, node_id: NodeId) -> Option<String> {
+    let node = doc.node(node_id)?;
+    match node.kind() {
+        NodeKind::Primitive(PrimitiveValue::String(value)) => Some(value.value.clone()),
+        NodeKind::TypeNameMetadata { name, .. } => Some(name.value.clone()),
+        NodeKind::TypeIdMetadata {
+            resolved_name: Some(name),
+            ..
+        } => Some(name.clone()),
+        NodeKind::ReferenceNode { type_ref, .. } | NodeKind::StructNode { type_ref } => {
+            match type_ref {
+                crate::odin::OdinTypeRef::TypeName { name, .. } => Some(name.value.clone()),
+                crate::odin::OdinTypeRef::TypeId {
+                    resolved_name: Some(name),
+                    ..
+                } => Some(name.clone()),
+                _ => None,
+            }
+        }
+        _ => first_child(doc, node_id).and_then(|child| extract_type_name_from_node(doc, child)),
+    }
 }

@@ -74,6 +74,7 @@ pub(crate) fn enum_repr_for_type(type_name: &str) -> Option<EnumRepr> {
 }
 
 pub(crate) use parse::{
-    parse_heap_init_directive, parse_type_ref, resolve_heap_literal_for_program_entry,
+    literal_from_typed_odin_node, parse_heap_init_directive, parse_type_ref,
+    resolve_heap_literal_for_program_entry,
 };
 pub(crate) use render::render_heap_literal;

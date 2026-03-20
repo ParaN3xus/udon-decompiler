@@ -1,8 +1,9 @@
-use crate::odin::{NodeKind, PrimitiveValue, UdonProgramBinary};
+use crate::odin::{NodeId, NodeKind, OdinDocument, PrimitiveValue, UdonProgramBinary};
 use crate::udon_asm::types::{AsmError, Result, TypeRefDirective};
 
 use super::constants::*;
 use super::enum_map::{enum_name_to_value, enum_repr};
+use super::render::render_heap_literal;
 use super::{EnumRepr, HeapLiteralValue, type_name_head};
 
 pub(crate) fn parse_type_ref(text: &str, line_num: usize) -> Result<TypeRefDirective> {
@@ -828,81 +829,136 @@ fn unescape_quoted_string(input: &str, line_num: usize) -> Result<String> {
     })
 }
 
+pub(crate) fn literal_from_typed_odin_node(
+    doc: &OdinDocument,
+    node_id: NodeId,
+    type_name: &str,
+) -> HeapLiteralValue {
+    let resolved = doc.resolve_node_payload(node_id).unwrap_or(node_id);
+    let Some(node) = doc.node(resolved) else {
+        return HeapLiteralValue::Unserializable;
+    };
+
+    let head = type_name_head(type_name);
+    if head.strip_suffix("[]").is_some() {
+        if let NodeKind::PrimitiveArray {
+            element_count,
+            bytes_per_element,
+        } = node.kind()
+        {
+            let count = usize::try_from(*element_count).ok();
+            let bpe = usize::try_from(*bytes_per_element).ok();
+            if let (Some(count), Some(bpe)) = (count, bpe) {
+                let mut raw = Vec::with_capacity(count.saturating_mul(bpe));
+                let mut ok = true;
+                for i in 0..count {
+                    match doc.primitive_array_element(resolved, i) {
+                        Ok(chunk) => raw.extend_from_slice(chunk),
+                        Err(_) => {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                if ok
+                    && let Some(literal) =
+                        literal_from_typed_primitive_array_raw(type_name, bpe, &raw)
+                {
+                    return parse_roundtrip_literal(type_name, literal);
+                }
+                return HeapLiteralValue::OpaqueArray { len: count };
+            }
+        }
+
+        if let NodeKind::Array { declared_len } = node.kind() {
+            let len = usize::try_from((*declared_len).max(0)).unwrap_or(0);
+            return HeapLiteralValue::OpaqueArray { len };
+        }
+    }
+
+    if head == TYPE_SYSTEM_TYPE
+        && let Some(name) = extract_system_type_name_from_node(doc, resolved)
+    {
+        return parse_roundtrip_literal(type_name, HeapLiteralValue::SystemType(name));
+    }
+    if head == TYPE_UNITY_VECTOR3
+        && let Some((x, y, z)) = extract_vector3(doc, resolved)
+    {
+        return parse_roundtrip_literal(type_name, HeapLiteralValue::Vector3(x, y, z));
+    }
+    if head == TYPE_UNITY_VECTOR2
+        && let Some((x, y)) = extract_vector2(doc, resolved)
+    {
+        return parse_roundtrip_literal(type_name, HeapLiteralValue::Vector2(x, y));
+    }
+    if head == TYPE_UNITY_QUATERNION
+        && let Some((x, y, z, w)) = extract_quaternion(doc, resolved)
+    {
+        return parse_roundtrip_literal(type_name, HeapLiteralValue::Quaternion(x, y, z, w));
+    }
+    if head == TYPE_UNITY_COLOR
+        && let Some((r, g, b, a)) = extract_color(doc, resolved)
+    {
+        return parse_roundtrip_literal(type_name, HeapLiteralValue::Color(r, g, b, a));
+    }
+    if head == TYPE_VRC_SERIALIZATION_RESULT
+        && let Some((success, byte_count)) = extract_serialization_result(doc, resolved)
+    {
+        return parse_roundtrip_literal(
+            type_name,
+            HeapLiteralValue::SerializationResult {
+                success,
+                byte_count,
+            },
+        );
+    }
+
+    let literal = heap_literal_from_node_kind(type_name, node.kind());
+    if matches!(literal, HeapLiteralValue::Unserializable) {
+        HeapLiteralValue::Unserializable
+    } else {
+        parse_roundtrip_literal(type_name, literal)
+    }
+}
+
+fn parse_roundtrip_literal(type_name: &str, literal: HeapLiteralValue) -> HeapLiteralValue {
+    let text = render_heap_literal(type_name, &literal);
+    parse_typed_heap_literal(type_name, text.as_str(), 0).unwrap_or(literal)
+}
+
+fn literal_from_typed_primitive_array_raw(
+    type_name: &str,
+    bytes_per_element: usize,
+    raw: &[u8],
+) -> Option<HeapLiteralValue> {
+    let head = type_name_head(type_name);
+    let element_type = head.strip_suffix("[]")?.trim();
+    let elements = decode_typed_primitive_array_from_raw(element_type, bytes_per_element, raw)?;
+    if head == TYPE_SYSTEM_UINT32_ARRAY {
+        let values = elements
+            .iter()
+            .map(|x| x.as_u32())
+            .collect::<Option<Vec<_>>>()?;
+        return Some(HeapLiteralValue::U32Array(values));
+    }
+    Some(HeapLiteralValue::TypedArray {
+        element_type: element_type.to_string(),
+        elements,
+    })
+}
+
 pub(crate) fn resolve_heap_literal_for_program_entry(
     program: &UdonProgramBinary,
     index: usize,
     type_name: &str,
-    resolved_kind: &NodeKind,
+    _resolved_kind: &NodeKind,
 ) -> crate::odin::Result<HeapLiteralValue> {
-    let head = type_name_head(type_name);
-    if let Some(element_type) = head.strip_suffix("[]") {
-        if head == TYPE_SYSTEM_UINT32_ARRAY
-            && let Some(values) = program.heap_dump_strongbox_u32_array(index)?
-        {
-            return Ok(HeapLiteralValue::U32Array(values));
-        }
-
-        if let Some((bytes_per_element, raw)) =
-            program.heap_dump_strongbox_primitive_array_raw(index)?
-        {
-            if let Some(elements) = decode_typed_primitive_array_from_raw(
-                element_type.trim(),
-                bytes_per_element,
-                raw.as_slice(),
-            ) {
-                return Ok(HeapLiteralValue::TypedArray {
-                    element_type: element_type.trim().to_string(),
-                    elements,
-                });
-            }
-            let len = if bytes_per_element > 0 {
-                raw.len() / bytes_per_element
-            } else {
-                0
-            };
-            return Ok(HeapLiteralValue::OpaqueArray { len });
-        }
-
-        if let NodeKind::Array { declared_len } = resolved_kind {
-            let len = usize::try_from((*declared_len).max(0)).unwrap_or(0);
-            return Ok(HeapLiteralValue::OpaqueArray { len });
-        }
-    }
-    if head == TYPE_UNITY_VECTOR3
-        && let Some((x, y, z)) = program.heap_dump_strongbox_vector3(index)?
-    {
-        return Ok(HeapLiteralValue::Vector3(x, y, z));
-    }
-    if head == TYPE_UNITY_VECTOR2
-        && let Some((x, y)) = program.heap_dump_strongbox_vector2(index)?
-    {
-        return Ok(HeapLiteralValue::Vector2(x, y));
-    }
-    if head == TYPE_UNITY_QUATERNION
-        && let Some((x, y, z, w)) = program.heap_dump_strongbox_quaternion(index)?
-    {
-        return Ok(HeapLiteralValue::Quaternion(x, y, z, w));
-    }
-    if head == TYPE_UNITY_COLOR
-        && let Some((r, g, b, a)) = program.heap_dump_strongbox_color(index)?
-    {
-        return Ok(HeapLiteralValue::Color(r, g, b, a));
-    }
-    if head == TYPE_VRC_SERIALIZATION_RESULT
-        && let Some((success, byte_count)) =
-            program.heap_dump_strongbox_serialization_result(index)?
-    {
-        return Ok(HeapLiteralValue::SerializationResult {
-            success,
-            byte_count,
-        });
-    }
-    if head == TYPE_SYSTEM_TYPE
-        && let Some(name) = program.heap_dump_strongbox_system_type_name(index)?
-    {
-        return Ok(HeapLiteralValue::SystemType(name));
-    }
-    Ok(heap_literal_from_node_kind(type_name, resolved_kind))
+    let value_node = program.heap_dump_strongbox_value_node_id(index)?;
+    Ok(literal_from_typed_odin_node(
+        program.document(),
+        value_node,
+        type_name,
+    ))
 }
 
 pub(crate) fn heap_literal_from_node_kind(type_name: &str, kind: &NodeKind) -> HeapLiteralValue {
@@ -1002,5 +1058,316 @@ pub(crate) fn heap_literal_from_node_kind(type_name: &str, kind: &NodeKind) -> H
             }
         }
         _ => HeapLiteralValue::Unserializable,
+    }
+}
+
+fn extract_system_type_name_from_node(doc: &OdinDocument, node_id: NodeId) -> Option<String> {
+    let mut stack = vec![node_id];
+    let mut seen = std::collections::HashSet::<NodeId>::new();
+    while let Some(current) = stack.pop() {
+        let resolved = doc.resolve_node_payload(current).unwrap_or(current);
+        if !seen.insert(resolved) {
+            continue;
+        }
+        let node = doc.node(resolved)?;
+        match node.kind() {
+            NodeKind::TypeNameMetadata { name, .. } => return Some(name.value.clone()),
+            NodeKind::TypeIdMetadata {
+                resolved_name: Some(name),
+                ..
+            } => return Some(name.clone()),
+            NodeKind::Primitive(PrimitiveValue::String(v)) => return Some(v.value.clone()),
+            NodeKind::InternalReference(reference_id) => {
+                if let Some(target) = doc.resolve_reference_id(*reference_id) {
+                    stack.push(target);
+                }
+            }
+            _ => {}
+        }
+        for child in node.children().iter().copied().rev() {
+            stack.push(child);
+        }
+    }
+    None
+}
+
+fn extract_vector3(doc: &OdinDocument, root: NodeId) -> Option<(f32, f32, f32)> {
+    let ids = find_float_components_by_names_or_fallback(doc, root, &["x", "y", "z"])?;
+    Some((
+        read_f32_primitive(doc, ids[0])?,
+        read_f32_primitive(doc, ids[1])?,
+        read_f32_primitive(doc, ids[2])?,
+    ))
+}
+
+fn extract_vector2(doc: &OdinDocument, root: NodeId) -> Option<(f32, f32)> {
+    let ids = find_float_components_by_names_or_fallback(doc, root, &["x", "y"])?;
+    Some((
+        read_f32_primitive(doc, ids[0])?,
+        read_f32_primitive(doc, ids[1])?,
+    ))
+}
+
+fn extract_quaternion(doc: &OdinDocument, root: NodeId) -> Option<(f32, f32, f32, f32)> {
+    let ids = find_float_components_by_names_or_fallback(doc, root, &["x", "y", "z", "w"])?;
+    Some((
+        read_f32_primitive(doc, ids[0])?,
+        read_f32_primitive(doc, ids[1])?,
+        read_f32_primitive(doc, ids[2])?,
+        read_f32_primitive(doc, ids[3])?,
+    ))
+}
+
+fn extract_color(doc: &OdinDocument, root: NodeId) -> Option<(f32, f32, f32, f32)> {
+    let ids = find_float_components_by_names_or_fallback(doc, root, &["r", "g", "b", "a"])?;
+    Some((
+        read_f32_primitive(doc, ids[0])?,
+        read_f32_primitive(doc, ids[1])?,
+        read_f32_primitive(doc, ids[2])?,
+        read_f32_primitive(doc, ids[3])?,
+    ))
+}
+
+fn extract_serialization_result(doc: &OdinDocument, root: NodeId) -> Option<(bool, i32)> {
+    let success = find_named_bool_component_node(doc, root, "success").or_else(|| {
+        first_node_matching(doc, root, &mut |kind| {
+            matches!(kind, NodeKind::Primitive(PrimitiveValue::Boolean(_)))
+        })
+    })?;
+    let byte_count = find_named_integer_component_node(doc, root, "byteCount")
+        .or_else(|| find_named_integer_component_node(doc, root, "byte_count"))
+        .or_else(|| {
+            first_node_matching(doc, root, &mut |kind| {
+                matches!(
+                    kind,
+                    NodeKind::Primitive(PrimitiveValue::SByte(_))
+                        | NodeKind::Primitive(PrimitiveValue::Byte(_))
+                        | NodeKind::Primitive(PrimitiveValue::Short(_))
+                        | NodeKind::Primitive(PrimitiveValue::UShort(_))
+                        | NodeKind::Primitive(PrimitiveValue::Int(_))
+                        | NodeKind::Primitive(PrimitiveValue::UInt(_))
+                        | NodeKind::Primitive(PrimitiveValue::Long(_))
+                        | NodeKind::Primitive(PrimitiveValue::ULong(_))
+                )
+            })
+        })?;
+    Some((
+        read_bool_primitive(doc, success)?,
+        read_i32_like_primitive(doc, byte_count)?,
+    ))
+}
+
+fn find_float_components_by_names_or_fallback(
+    doc: &OdinDocument,
+    root: NodeId,
+    names: &[&str],
+) -> Option<Vec<NodeId>> {
+    let named = names
+        .iter()
+        .map(|name| find_named_float_component_node(doc, root, name))
+        .collect::<Vec<_>>();
+    if named.iter().all(Option::is_some) {
+        return Some(
+            named
+                .into_iter()
+                .map(|id| id.expect("checked Some"))
+                .collect(),
+        );
+    }
+    let fallback = collect_float_component_nodes(doc, root, names.len());
+    (fallback.len() == names.len()).then_some(fallback)
+}
+
+fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str) -> Option<NodeId> {
+    let mut stack = vec![root];
+    let mut seen = std::collections::HashSet::<NodeId>::new();
+    while let Some(node_id) = stack.pop() {
+        if !seen.insert(node_id) {
+            continue;
+        }
+        let node = doc.node(node_id)?;
+        if node.name().map(|x| x.value == name).unwrap_or(false)
+            && let Some(id) = first_float_node(doc, node_id)
+        {
+            return Some(id);
+        }
+        if let NodeKind::InternalReference(reference_id) = node.kind()
+            && let Some(target) = doc.resolve_reference_id(*reference_id)
+        {
+            stack.push(target);
+        }
+        for child in node.children().iter().copied().rev() {
+            stack.push(child);
+        }
+    }
+    None
+}
+
+fn find_named_bool_component_node(doc: &OdinDocument, root: NodeId, name: &str) -> Option<NodeId> {
+    find_named_component_node(doc, root, name, |kind| {
+        matches!(kind, NodeKind::Primitive(PrimitiveValue::Boolean(_)))
+    })
+}
+
+fn find_named_integer_component_node(
+    doc: &OdinDocument,
+    root: NodeId,
+    name: &str,
+) -> Option<NodeId> {
+    find_named_component_node(doc, root, name, |kind| {
+        matches!(
+            kind,
+            NodeKind::Primitive(PrimitiveValue::SByte(_))
+                | NodeKind::Primitive(PrimitiveValue::Byte(_))
+                | NodeKind::Primitive(PrimitiveValue::Short(_))
+                | NodeKind::Primitive(PrimitiveValue::UShort(_))
+                | NodeKind::Primitive(PrimitiveValue::Int(_))
+                | NodeKind::Primitive(PrimitiveValue::UInt(_))
+                | NodeKind::Primitive(PrimitiveValue::Long(_))
+                | NodeKind::Primitive(PrimitiveValue::ULong(_))
+        )
+    })
+}
+
+fn find_named_component_node<F>(
+    doc: &OdinDocument,
+    root: NodeId,
+    name: &str,
+    mut predicate: F,
+) -> Option<NodeId>
+where
+    F: FnMut(&NodeKind) -> bool,
+{
+    let mut stack = vec![root];
+    let mut seen = std::collections::HashSet::<NodeId>::new();
+    while let Some(node_id) = stack.pop() {
+        if !seen.insert(node_id) {
+            continue;
+        }
+        let node = doc.node(node_id)?;
+        if node.name().map(|x| x.value == name).unwrap_or(false)
+            && let Some(id) = first_node_matching(doc, node_id, &mut predicate)
+        {
+            return Some(id);
+        }
+        if let NodeKind::InternalReference(reference_id) = node.kind()
+            && let Some(target) = doc.resolve_reference_id(*reference_id)
+        {
+            stack.push(target);
+        }
+        for child in node.children().iter().copied().rev() {
+            stack.push(child);
+        }
+    }
+    None
+}
+
+fn first_node_matching<F>(doc: &OdinDocument, root: NodeId, predicate: &mut F) -> Option<NodeId>
+where
+    F: FnMut(&NodeKind) -> bool,
+{
+    let mut stack = vec![root];
+    let mut seen = std::collections::HashSet::<NodeId>::new();
+    while let Some(node_id) = stack.pop() {
+        let resolved = doc.resolve_node_payload(node_id).unwrap_or(node_id);
+        if !seen.insert(resolved) {
+            continue;
+        }
+        let node = doc.node(resolved)?;
+        if predicate(node.kind()) {
+            return Some(resolved);
+        }
+        if let NodeKind::InternalReference(reference_id) = node.kind()
+            && let Some(target) = doc.resolve_reference_id(*reference_id)
+        {
+            stack.push(target);
+        }
+        for child in node.children().iter().copied().rev() {
+            stack.push(child);
+        }
+    }
+    None
+}
+
+fn first_float_node(doc: &OdinDocument, root: NodeId) -> Option<NodeId> {
+    let mut stack = vec![root];
+    let mut seen = std::collections::HashSet::<NodeId>::new();
+    while let Some(node_id) = stack.pop() {
+        let resolved = doc.resolve_node_payload(node_id).unwrap_or(node_id);
+        if !seen.insert(resolved) {
+            continue;
+        }
+        let node = doc.node(resolved)?;
+        if matches!(node.kind(), NodeKind::Primitive(PrimitiveValue::Float(_))) {
+            return Some(resolved);
+        }
+        if let NodeKind::InternalReference(reference_id) = node.kind()
+            && let Some(target) = doc.resolve_reference_id(*reference_id)
+        {
+            stack.push(target);
+        }
+        for child in node.children().iter().copied().rev() {
+            stack.push(child);
+        }
+    }
+    None
+}
+
+fn collect_float_component_nodes(doc: &OdinDocument, root: NodeId, limit: usize) -> Vec<NodeId> {
+    let mut out = Vec::<NodeId>::new();
+    let mut stack = vec![root];
+    let mut seen = std::collections::HashSet::<NodeId>::new();
+    while let Some(node_id) = stack.pop() {
+        let resolved = doc.resolve_node_payload(node_id).unwrap_or(node_id);
+        if !seen.insert(resolved) {
+            continue;
+        }
+        let Some(node) = doc.node(resolved) else {
+            continue;
+        };
+        if matches!(node.kind(), NodeKind::Primitive(PrimitiveValue::Float(_))) {
+            out.push(resolved);
+            if out.len() >= limit {
+                break;
+            }
+            continue;
+        }
+        if let NodeKind::InternalReference(reference_id) = node.kind()
+            && let Some(target) = doc.resolve_reference_id(*reference_id)
+        {
+            stack.push(target);
+        }
+        for child in node.children().iter().copied().rev() {
+            stack.push(child);
+        }
+    }
+    out
+}
+
+fn read_f32_primitive(doc: &OdinDocument, node_id: NodeId) -> Option<f32> {
+    match doc.node(node_id)?.kind() {
+        NodeKind::Primitive(PrimitiveValue::Float(v)) => Some(*v),
+        _ => None,
+    }
+}
+
+fn read_bool_primitive(doc: &OdinDocument, node_id: NodeId) -> Option<bool> {
+    match doc.node(node_id)?.kind() {
+        NodeKind::Primitive(PrimitiveValue::Boolean(v)) => Some(*v),
+        _ => None,
+    }
+}
+
+fn read_i32_like_primitive(doc: &OdinDocument, node_id: NodeId) -> Option<i32> {
+    match doc.node(node_id)?.kind() {
+        NodeKind::Primitive(PrimitiveValue::SByte(v)) => Some(i32::from(*v)),
+        NodeKind::Primitive(PrimitiveValue::Byte(v)) => Some(i32::from(*v)),
+        NodeKind::Primitive(PrimitiveValue::Short(v)) => Some(i32::from(*v)),
+        NodeKind::Primitive(PrimitiveValue::UShort(v)) => Some(i32::from(*v)),
+        NodeKind::Primitive(PrimitiveValue::Int(v)) => Some(*v),
+        NodeKind::Primitive(PrimitiveValue::UInt(v)) => i32::try_from(*v).ok(),
+        NodeKind::Primitive(PrimitiveValue::Long(v)) => i32::try_from(*v).ok(),
+        NodeKind::Primitive(PrimitiveValue::ULong(v)) => i32::try_from(*v).ok(),
+        _ => None,
     }
 }

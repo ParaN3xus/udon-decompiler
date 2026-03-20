@@ -7,9 +7,10 @@ use serde_json::to_string_pretty;
 use tracing::{debug, info};
 use udon_decompiler::decompiler::{DecompileContext, UdonModuleInfo};
 use udon_decompiler::logging::init_logging;
-use udon_decompiler::odin::UdonProgramBinary;
+use udon_decompiler::odin::{UdonProgramBinary, UdonVariableTableBinary};
 use udon_decompiler::str_constants::{
-    EXT_ASM, EXT_ASSET, EXT_CS, EXT_HEX, FILE_UDON_MODULE_INFO_JSON, INPUT_GLOB_ASM,
+    EXT_ASM, EXT_ASSET, EXT_B64, EXT_CS, EXT_HEX, EXT_TXT, FILE_UDON_MODULE_INFO_JSON,
+    INPUT_GLOB_ASM,
 };
 use udon_decompiler::udon_asm::{
     AsmBindAnalysis, AsmInstructionComment, assemble_hex_with_original, collect_asm_bind_analysis,
@@ -49,6 +50,11 @@ enum Commands {
         #[arg(long)]
         template: Option<PathBuf>,
     },
+    /// Render public variable table data to readable text.
+    Pvar {
+        input: PathBuf,
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -56,6 +62,7 @@ enum Mode {
     Dc,
     Dasm,
     Asm,
+    Pvar,
 }
 
 enum PreparedSingleInput {
@@ -70,6 +77,9 @@ enum PreparedSingleInput {
     },
     Asm {
         asm_text: String,
+    },
+    Pvar {
+        table: UdonVariableTableBinary,
     },
 }
 
@@ -95,6 +105,7 @@ fn main() -> Result<()> {
             output,
             template,
         } => run(Mode::Asm, &input, output.as_deref(), template.as_deref()),
+        Commands::Pvar { input, output } => run(Mode::Pvar, &input, output.as_deref(), None),
     };
     info!("done!");
     res
@@ -350,6 +361,20 @@ fn process_single_file_inner(
                 .with_context(|| format!("failed to write {}", output_file.display()))?;
             debug!(template = %template_path.display(), "wrote assembled hex output");
         }
+        Mode::Pvar => {
+            let PreparedSingleInput::Pvar { table } = prepared else {
+                bail!("internal error: expected prepared pvar input");
+            };
+            let text = table.render_public_variables_text().with_context(|| {
+                format!(
+                    "failed to render variable table text from {}",
+                    input_file.display()
+                )
+            })?;
+            fs::write(output_file, text)
+                .with_context(|| format!("failed to write {}", output_file.display()))?;
+            debug!("wrote variable table text output");
+        }
     }
     Ok(())
 }
@@ -413,6 +438,17 @@ fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleI
             let asm_text = fs::read_to_string(input_file)
                 .with_context(|| format!("failed to read {}", input_file.display()))?;
             Ok(PreparedSingleInput::Asm { asm_text })
+        }
+        Mode::Pvar => {
+            let table_text = fs::read_to_string(input_file)
+                .with_context(|| format!("failed to read {}", input_file.display()))?;
+            let table = UdonVariableTableBinary::parse_base64(&table_text).with_context(|| {
+                format!(
+                    "failed to parse variable table from {}",
+                    input_file.display()
+                )
+            })?;
+            Ok(PreparedSingleInput::Pvar { table })
         }
     }
 }
@@ -528,6 +564,7 @@ fn ensure_input_extension(mode: Mode, input_file: &Path) -> Result<()> {
     let ok = match mode {
         Mode::Dc | Mode::Dasm => ext == EXT_HEX || ext == EXT_ASSET,
         Mode::Asm => ext == EXT_ASM,
+        Mode::Pvar => ext == EXT_B64,
     };
     if ok {
         return Ok(());
@@ -558,6 +595,7 @@ fn collect_input_files(input_dir: &Path, mode: Mode) -> Result<Vec<PathBuf>> {
         let matched = match mode {
             Mode::Dc | Mode::Dasm => ext == EXT_HEX || ext == EXT_ASSET,
             Mode::Asm => ext == EXT_ASM,
+            Mode::Pvar => ext == EXT_B64,
         };
         if matched {
             out.push(path);
@@ -585,6 +623,7 @@ fn default_output_filename(
             format!("{output_stem}.{}", EXT_ASM)
         }
         Mode::Asm => format!("{}.{}", input_file_stem(input_file), EXT_HEX),
+        Mode::Pvar => format!("{}.{}", input_file_stem(input_file), EXT_TXT),
     }
 }
 
@@ -602,6 +641,7 @@ fn mode_input_glob_hint(mode: Mode) -> &'static str {
     match mode {
         Mode::Dc | Mode::Dasm => "*.{hex,asset}",
         Mode::Asm => INPUT_GLOB_ASM,
+        Mode::Pvar => "*.b64",
     }
 }
 
@@ -610,6 +650,7 @@ fn default_output_dir_suffix(mode: Mode) -> &'static str {
         Mode::Dc => "decompiled",
         Mode::Dasm => "disassembled",
         Mode::Asm => "decompiled",
+        Mode::Pvar => "parsed",
     }
 }
 
