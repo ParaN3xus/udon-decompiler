@@ -8,15 +8,16 @@ expression: output.generated_code
 public class NetworkingManager : UdonSharpBehaviour
 {
     System.Int32[] playerIDsSynced = new System.Int32[] { -1, -1, -1, -1 };
-    UnityEngine.Vector3[] ballsPSynced =
-        new UnityEngine.Vector3[] { null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */,
-                                    null /* unserializable */, null /* unserializable */ };
+    UnityEngine.Vector3[] ballsPSynced = new UnityEngine.Vector3[] {
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f),
+        new UnityEngine.Vector3(0.0f, 0.0f, 0.0f), new UnityEngine.Vector3(0.0f, 0.0f, 0.0f)
+    };
     UnityEngine.Vector3 cueBallVSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
     UnityEngine.Vector3 cueBallWSynced = new UnityEngine.Vector3(0.0f, 0.0f, 0.0f);
     System.UInt16 stateIdSynced = 0;

@@ -840,7 +840,7 @@ pub(crate) fn literal_from_typed_odin_node(
     };
 
     let head = type_name_head(type_name);
-    if head.strip_suffix("[]").is_some() {
+    if let Some(element_type) = head.strip_suffix("[]").map(str::trim) {
         if let NodeKind::PrimitiveArray {
             element_count,
             bytes_per_element,
@@ -871,6 +871,19 @@ pub(crate) fn literal_from_typed_odin_node(
         }
 
         if let NodeKind::Array { declared_len } = node.kind() {
+            let elements = array_element_node_ids(doc, resolved)
+                .into_iter()
+                .map(|element_node| literal_from_typed_odin_node(doc, element_node, element_type))
+                .collect::<Vec<_>>();
+            if !elements.is_empty() || *declared_len == 0 {
+                return parse_roundtrip_literal(
+                    type_name,
+                    HeapLiteralValue::TypedArray {
+                        element_type: element_type.to_string(),
+                        elements,
+                    },
+                );
+            }
             let len = usize::try_from((*declared_len).max(0)).unwrap_or(0);
             return HeapLiteralValue::OpaqueArray { len };
         }
@@ -924,6 +937,20 @@ pub(crate) fn literal_from_typed_odin_node(
 fn parse_roundtrip_literal(type_name: &str, literal: HeapLiteralValue) -> HeapLiteralValue {
     let text = render_heap_literal(type_name, &literal);
     parse_typed_heap_literal(type_name, text.as_str(), 0).unwrap_or(literal)
+}
+
+fn array_element_node_ids(doc: &OdinDocument, array_node_id: NodeId) -> Vec<NodeId> {
+    let Some(node) = doc.node(array_node_id) else {
+        return Vec::new();
+    };
+    let mut ids = node
+        .children()
+        .iter()
+        .copied()
+        .filter(|id| doc.node(*id).and_then(|child| child.array_index()).is_some())
+        .collect::<Vec<_>>();
+    ids.sort_by_key(|id| doc.node(*id).and_then(|child| child.array_index()).unwrap_or(usize::MAX));
+    ids
 }
 
 fn literal_from_typed_primitive_array_raw(
