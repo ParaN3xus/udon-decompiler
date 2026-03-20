@@ -1,6 +1,6 @@
 # Udon Decompiler
 
-[![Nightly Build](https://img.shields.io/github/actions/workflow/status/ParaN3xus/udon-decompiler/release.yml?event=schedule&label=nightly)](https://github.com/ParaN3xus/udon-decompiler/actions/workflows/release.yml?query=event%3Aschedule)
+[![Nightly Build](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FParaN3xus%2Fudon-decompiler%2Fbadges%2Fnightly-badge.json)](https://github.com/ParaN3xus/udon-decompiler/releases/tag/nightly)
 
 The Udon Decompiler.
 

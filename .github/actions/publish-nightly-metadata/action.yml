@@ -1,0 +1,68 @@
+name: "Publish Nightly Metadata"
+description: "Publish nightly badge and metadata JSON files to a branch."
+inputs:
+  github_token:
+    description: "GitHub token for API access"
+    required: true
+  repo:
+    description: "Repository in OWNER/REPO format"
+    required: true
+  branch:
+    description: "Branch used to store nightly metadata JSON files"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Publish nightly metadata files
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPO: ${{ inputs.repo }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        set -euo pipefail
+
+        DEFAULT_SHA="$(gh api "repos/${REPO}/git/ref/heads/${GITHUB_REF_NAME}" --jq '.object.sha')"
+
+        if ! gh api "repos/${REPO}/git/ref/heads/${BRANCH}" >/dev/null 2>&1; then
+          gh api "repos/${REPO}/git/refs" \
+            --method POST \
+            -f ref="refs/heads/${BRANCH}" \
+            -f sha="${DEFAULT_SHA}" >/dev/null
+        fi
+
+        BADGE_CONTENT="$(base64 -w 0 out/nightly-badge.json)"
+        META_CONTENT="$(base64 -w 0 out/nightly-meta.json)"
+
+        BADGE_SHA="$(gh api "repos/${REPO}/contents/nightly-badge.json?ref=${BRANCH}" --jq '.sha' 2>/dev/null || true)"
+        META_SHA="$(gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.sha' 2>/dev/null || true)"
+
+        if [ -n "${BADGE_SHA}" ]; then
+          gh api "repos/${REPO}/contents/nightly-badge.json" \
+            --method PUT \
+            -f message="chore: update nightly badge metadata" \
+            -f content="${BADGE_CONTENT}" \
+            -f branch="${BRANCH}" \
+            -f sha="${BADGE_SHA}" >/dev/null
+        else
+          gh api "repos/${REPO}/contents/nightly-badge.json" \
+            --method PUT \
+            -f message="chore: add nightly badge metadata" \
+            -f content="${BADGE_CONTENT}" \
+            -f branch="${BRANCH}" >/dev/null
+        fi
+
+        if [ -n "${META_SHA}" ]; then
+          gh api "repos/${REPO}/contents/nightly-meta.json" \
+            --method PUT \
+            -f message="chore: update nightly release metadata" \
+            -f content="${META_CONTENT}" \
+            -f branch="${BRANCH}" \
+            -f sha="${META_SHA}" >/dev/null
+        else
+          gh api "repos/${REPO}/contents/nightly-meta.json" \
+            --method PUT \
+            -f message="chore: add nightly release metadata" \
+            -f content="${META_CONTENT}" \
+            -f branch="${BRANCH}" >/dev/null
+        fi

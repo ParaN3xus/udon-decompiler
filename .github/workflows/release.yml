@@ -13,9 +13,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.event.inputs.version || 'nightly' }}
+  cancel-in-progress: true
+
 env:
   DOTNET_VERSION: "10.0.x"
   NODE_VERSION: "24"
+  NIGHTLY_BADGE_BRANCH: "badges"
 
 jobs:
   prepare:
@@ -53,6 +58,58 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "ref=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+  prepare-nightly-metadata:
+    name: Prepare nightly metadata
+    needs: prepare
+    if: needs.prepare.outputs.is_nightly == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          ref: ${{ needs.prepare.outputs.ref }}
+
+      - name: Render nightly status files
+        uses: ./.github/actions/render-nightly-status
+        with:
+          github_token: ${{ github.token }}
+          repo: ${{ github.repository }}
+          branch: ${{ env.NIGHTLY_BADGE_BRANCH }}
+          run_id: ${{ github.run_id }}
+          event_name: ${{ github.event_name }}
+          sha: ${{ needs.prepare.outputs.ref }}
+          phase: start
+
+      - name: Update nightly release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ needs.prepare.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          if gh release view nightly -R "${REPO}" >/dev/null 2>&1; then
+            gh release edit nightly -R "${REPO}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          else
+            gh release create nightly -R "${REPO}" \
+              --target "${SHA}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          fi
+
+      - name: Publish nightly metadata branch
+        uses: ./.github/actions/publish-nightly-metadata
+        with:
+          github_token: ${{ github.token }}
+          repo: ${{ github.repository }}
+          branch: ${{ env.NIGHTLY_BADGE_BRANCH }}
 
   bump-version:
     name: Bump version, tag, and push
@@ -165,7 +222,13 @@ jobs:
           TARGET_DIR="dist/${{ matrix.name }}"
 
           cp "${CLANG_FORMAT_PATH}" "${TARGET_DIR}/$(basename "${CLANG_FORMAT_PATH}")"
-          curl -fsSL "${LLVM_LICENSE_URL}" -o "${TARGET_DIR}/LLVM_LICENSE"
+          curl -fL \
+            --retry 6 \
+            --retry-delay 2 \
+            --retry-max-time 120 \
+            --retry-all-errors \
+            "${LLVM_LICENSE_URL}" \
+            -o "${TARGET_DIR}/LLVM_LICENSE"
 
       - name: Build udon-decompiler
         shell: bash
@@ -230,6 +293,109 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  publish-nightly:
+    name: Publish nightly GitHub release
+    needs:
+      - prepare
+      - prepare-nightly-metadata
+      - build
+      - package-editor-scripts
+    if: always() && needs.prepare.outputs.is_nightly == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          ref: ${{ needs.prepare.outputs.ref }}
+
+      - name: Render nightly status files
+        id: nightly-status
+        uses: ./.github/actions/render-nightly-status
+        with:
+          github_token: ${{ github.token }}
+          repo: ${{ github.repository }}
+          branch: ${{ env.NIGHTLY_BADGE_BRANCH }}
+          run_id: ${{ github.run_id }}
+          event_name: ${{ github.event_name }}
+          sha: ${{ needs.prepare.outputs.ref }}
+          phase: finalize
+          build_result: ${{ needs.build.result }}
+          package_result: ${{ needs.package-editor-scripts.result }}
+
+      - name: Download build artifacts
+        if: steps.nightly-status.outputs.result == 'success'
+        uses: actions/download-artifact@v6
+        with:
+          path: release-assets
+
+      - name: Package nightly assets
+        if: steps.nightly-status.outputs.result == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for dir in */; do
+            [ -d "$dir" ] || continue
+            name="${dir%/}"
+            zip -r "${name}.zip" "$name"
+          done
+
+      - name: Checkout repository
+        if: steps.nightly-status.outputs.result == 'success'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          path: repo
+          ref: ${{ needs.prepare.outputs.ref }}
+
+      - name: Move nightly tag to current commit
+        if: steps.nightly-status.outputs.result == 'success'
+        shell: bash
+        env:
+          SHA: ${{ needs.prepare.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          git -C repo config user.name "github-actions[bot]"
+          git -C repo config user.email "github-actions[bot]@users.noreply.github.com"
+          git -C repo tag -f nightly "${SHA}"
+          git -C repo push origin refs/tags/nightly --force
+
+      - name: Update nightly release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ needs.prepare.outputs.ref }}
+          RESULT: ${{ steps.nightly-status.outputs.result }}
+        run: |
+          set -euo pipefail
+
+          if gh release view nightly -R "${REPO}" >/dev/null 2>&1; then
+            gh release edit nightly -R "${REPO}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          else
+            gh release create nightly -R "${REPO}" \
+              --target "${SHA}" \
+              --title "nightly" \
+              --prerelease \
+              --notes-file out/release-notes.md
+          fi
+
+          if [ "${RESULT}" = "success" ]; then
+            gh release upload nightly -R "${REPO}" release-assets/*.zip --clobber
+          fi
+
+      - name: Publish nightly metadata branch
+        uses: ./.github/actions/publish-nightly-metadata
+        with:
+          github_token: ${{ github.token }}
+          repo: ${{ github.repository }}
+          branch: ${{ env.NIGHTLY_BADGE_BRANCH }}
+
   draft-release:
     name: Create draft GitHub release
     needs:
@@ -240,7 +406,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: release-assets
 

@@ -1,0 +1,178 @@
+name: "Render Nightly Status"
+description: "Render nightly badge JSON, metadata JSON, and release notes."
+inputs:
+  github_token:
+    description: "GitHub token for API access"
+    required: true
+  repo:
+    description: "Repository in OWNER/REPO format"
+    required: true
+  branch:
+    description: "Branch used to store nightly metadata JSON files"
+    required: true
+  run_id:
+    description: "GitHub Actions run id"
+    required: true
+  event_name:
+    description: "GitHub event name"
+    required: true
+  sha:
+    description: "Commit SHA being attempted"
+    required: true
+  phase:
+    description: "Nightly phase: start or finalize"
+    required: true
+  build_result:
+    description: "Result of the build job"
+    required: false
+    default: ""
+  package_result:
+    description: "Result of the package-editor-scripts job"
+    required: false
+    default: ""
+outputs:
+  result:
+    description: "Overall nightly result"
+    value: ${{ steps.render.outputs.result }}
+runs:
+  using: "composite"
+  steps:
+    - name: Render nightly status files
+      id: render
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPO: ${{ inputs.repo }}
+        BRANCH: ${{ inputs.branch }}
+        RUN_ID: ${{ inputs.run_id }}
+        EVENT_NAME: ${{ inputs.event_name }}
+        SHA: ${{ inputs.sha }}
+        PHASE: ${{ inputs.phase }}
+        BUILD_RESULT: ${{ inputs.build_result }}
+        PACKAGE_RESULT: ${{ inputs.package_result }}
+      run: |
+        set -euo pipefail
+
+        mkdir -p prior-meta out
+
+        if gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.content' > prior-meta/nightly-meta.base64 2>/dev/null; then
+          tr -d '\n' < prior-meta/nightly-meta.base64 | base64 -d > prior-meta/nightly-meta.json
+        fi
+
+        PRIOR_META="prior-meta/nightly-meta.json"
+        HAS_PUBLISHED_ARTIFACT="false"
+        PUBLISHED_SHA=""
+        PUBLISHED_RUN_ID=""
+        PUBLISHED_RUN_URL=""
+        PUBLISHED_EVENT=""
+        PUBLISHED_AT=""
+
+        if [ -f "${PRIOR_META}" ]; then
+          HAS_PUBLISHED_ARTIFACT="$(jq -r 'if (.current_artifact.published_sha // "") != "" then "true" else "false" end' "${PRIOR_META}")"
+          PUBLISHED_SHA="$(jq -r '.current_artifact.published_sha // ""' "${PRIOR_META}")"
+          PUBLISHED_RUN_ID="$(jq -r '.current_artifact.published_run_id // ""' "${PRIOR_META}")"
+          PUBLISHED_EVENT="$(jq -r '.current_artifact.published_event // ""' "${PRIOR_META}")"
+          PUBLISHED_AT="$(jq -r '.current_artifact.published_at // ""' "${PRIOR_META}")"
+        fi
+
+        RESULT="building"
+        BADGE_MESSAGE="building"
+        BADGE_COLOR="yellow"
+
+        if [ "${PHASE}" = "finalize" ]; then
+          RESULT="failure"
+          BADGE_MESSAGE="failed"
+          BADGE_COLOR="red"
+
+          if [ "${BUILD_RESULT}" = "success" ] && [ "${PACKAGE_RESULT}" = "success" ]; then
+            RESULT="success"
+            BADGE_MESSAGE="passing"
+            BADGE_COLOR="green"
+          elif [ "${BUILD_RESULT}" = "cancelled" ] || [ "${PACKAGE_RESULT}" = "cancelled" ]; then
+            RESULT="cancelled"
+            BADGE_MESSAGE="cancelled"
+            BADGE_COLOR="lightgrey"
+          fi
+        fi
+
+        RUN_URL="https://github.com/${REPO}/actions/runs/${RUN_ID}"
+        if [ -n "${PUBLISHED_RUN_ID}" ]; then
+          PUBLISHED_RUN_URL="https://github.com/${REPO}/actions/runs/${PUBLISHED_RUN_ID}"
+        fi
+        ATTEMPTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        SHORT_SHA="${SHA:0:7}"
+
+        if [ "${RESULT}" = "success" ]; then
+          HAS_PUBLISHED_ARTIFACT="true"
+          PUBLISHED_SHA="${SHA}"
+          PUBLISHED_RUN_ID="${RUN_ID}"
+          PUBLISHED_RUN_URL="${RUN_URL}"
+          PUBLISHED_EVENT="${EVENT_NAME}"
+          PUBLISHED_AT="${ATTEMPTED_AT}"
+        fi
+
+        SHORT_PUBLISHED_SHA="${PUBLISHED_SHA:0:7}"
+
+        jq -n \
+          --arg label "nightly" \
+          --arg message "${BADGE_MESSAGE}" \
+          --arg color "${BADGE_COLOR}" \
+          '{
+            schemaVersion: 1,
+            label: $label,
+            message: $message,
+            color: $color
+          }' > out/nightly-badge.json
+
+        jq -n \
+          --arg status "${RESULT}" \
+          --arg attempted_sha "${SHA}" \
+          --arg attempted_run_id "${RUN_ID}" \
+          --arg attempted_at "${ATTEMPTED_AT}" \
+          --arg result "${RESULT}" \
+          --arg published_sha "${PUBLISHED_SHA}" \
+          --arg published_run_id "${PUBLISHED_RUN_ID}" \
+          --arg published_event "${PUBLISHED_EVENT}" \
+          --arg published_at "${PUBLISHED_AT}" \
+          '{
+            latest_attempt: {
+              status: $status,
+              attempted_sha: $attempted_sha,
+              attempted_run_id: $attempted_run_id,
+              attempted_at: $attempted_at,
+              result: $result
+            },
+            current_artifact: {
+              published_sha: $published_sha,
+              published_run_id: $published_run_id,
+              published_event: $published_event,
+              published_at: $published_at
+            }
+          }' > out/nightly-meta.json
+
+        {
+          echo "## Latest attempt"
+          echo "- Status: ${RESULT}"
+          echo "- Trigger: \`${EVENT_NAME}\`"
+          echo "- Commit: ${SHORT_SHA}"
+          echo "- Run: [${RUN_ID}](${RUN_URL})"
+          echo "- Updated at: ${ATTEMPTED_AT}"
+          echo
+          echo "## Current downloadable artifacts"
+          if [ "${HAS_PUBLISHED_ARTIFACT}" = "true" ]; then
+            if [ "${RESULT}" = "success" ]; then
+              echo "These assets were refreshed by the latest successful nightly build."
+            else
+              echo "The latest nightly attempt did not publish new binaries. These assets are from the most recent successful nightly build."
+            fi
+            echo
+            echo "- Commit: ${SHORT_PUBLISHED_SHA}"
+            echo "- Source trigger: \`${PUBLISHED_EVENT}\`"
+            echo "- Source run: [${PUBLISHED_RUN_ID}](${PUBLISHED_RUN_URL})"
+            echo "- Published at: ${PUBLISHED_AT}"
+          else
+            echo "No successful nightly artifacts have been published yet."
+          fi
+        } > out/release-notes.md
+
+        echo "result=${RESULT}" >> "$GITHUB_OUTPUT"
