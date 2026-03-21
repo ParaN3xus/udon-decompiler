@@ -1,10 +1,10 @@
 {
   "latest_attempt": {
-    "status": "success",
-    "attempted_sha": "4d6c81913c94fe14b7c241a3ce029059cda4f2d4",
-    "attempted_run_id": "23367279529",
-    "attempted_at": "2026-03-21T00:00:33Z",
-    "result": "success"
+    "status": "building",
+    "attempted_sha": "45b60fe169d8b2836376ee9470df4431528e3e9f",
+    "attempted_run_id": "23372700538",
+    "attempted_at": "2026-03-21T05:13:09Z",
+    "result": "building"
   },
   "current_artifact": {
     "published_sha": "4d6c81913c94fe14b7c241a3ce029059cda4f2d4",
