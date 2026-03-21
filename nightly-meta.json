@@ -1,15 +1,15 @@
 {
   "latest_attempt": {
-    "status": "building",
+    "status": "success",
     "attempted_sha": "45b60fe169d8b2836376ee9470df4431528e3e9f",
     "attempted_run_id": "23372700538",
-    "attempted_at": "2026-03-21T05:13:09Z",
-    "result": "building"
+    "attempted_at": "2026-03-21T05:16:37Z",
+    "result": "success"
   },
   "current_artifact": {
-    "published_sha": "4d6c81913c94fe14b7c241a3ce029059cda4f2d4",
-    "published_run_id": "23367279529",
-    "published_event": "schedule",
-    "published_at": "2026-03-21T00:00:33Z"
+    "published_sha": "45b60fe169d8b2836376ee9470df4431528e3e9f",
+    "published_run_id": "23372700538",
+    "published_event": "workflow_dispatch",
+    "published_at": "2026-03-21T05:16:37Z"
   }
 }
