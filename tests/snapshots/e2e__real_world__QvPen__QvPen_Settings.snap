@@ -109,8 +109,7 @@ namespace QvPen.UdonScript
             __intnl_SystemInt32_4 = 0;
             while (__intnl_SystemInt32_4 < __intnl_SystemInt32_3)
             {
-                __lcl_behaviour_VRCUdonUdonBehaviour_0 =
-                    __7__intnlparam.Get(__intnl_SystemInt32_4);
+                __lcl_behaviour_VRCUdonUdonBehaviour_0 = __7__intnlparam[__intnl_SystemInt32_4];
                 if (!(__lcl_behaviour_VRCUdonUdonBehaviour_0.GetProgramVariableType(
                           "__refl_typeid") == null))
                 {
@@ -132,14 +131,13 @@ namespace QvPen.UdonScript
                 __intnl_SystemInt32_4 = __intnl_SystemInt32_4 + 1;
             }
             __lcl_foundBehaviours_UnityEngineComponentArray_0 =
-                new UnityEngine.Component[](__lcl_arraySize_SystemInt32_0);
+                new UnityEngine.Component[__lcl_arraySize_SystemInt32_0];
             __lcl_targetIdx_SystemInt32_0 = 0;
             __intnl_SystemInt32_3 = __7__intnlparam.Length;
             __intnl_SystemInt32_4 = 0;
             while (__intnl_SystemInt32_4 < __intnl_SystemInt32_3)
             {
-                __lcl_behaviour_VRCUdonUdonBehaviour_0 =
-                    __7__intnlparam.Get(__intnl_SystemInt32_4);
+                __lcl_behaviour_VRCUdonUdonBehaviour_0 = __7__intnlparam[__intnl_SystemInt32_4];
                 if (!(__lcl_behaviour_VRCUdonUdonBehaviour_0.GetProgramVariableType(
                           "__refl_typeid") == null))
                 {
@@ -157,8 +155,8 @@ namespace QvPen.UdonScript
                     {
                         __intnl_SystemInt32_5 = __lcl_targetIdx_SystemInt32_0;
                         __lcl_targetIdx_SystemInt32_0 = __intnl_SystemInt32_5 + 1;
-                        __lcl_foundBehaviours_UnityEngineComponentArray_0.Set(
-                            __intnl_SystemInt32_5, __lcl_behaviour_VRCUdonUdonBehaviour_0);
+                        __lcl_foundBehaviours_UnityEngineComponentArray_0
+                        [__intnl_SystemInt32_5] = __lcl_behaviour_VRCUdonUdonBehaviour_0;
                     }
                 }
                 __intnl_SystemInt32_4 = __intnl_SystemInt32_4 + 1;
@@ -186,8 +184,7 @@ namespace QvPen.UdonScript
             __intnl_SystemInt32_7 = 0;
             while (__intnl_SystemInt32_7 < __intnl_SystemInt32_6)
             {
-                __lcl_behaviour_VRCUdonUdonBehaviour_1 =
-                    __9__intnlparam.Get(__intnl_SystemInt32_7);
+                __lcl_behaviour_VRCUdonUdonBehaviour_1 = __9__intnlparam[__intnl_SystemInt32_7];
                 if (!(__lcl_behaviour_VRCUdonUdonBehaviour_1.GetProgramVariableType(
                           "__refl_typeid") == null))
                 {
@@ -209,14 +206,13 @@ namespace QvPen.UdonScript
                 __intnl_SystemInt32_7 = __intnl_SystemInt32_7 + 1;
             }
             __lcl_foundBehaviours_UnityEngineComponentArray_1 =
-                new UnityEngine.Component[](__lcl_arraySize_SystemInt32_1);
+                new UnityEngine.Component[__lcl_arraySize_SystemInt32_1];
             __lcl_targetIdx_SystemInt32_1 = 0;
             __intnl_SystemInt32_6 = __9__intnlparam.Length;
             __intnl_SystemInt32_7 = 0;
             while (__intnl_SystemInt32_7 < __intnl_SystemInt32_6)
             {
-                __lcl_behaviour_VRCUdonUdonBehaviour_1 =
-                    __9__intnlparam.Get(__intnl_SystemInt32_7);
+                __lcl_behaviour_VRCUdonUdonBehaviour_1 = __9__intnlparam[__intnl_SystemInt32_7];
                 if (!(__lcl_behaviour_VRCUdonUdonBehaviour_1.GetProgramVariableType(
                           "__refl_typeid") == null))
                 {
@@ -234,8 +230,8 @@ namespace QvPen.UdonScript
                     {
                         __intnl_SystemInt32_8 = __lcl_targetIdx_SystemInt32_1;
                         __lcl_targetIdx_SystemInt32_1 = __intnl_SystemInt32_8 + 1;
-                        __lcl_foundBehaviours_UnityEngineComponentArray_1.Set(
-                            __intnl_SystemInt32_8, __lcl_behaviour_VRCUdonUdonBehaviour_1);
+                        __lcl_foundBehaviours_UnityEngineComponentArray_1
+                        [__intnl_SystemInt32_8] = __lcl_behaviour_VRCUdonUdonBehaviour_1;
                     }
                 }
                 __intnl_SystemInt32_7 = __intnl_SystemInt32_7 + 1;

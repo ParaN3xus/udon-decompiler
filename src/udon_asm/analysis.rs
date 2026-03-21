@@ -1,7 +1,7 @@
 use crate::decompiler::{
     DecompileContext, DecompileError, ExternFunctionInfo, IrExpression, IrVariableExpression,
-    Result, StackValue, UdonModuleInfo, build_extern_ir_expression, is_property_setter,
-    render_expression, render_variable_expression,
+    Result, StackValue, UdonModuleInfo, build_extern_ir_expression, render_expression,
+    render_variable_expression,
 };
 
 use super::{AsmBindDirective, AsmBindTableDirective, AsmInstructionComment, OpCode};
@@ -184,11 +184,11 @@ fn render_extern_comment(
     function_info: &ExternFunctionInfo,
     args: &[u32],
 ) -> String {
-    if is_property_setter(function_info) {
+    if function_info.is_setter() {
         let value = args
             .last()
             .map(|address| render_variable_expression(*address, ctx))
-            .unwrap_or_else(|| panic!("property setter missing value argument"));
+            .unwrap_or_else(|| panic!("assignable extern missing value argument"));
         let target_expr = build_extern_comment_ir_expression(
             function_info,
             args.get(..args.len().saturating_sub(1)).unwrap_or(&[]),

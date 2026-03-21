@@ -343,6 +343,13 @@ fn dump_expression(
             "function_name": call.function_info.function_name,
             "arguments": call.arguments.iter().map(|arg| dump_expression(arg, ctx)).collect::<Vec<_>>(),
         }),
+        IrExpression::ArrayAccess(call) => json!({
+            "kind": "ArrayAccess",
+            "signature": call.signature,
+            "type_name": call.function_info.type_name,
+            "function_name": call.function_info.function_name,
+            "arguments": call.arguments.iter().map(|arg| dump_expression(arg, ctx)).collect::<Vec<_>>(),
+        }),
         IrExpression::ConstructorCall(call) => json!({
             "kind": "ConstructorCall",
             "signature": call.signature,

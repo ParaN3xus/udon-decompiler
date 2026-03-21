@@ -133,6 +133,11 @@ fn collect_assignment_target_variables(target: &IrExpression, used: &mut BTreeSe
                 collect_expression_variables(arg, used);
             }
         }
+        IrExpression::ArrayAccess(array_access) => {
+            for arg in &array_access.arguments {
+                collect_expression_variables(arg, used);
+            }
+        }
         _ => {}
     }
 }
@@ -148,6 +153,11 @@ fn collect_expression_variables(expression: &IrExpression, used: &mut BTreeSet<u
             }
         }
         IrExpression::PropertyAccess(call) => {
+            for arg in &call.arguments {
+                collect_expression_variables(arg, used);
+            }
+        }
+        IrExpression::ArrayAccess(call) => {
             for arg in &call.arguments {
                 collect_expression_variables(arg, used);
             }

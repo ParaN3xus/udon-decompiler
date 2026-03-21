@@ -261,7 +261,7 @@ namespace QvPen.UdonScript
 
         public void _ClearSyncBuffer()
         {
-            __0_value__param = new UnityEngine.Vector3[](0);
+            __0_value__param = new UnityEngine.Vector3[0];
             function_0();
             isInUseSyncBuffer = false;
             return;

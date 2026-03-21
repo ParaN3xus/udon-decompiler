@@ -187,13 +187,13 @@ namespace QvPen.UdonScript
                         else
                         {
                             __lcl_indexList_SystemInt32Array_0 =
-                                new System.Int32[](callablePenList.Count);
+                                new System.Int32[callablePenList.Count];
                             __lcl_i_SystemInt32_0 = 0;
                             __lcl_n_SystemInt32_0 = callablePenList.Count;
                             while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
                             {
-                                __lcl_indexList_SystemInt32Array_0.Set(__lcl_i_SystemInt32_0,
-                                                                       __lcl_i_SystemInt32_0);
+                                __lcl_indexList_SystemInt32Array_0[__lcl_i_SystemInt32_0] =
+                                    __lcl_i_SystemInt32_0;
                                 __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
                             }
                             VRC.SDKBase.Utilities.ShuffleArray(
@@ -203,8 +203,7 @@ namespace QvPen.UdonScript
                             while (__lcl_i_SystemInt32_0 < __lcl_n_SystemInt32_0)
                             {
                                 __lcl_index_SystemInt32_0 =
-                                    __lcl_indexList_SystemInt32Array_0.Get(
-                                        __lcl_i_SystemInt32_0);
+                                    __lcl_indexList_SystemInt32Array_0[__lcl_i_SystemInt32_0];
                                 if (callablePenList.TryGetValue(
                                         __lcl_index_SystemInt32_0,
                                         VRC.SDK3.Data.TokenType.Reference,

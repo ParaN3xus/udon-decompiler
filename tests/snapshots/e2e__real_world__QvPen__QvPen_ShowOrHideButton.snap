@@ -45,7 +45,7 @@ namespace QvPen.UdonScript.UI
             __intnl_SystemInt32_1 = 0;
             while (__intnl_SystemInt32_1 < __intnl_SystemInt32_0)
             {
-                __lcl_go_UnityEngineGameObject_0 = gameObjects.Get(__intnl_SystemInt32_1);
+                __lcl_go_UnityEngineGameObject_0 = gameObjects[__intnl_SystemInt32_1];
                 if (__lcl_go_UnityEngineGameObject_0)
                 {
                     __lcl_go_UnityEngineGameObject_0.SetActive(isShown);

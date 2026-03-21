@@ -23,6 +23,8 @@ pub enum FunctionDefinitionType {
     Ctor,
     #[serde(rename = "op")]
     Operator,
+    #[serde(rename = "array")]
+    ArrayAccess,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -50,6 +52,14 @@ pub struct ExternFunctionInfo {
 impl ExternFunctionInfo {
     pub fn parameter_count(&self) -> usize {
         self.parameters.len()
+    }
+
+    pub fn is_setter(&self) -> bool {
+        match self.def_type {
+            FunctionDefinitionType::Field => self.function_name.starts_with("__set_"),
+            FunctionDefinitionType::ArrayAccess => self.original_name.as_deref() == Some("Set"),
+            _ => false,
+        }
     }
 }
 

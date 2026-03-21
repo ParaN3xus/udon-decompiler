@@ -112,10 +112,18 @@ fn rewrite_assignment_target(
     target: &mut IrExpression,
     variables_by_address: &HashMap<u32, &VariableRecord>,
 ) {
-    if let IrExpression::PropertyAccess(call) = target {
-        for arg in &mut call.arguments {
-            rewrite_expression(arg, variables_by_address);
+    match target {
+        IrExpression::PropertyAccess(call) => {
+            for arg in &mut call.arguments {
+                rewrite_expression(arg, variables_by_address);
+            }
         }
+        IrExpression::ArrayAccess(call) => {
+            for arg in &mut call.arguments {
+                rewrite_expression(arg, variables_by_address);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -143,6 +151,11 @@ fn rewrite_expression(
             }
         }
         IrExpression::PropertyAccess(call) => {
+            for arg in &mut call.arguments {
+                rewrite_expression(arg, variables_by_address);
+            }
+        }
+        IrExpression::ArrayAccess(call) => {
             for arg in &mut call.arguments {
                 rewrite_expression(arg, variables_by_address);
             }

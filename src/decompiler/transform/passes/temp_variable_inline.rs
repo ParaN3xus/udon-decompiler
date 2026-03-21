@@ -412,6 +412,9 @@ fn count_expr_reads(expression: &IrExpression, address: u32) -> usize {
         IrExpression::PropertyAccess(IrPropertyAccessExpression { arguments, .. }) => {
             arguments.iter().map(|x| count_expr_reads(x, address)).sum()
         }
+        IrExpression::ArrayAccess(crate::decompiler::IrArrayAccessExpression {
+            arguments, ..
+        }) => arguments.iter().map(|x| count_expr_reads(x, address)).sum(),
         IrExpression::ConstructorCall(IrConstructorCallExpression { arguments, .. }) => {
             arguments.iter().map(|x| count_expr_reads(x, address)).sum()
         }
@@ -469,6 +472,12 @@ fn replace_expr_reads(
             .iter_mut()
             .map(|x| replace_expr_reads(x, address, replacement))
             .sum(),
+        IrExpression::ArrayAccess(crate::decompiler::IrArrayAccessExpression {
+            arguments, ..
+        }) => arguments
+            .iter_mut()
+            .map(|x| replace_expr_reads(x, address, replacement))
+            .sum(),
         IrExpression::ConstructorCall(IrConstructorCallExpression { arguments, .. }) => arguments
             .iter_mut()
             .map(|x| replace_expr_reads(x, address, replacement))
@@ -487,7 +496,9 @@ fn assignment_target_variable_address(target: &IrExpression) -> Option<u32> {
 fn count_assignment_target_reads(target: &IrExpression, address: u32) -> usize {
     match target {
         IrExpression::Variable(_) => 0,
-        IrExpression::PropertyAccess(_) => count_expr_reads(target, address),
+        IrExpression::PropertyAccess(_) | IrExpression::ArrayAccess(_) => {
+            count_expr_reads(target, address)
+        }
         _ => 0,
     }
 }
@@ -499,7 +510,9 @@ fn replace_assignment_target_reads(
 ) -> usize {
     match target {
         IrExpression::Variable(_) => 0,
-        IrExpression::PropertyAccess(_) => replace_expr_reads(target, address, replacement),
+        IrExpression::PropertyAccess(_) | IrExpression::ArrayAccess(_) => {
+            replace_expr_reads(target, address, replacement)
+        }
         _ => 0,
     }
 }

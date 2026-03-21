@@ -3,10 +3,10 @@ use tracing::{debug, info};
 use crate::decompiler::clang_format::format_csharp;
 use crate::decompiler::context::DecompileContext;
 use crate::decompiler::ir::{
-    IrAssignmentStatement, IrBlock, IrBlockContainer, IrClass, IrExpression, IrExpressionStatement,
-    IrExternalCallExpression, IrFunction, IrHighLevelSwitch, IrIf, IrJump, IrLeave,
-    IrLiteralExpression, IrOperator, IrOperatorCallExpression, IrPropertyAccessExpression,
-    IrStatement, IrSwitch,
+    IrArrayAccessExpression, IrAssignmentStatement, IrBlock, IrBlockContainer, IrClass,
+    IrExpression, IrExpressionStatement, IrExternalCallExpression, IrFunction, IrHighLevelSwitch,
+    IrIf, IrJump, IrLeave, IrLiteralExpression, IrOperator, IrOperatorCallExpression,
+    IrPropertyAccessExpression, IrStatement, IrSwitch,
 };
 use crate::decompiler::{ParameterType, Result, VariableRecord};
 use crate::str_constants::{
@@ -449,18 +449,8 @@ pub(crate) fn render_expression(expression: &IrExpression, ctx: &DecompileContex
         }
         IrExpression::ExternalCall(call) => render_external_call_expression(call, ctx),
         IrExpression::PropertyAccess(call) => render_property_access_expression(call, ctx),
-        IrExpression::ConstructorCall(call) => {
-            let args = call
-                .arguments
-                .iter()
-                .map(|x| render_expression(x, ctx))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!(
-                "new {}({args})",
-                render_type_name(call.function_info.type_name.as_str())
-            )
-        }
+        IrExpression::ArrayAccess(call) => render_array_access_expression(call, ctx),
+        IrExpression::ConstructorCall(call) => render_constructor_call_expression(call, ctx),
         IrExpression::OperatorCall(call) => render_operator_call(call, ctx),
     }
 }
@@ -558,6 +548,24 @@ fn render_external_call_expression(
     format!("{receiver}.{method}({rendered_args})")
 }
 
+fn render_array_access_expression(
+    call: &IrArrayAccessExpression,
+    ctx: &DecompileContext,
+) -> String {
+    let [receiver, index] = call.arguments.as_slice() else {
+        panic!(
+            "array access {} expected 2 args, got {}",
+            call.function_info.signature,
+            call.arguments.len()
+        );
+    };
+    format!(
+        "{}[{}]",
+        render_expression(receiver, ctx),
+        render_expression(index, ctx)
+    )
+}
+
 fn render_property_access_expression(
     call: &IrPropertyAccessExpression,
     ctx: &DecompileContext,
@@ -586,8 +594,41 @@ fn render_assignment_target(target: &IrExpression, ctx: &DecompileContext) -> St
     match target {
         IrExpression::Variable(variable) => render_variable_expression(variable.address, ctx),
         IrExpression::PropertyAccess(call) => render_property_access_expression(call, ctx),
+        IrExpression::ArrayAccess(call) => render_array_access_expression(call, ctx),
         _ => panic!("unsupported assignment target: {target:?}"),
     }
+}
+
+fn render_constructor_call_expression(
+    call: &crate::decompiler::IrConstructorCallExpression,
+    ctx: &DecompileContext,
+) -> String {
+    let type_name = call.function_info.type_name.trim();
+    if let Some(element_type) = type_name.strip_suffix("[]") {
+        let [length] = call.arguments.as_slice() else {
+            panic!(
+                "array constructor {} expected 1 arg, got {}",
+                call.function_info.signature,
+                call.arguments.len()
+            );
+        };
+        return format!(
+            "new {}[{}]",
+            render_type_name(element_type),
+            render_expression(length, ctx)
+        );
+    }
+
+    let args = call
+        .arguments
+        .iter()
+        .map(|x| render_expression(x, ctx))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "new {}({args})",
+        render_type_name(call.function_info.type_name.as_str())
+    )
 }
 
 fn render_call_args(

@@ -28,6 +28,7 @@ public class UdonModuleInfoExtractor : EditorWindow
         [EnumMember(Value = "prop")] Property,
         [EnumMember(Value = "ctor")] Constructor,
         [EnumMember(Value = "op")] Operator,
+        [EnumMember(Value = "array")] ArrayAccess,
     }
 
     [Serializable]
@@ -91,7 +92,7 @@ public class UdonModuleInfoExtractor : EditorWindow
                         .ToList();
 
                 FunctionDefinitionType defType =
-                    DetermineFunctionDefinitionType(funcName, parameters.Count);
+                    DetermineFunctionDefinitionType(moduleType, funcName, parameters.Count);
 
                 string originalName = null;
                 var isStatic = false;
@@ -103,13 +104,19 @@ public class UdonModuleInfoExtractor : EditorWindow
                     // __get_ or __set_
                     originalName = udonNodeDef.name[(index + 5)..];
                 }
-                if (defType == FunctionDefinitionType.Method)
+                if (defType == FunctionDefinitionType.Method ||
+                    defType == FunctionDefinitionType.ArrayAccess)
                 {
                     originalName = udonNodeDef.name[(index + 1)..];
                 }
-                if ((defType == FunctionDefinitionType.Property ||
-                     defType == FunctionDefinitionType.Method) &&
-                    udonNodeDef.parameters.Count > 0)
+                if (defType == FunctionDefinitionType.ArrayAccess)
+                {
+                    isStatic = false;
+                    returnsVoid = funcName.StartsWith("__Set__");
+                }
+                else if ((defType == FunctionDefinitionType.Property ||
+                          defType == FunctionDefinitionType.Method) &&
+                         udonNodeDef.parameters.Count > 0)
                 {
                     isStatic = !(udonNodeDef.parameters.First().name == "instance" &&
                                  udonNodeDef.parameters[0].type == moduleType);
@@ -141,9 +148,15 @@ public class UdonModuleInfoExtractor : EditorWindow
         Debug.Log($"Total modules extracted: {result.Count}");
     }
 
-    private static FunctionDefinitionType DetermineFunctionDefinitionType(string funcName,
+    private static FunctionDefinitionType DetermineFunctionDefinitionType(Type moduleType,
+                                                                          string funcName,
                                                                           int parameterCount)
     {
+        if (moduleType.IsArray &&
+            (funcName.StartsWith("__Get__") || funcName.StartsWith("__Set__")))
+        {
+            return FunctionDefinitionType.ArrayAccess;
+        }
         if (funcName.StartsWith("__op_"))
         {
             return FunctionDefinitionType.Operator;

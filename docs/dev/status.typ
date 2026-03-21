@@ -20,7 +20,7 @@
 - [ ] More renderers & parsers of C\# objects
 - [ ] Editor script, IR and code generator support of namespaces
 - [ ] Type alias like `bool` for `System.Boolean`: #link("https://github.com/icsharpcode/ILSpy/blob/2f311c233d301f5d622c213b7c2abcecb1fcc217/ICSharpCode.Decompiler/Disassembler/DisassemblerHelpers.cs#L342")[reference]
-- [ ] IR and code generator support of array access
+- [x] IR and code generator support of array access
 - [ ] Add comment hints for code sections that failed to decompile
 - [ ] Docs for disassembler and assembler feature
 - [ ] Better dynamic analysis

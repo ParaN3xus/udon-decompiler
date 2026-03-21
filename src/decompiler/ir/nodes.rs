@@ -176,6 +176,13 @@ pub struct IrPropertyAccessExpression {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IrArrayAccessExpression {
+    pub function_info: ExternFunctionInfo,
+    pub signature: String,
+    pub arguments: Vec<IrExpression>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IrConstructorCallExpression {
     pub function_info: ExternFunctionInfo,
     pub signature: String,
@@ -196,6 +203,7 @@ pub enum IrExpression {
     InternalCall(IrInternalCallExpression),
     ExternalCall(IrExternalCallExpression),
     PropertyAccess(IrPropertyAccessExpression),
+    ArrayAccess(IrArrayAccessExpression),
     ConstructorCall(IrConstructorCallExpression),
     OperatorCall(IrOperatorCallExpression),
 }

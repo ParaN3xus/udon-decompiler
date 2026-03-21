@@ -457,7 +457,7 @@ public class NPC : UdonSharpBehaviour
             __temp_SystemBoolean_0 = __intnl_SystemInt32_6 < __intnl_SystemInt32_5;
             if (__temp_SystemBoolean_0)
             {
-                __temp_VRCUdonUdonBehaviour_0 = npcDebugs.Get(__intnl_SystemInt32_6);
+                __temp_VRCUdonUdonBehaviour_0 = npcDebugs[__intnl_SystemInt32_6];
                 __temp_VRCUdonUdonBehaviour_0.SendCustomEvent("_InitDelayedEvents");
                 __intnl_SystemInt32_6 = __intnl_SystemInt32_6 + 1;
                 continue;
@@ -713,7 +713,7 @@ public class NPC : UdonSharpBehaviour
             while (__intnl_SystemInt32_14 < __intnl_SystemInt32_13)
             {
                 __lcl_n_VRCUdonUdonBehaviour_0 =
-                    __lcl_npcs_UnityEngineComponentArray_0.Get(__intnl_SystemInt32_14);
+                    __lcl_npcs_UnityEngineComponentArray_0[__intnl_SystemInt32_14];
                 __temp_UnityEngineObject_0 = __lcl_n_VRCUdonUdonBehaviour_0;
                 __temp_UnityEngineObject_1 = this;
                 __intnl_SystemBoolean_36 =
@@ -909,7 +909,7 @@ public class NPC : UdonSharpBehaviour
             __temp_SystemBoolean_0 = __intnl_SystemInt32_18 < __intnl_SystemInt32_17;
             if (__temp_SystemBoolean_0)
             {
-                __temp_UnityEngineGameObject_0 = TogglableObjects.Get(__intnl_SystemInt32_18);
+                __temp_UnityEngineGameObject_0 = TogglableObjects[__intnl_SystemInt32_18];
                 __temp_UnityEngineGameObject_0.SetActive(false);
                 __intnl_SystemInt32_18 = __intnl_SystemInt32_18 + 1;
                 continue;
@@ -1134,7 +1134,7 @@ public class NPC : UdonSharpBehaviour
             while (__lcl_i_SystemInt32_0 < actionWeights.Length)
             {
                 __lcl_cum_SystemInt32_0 =
-                    __lcl_cum_SystemInt32_0 + actionWeights.Get(__lcl_i_SystemInt32_0);
+                    __lcl_cum_SystemInt32_0 + actionWeights[__lcl_i_SystemInt32_0];
                 if (__lcl_r_SystemInt32_0 <= __lcl_cum_SystemInt32_0)
                 {
                     __lcl_arrIndex_SystemInt32_0 = __lcl_i_SystemInt32_0;
@@ -1150,7 +1150,7 @@ public class NPC : UdonSharpBehaviour
             __intnl_SystemInt32_21 = 0;
             while (__intnl_SystemInt32_21 < __intnl_SystemInt32_20)
             {
-                __lcl_d_VRCUdonUdonBehaviour_1 = npcDebugs.Get(__intnl_SystemInt32_21);
+                __lcl_d_VRCUdonUdonBehaviour_1 = npcDebugs[__intnl_SystemInt32_21];
                 __temp_UnityEngineObject_0 = __lcl_d_VRCUdonUdonBehaviour_1;
                 __temp_UnityEngineObject_1 = null;
                 __intnl_SystemBoolean_70 =
@@ -1340,7 +1340,7 @@ public class NPC : UdonSharpBehaviour
             __temp_SystemBoolean_0 = __lcl_i_SystemInt32_1 < __temp_SystemInt32_0;
             if (__temp_SystemBoolean_0)
             {
-                __temp_SystemInt32_0 = __1__intnlparam.Get(__lcl_i_SystemInt32_1);
+                __temp_SystemInt32_0 = __1__intnlparam[__lcl_i_SystemInt32_1];
                 __lcl_total_SystemInt32_0 = __lcl_total_SystemInt32_0 + __temp_SystemInt32_0;
                 __lcl_i_SystemInt32_1 = __lcl_i_SystemInt32_1 + 1;
                 continue;
@@ -1353,15 +1353,15 @@ public class NPC : UdonSharpBehaviour
 
     void function_2()
     {
-        __temp_SystemStringArray_0 = new System.String[](7);
-        __temp_SystemStringArray_0.Set(0, "Wander");
-        __temp_SystemStringArray_0.Set(1, "TidyPickup");
-        __temp_SystemStringArray_0.Set(2, "RandomPlayer");
-        __temp_SystemStringArray_0.Set(3, "CheckOtherNPC");
-        __temp_SystemStringArray_0.Set(4, "Perform");
-        __temp_SystemStringArray_0.Set(5, "SitSomewhere");
-        __temp_SystemStringArray_0.Set(6, "PhoneCall");
-        __2__intnlparam = __temp_SystemStringArray_0.Get(__3__intnlparam);
+        __temp_SystemStringArray_0 = new System.String[7];
+        __temp_SystemStringArray_0[0] = "Wander";
+        __temp_SystemStringArray_0[1] = "TidyPickup";
+        __temp_SystemStringArray_0[2] = "RandomPlayer";
+        __temp_SystemStringArray_0[3] = "CheckOtherNPC";
+        __temp_SystemStringArray_0[4] = "Perform";
+        __temp_SystemStringArray_0[5] = "SitSomewhere";
+        __temp_SystemStringArray_0[6] = "PhoneCall";
+        __2__intnlparam = __temp_SystemStringArray_0[__3__intnlparam];
         return;
     }
 
@@ -1372,7 +1372,7 @@ public class NPC : UdonSharpBehaviour
 
         __temp_SystemInt32_0 = VRC.SDKBase.VRCPlayerApi.GetPlayerCount();
         __temp_VRCSDKBaseVRCPlayerApiArray_0 =
-            new VRC.SDKBase.VRCPlayerApi[](__temp_SystemInt32_0);
+            new VRC.SDKBase.VRCPlayerApi[__temp_SystemInt32_0];
         __lcl_players_VRCSDKBaseVRCPlayerApiArray_0 =
             VRC.SDKBase.VRCPlayerApi.GetPlayers(__temp_VRCSDKBaseVRCPlayerApiArray_0);
         __lcl_i_SystemInt32_2 = 0;
@@ -1389,7 +1389,7 @@ public class NPC : UdonSharpBehaviour
                 __temp_SystemDouble_0 = System.Math.Truncate(__temp_SystemDouble_0);
                 __temp_SystemInt32_0 = System.Convert.ToInt32(__temp_SystemDouble_0);
                 __temp_VRCSDKBaseVRCPlayerApi_0 =
-                    __lcl_players_VRCSDKBaseVRCPlayerApiArray_0.Get(__temp_SystemInt32_0);
+                    __lcl_players_VRCSDKBaseVRCPlayerApiArray_0[__temp_SystemInt32_0];
                 __temp_SystemBoolean_0 =
                     VRC.SDKBase.Utilities.IsValid(__temp_VRCSDKBaseVRCPlayerApi_0);
                 if (__temp_SystemBoolean_0)

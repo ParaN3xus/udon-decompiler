@@ -10,11 +10,11 @@ use crate::str_constants::SYMBOL_RETURN_JUMP_U32;
 use crate::udon_asm::{OpCode, OperandToken};
 
 use super::nodes::{
-    IrAssignmentStatement, IrBlock, IrBlockContainer, IrConstructorCallExpression, IrContainerKind,
-    IrExpression, IrExpressionStatement, IrExternalCallExpression, IrFunction, IrIf,
-    IrInternalCallExpression, IrJump, IrLeave, IrOperator, IrOperatorCallExpression,
-    IrPropertyAccessExpression, IrRawExpression, IrReturn, IrStatement, IrSwitch,
-    IrVariableExpression,
+    IrArrayAccessExpression, IrAssignmentStatement, IrBlock, IrBlockContainer,
+    IrConstructorCallExpression, IrContainerKind, IrExpression, IrExpressionStatement,
+    IrExternalCallExpression, IrFunction, IrIf, IrInternalCallExpression, IrJump, IrLeave,
+    IrOperator, IrOperatorCallExpression, IrPropertyAccessExpression, IrRawExpression, IrReturn,
+    IrStatement, IrSwitch, IrVariableExpression,
 };
 use crate::decompiler::FunctionCfg;
 
@@ -38,6 +38,11 @@ pub fn build_extern_ir_expression(
 ) -> IrExpression {
     match function_info.def_type {
         FunctionDefinitionType::Field => IrExpression::PropertyAccess(IrPropertyAccessExpression {
+            function_info,
+            signature,
+            arguments,
+        }),
+        FunctionDefinitionType::ArrayAccess => IrExpression::ArrayAccess(IrArrayAccessExpression {
             function_info,
             signature,
             arguments,
@@ -213,9 +218,9 @@ impl<'a> IrBuilder<'a> {
 
         let args = self.build_call_arguments(address, function_info.parameter_count());
 
-        if is_property_setter(&function_info) {
+        if function_info.is_setter() {
             let (value, target_args) = args.split_last().unwrap_or_else(|| {
-                panic!("Property setter at 0x{address:08X} requires at least one argument")
+                panic!("Assignable extern at 0x{address:08X} requires at least one argument")
             });
             return vec![IrStatement::Assignment(IrAssignmentStatement {
                 target: self.build_extern_expression(
@@ -554,11 +559,6 @@ impl<'a> IrBuilder<'a> {
         };
         self.function_cfg.block_ids.contains(&block_id)
     }
-}
-
-pub(crate) fn is_property_setter(function_info: &ExternFunctionInfo) -> bool {
-    function_info.def_type == FunctionDefinitionType::Field
-        && function_info.function_name.starts_with("__set_")
 }
 
 pub fn build_ir_functions(ctx: &DecompileContext) -> Vec<IrFunction> {

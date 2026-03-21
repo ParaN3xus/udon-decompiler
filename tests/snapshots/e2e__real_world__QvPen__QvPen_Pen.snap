@@ -235,9 +235,9 @@ namespace QvPen.UdonScript
                         typeof(UnityEngine.SphereCollider) /* UnityEngine.PhysicsModule */);
                 __lcl_sphereCollider_UnityEngineSphereCollider_0.enabled = false;
                 __lcl_s_UnityEngineVector3_0 = pointer.lossyScale;
-                __gintnl_SystemSingleArray_0.Set(0, __lcl_s_UnityEngineVector3_0.x);
-                __gintnl_SystemSingleArray_0.Set(1, __lcl_s_UnityEngineVector3_0.y);
-                __gintnl_SystemSingleArray_0.Set(2, __lcl_s_UnityEngineVector3_0.z);
+                __gintnl_SystemSingleArray_0[0] = __lcl_s_UnityEngineVector3_0.x;
+                __gintnl_SystemSingleArray_0[1] = __lcl_s_UnityEngineVector3_0.y;
+                __gintnl_SystemSingleArray_0[2] = __lcl_s_UnityEngineVector3_0.z;
                 _pointerRadius =
                     UnityEngine.Mathf.Max(0.01f,
                                           UnityEngine.Mathf.Min(__gintnl_SystemSingleArray_0)) *
@@ -828,7 +828,7 @@ namespace QvPen.UdonScript
                 __lcl_i_SystemInt32_0 = 0;
                 while (__lcl_i_SystemInt32_0 < __lcl_count_SystemInt32_0)
                 {
-                    __lcl_other_UnityEngineCollider_0 = results4.Get(__lcl_i_SystemInt32_0);
+                    __lcl_other_UnityEngineCollider_0 = results4[__lcl_i_SystemInt32_0];
                     __intnl_SystemBoolean_26 =
                         VRC.SDKBase.Utilities.IsValid(__lcl_other_UnityEngineCollider_0);
                     if (__intnl_SystemBoolean_26)
@@ -889,7 +889,7 @@ namespace QvPen.UdonScript
                             }
                         }
                     }
-                    results4.Set(__lcl_i_SystemInt32_0, null);
+                    results4[__lcl_i_SystemInt32_0] = null;
                     __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
                 }
             }
@@ -1445,14 +1445,15 @@ namespace QvPen.UdonScript
                 else
                 {
                     __lcl_positions_UnityEngineVector3Array_0 =
-                        new UnityEngine.Vector3[](__lcl_positionCount_SystemInt32_0);
+                        new UnityEngine.Vector3[__lcl_positionCount_SystemInt32_0];
                     __intnl_SystemInt32_10 = __0_trailRenderer__param.GetPositions(
                         ref __lcl_positions_UnityEngineVector3Array_0);
                     System.Array.Reverse(__lcl_positions_UnityEngineVector3Array_0);
                     __11__intnlparam = __1_mode__param;
                     function_32();
-                    __lcl_data_UnityEngineVector3Array_1 = new UnityEngine.Vector3[](
-                        __lcl_positionCount_SystemInt32_0 + __10__intnlparam);
+                    __lcl_data_UnityEngineVector3Array_1 =
+                        new UnityEngine
+                            .Vector3[__lcl_positionCount_SystemInt32_0 + __10__intnlparam];
                     System.Array.Copy(__lcl_positions_UnityEngineVector3Array_0,
                                       __lcl_data_UnityEngineVector3Array_1,
                                       __lcl_positionCount_SystemInt32_0);
@@ -1537,13 +1538,14 @@ namespace QvPen.UdonScript
                 else
                 {
                     __lcl_positions_UnityEngineVector3Array_1 =
-                        new UnityEngine.Vector3[](__lcl_positionCount_SystemInt32_1);
+                        new UnityEngine.Vector3[__lcl_positionCount_SystemInt32_1];
                     __intnl_SystemInt32_12 = __0_lineRenderer__param.GetPositions(
                         ref __lcl_positions_UnityEngineVector3Array_1);
                     __11__intnlparam = __2_mode__param;
                     function_32();
-                    __lcl_data_UnityEngineVector3Array_2 = new UnityEngine.Vector3[](
-                        __lcl_positionCount_SystemInt32_1 + __10__intnlparam);
+                    __lcl_data_UnityEngineVector3Array_2 =
+                        new UnityEngine
+                            .Vector3[__lcl_positionCount_SystemInt32_1 + __10__intnlparam];
                     System.Array.Copy(__lcl_positions_UnityEngineVector3Array_1,
                                       __lcl_data_UnityEngineVector3Array_2,
                                       __lcl_positionCount_SystemInt32_1);
@@ -1910,7 +1912,7 @@ namespace QvPen.UdonScript
 
             __11__intnlparam = 3;
             function_32();
-            __lcl_data_UnityEngineVector3Array_3 = new UnityEngine.Vector3[](__10__intnlparam);
+            __lcl_data_UnityEngineVector3Array_3 = new UnityEngine.Vector3[__10__intnlparam];
             get_localPlayerId();
             __intnl_SystemSingle_28 = System.Convert.ToSingle(__0_get_localPlayerId__ret);
             __11__intnlparam = 3;
@@ -1991,7 +1993,7 @@ namespace QvPen.UdonScript
 
             __11__intnlparam = 4;
             function_32();
-            __lcl_data_UnityEngineVector3Array_4 = new UnityEngine.Vector3[](__10__intnlparam);
+            __lcl_data_UnityEngineVector3Array_4 = new UnityEngine.Vector3[__10__intnlparam];
             get_localPlayerId();
             __intnl_SystemSingle_30 = System.Convert.ToSingle(__0_get_localPlayerId__ret);
             __11__intnlparam = 4;
@@ -2129,7 +2131,7 @@ namespace QvPen.UdonScript
             __lcl_i_SystemInt32_2 = 0;
             while (__lcl_i_SystemInt32_2 < __lcl_count_SystemInt32_1)
             {
-                __lcl_other_UnityEngineCollider_1 = results32.Get(__lcl_i_SystemInt32_2);
+                __lcl_other_UnityEngineCollider_1 = results32[__lcl_i_SystemInt32_2];
                 if (VRC.SDKBase.Utilities.IsValid(__lcl_other_UnityEngineCollider_1))
                 {
                     __lcl_udonComponents_UnityEngineComponentArray_0 =
@@ -2141,8 +2143,8 @@ namespace QvPen.UdonScript
                     while (__intnl_SystemInt32_27 < __intnl_SystemInt32_26)
                     {
                         __lcl_udonComponent_UnityEngineComponent_0 =
-                            __lcl_udonComponents_UnityEngineComponentArray_0.Get(
-                                __intnl_SystemInt32_27);
+                            __lcl_udonComponents_UnityEngineComponentArray_0
+                        [__intnl_SystemInt32_27];
                         if (VRC.SDKBase.Utilities.IsValid(
                                 __lcl_udonComponent_UnityEngineComponent_0))
                         {
@@ -2156,7 +2158,7 @@ namespace QvPen.UdonScript
                         __intnl_SystemInt32_27 = __intnl_SystemInt32_27 + 1;
                     }
                 }
-                results32.Set(__lcl_i_SystemInt32_2, null);
+                results32[__lcl_i_SystemInt32_2] = null;
                 __lcl_i_SystemInt32_2 = __lcl_i_SystemInt32_2 + 1;
             }
             System.Array.Clear(results32, 0, results32.Length);
@@ -2206,11 +2208,11 @@ namespace QvPen.UdonScript
             {
                 __0_c__param = logColor;
                 function_26();
-                __gintnl_SystemObjectArray_0.Set(0, __0___0_ColorBeginTag__ret);
-                __gintnl_SystemObjectArray_0.Set(1, "QvPen");
-                __gintnl_SystemObjectArray_0.Set(2, "Udon");
-                __gintnl_SystemObjectArray_0.Set(3, "QvPen_Pen");
-                __gintnl_SystemObjectArray_0.Set(4, "</color>");
+                __gintnl_SystemObjectArray_0[0] = __0___0_ColorBeginTag__ret;
+                __gintnl_SystemObjectArray_0[1] = "QvPen";
+                __gintnl_SystemObjectArray_0[2] = "Udon";
+                __gintnl_SystemObjectArray_0[3] = "QvPen_Pen";
+                __gintnl_SystemObjectArray_0[4] = "</color>";
                 _logPrefix =
                     System.String.Format("[{0}{1}.{2}.{3}{4}] ", __gintnl_SystemObjectArray_0);
                 __0_get_logPrefix__ret = _logPrefix;
@@ -2275,8 +2277,7 @@ namespace QvPen.UdonScript
             while (__intnl_SystemInt32_37 < __intnl_SystemInt32_36)
             {
                 __lcl_behaviour_VRCUdonUdonBehaviour_0 =
-                    __lcl_udonBehaviours_UnityEngineComponentArray_0.Get(
-                        __intnl_SystemInt32_37);
+                    __lcl_udonBehaviours_UnityEngineComponentArray_0[__intnl_SystemInt32_37];
                 if (!(__lcl_behaviour_VRCUdonUdonBehaviour_0.GetProgramVariableType(
                           "__refl_typeid") == null))
                 {
@@ -2370,8 +2371,8 @@ namespace QvPen.UdonScript
             }
             if (__intnl_SystemBoolean_103)
             {
-                __12__intnlparam.Set(__12__intnlparam.Length - 1 - __13__intnlparam,
-                                     __14__intnlparam);
+                __12__intnlparam[__12__intnlparam.Length - 1 - __13__intnlparam] =
+                    __14__intnlparam;
             }
             return;
         }
@@ -2412,7 +2413,7 @@ namespace QvPen.UdonScript
             if (__intnl_SystemBoolean_105)
             {
                 __17__intnlparam =
-                    __18__intnlparam.Get(__18__intnlparam.Length - 1 - __19__intnlparam);
+                    __18__intnlparam[__18__intnlparam.Length - 1 - __19__intnlparam];
             }
             else
             {

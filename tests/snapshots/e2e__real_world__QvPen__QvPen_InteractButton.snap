@@ -100,7 +100,7 @@ namespace QvPen.Udon.UI
                     while (__intnl_SystemInt32_2 < __intnl_SystemInt32_1)
                     {
                         __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0 =
-                            udonSharpBehaviours.Get(__intnl_SystemInt32_2);
+                            udonSharpBehaviours[__intnl_SystemInt32_2];
                         if (VRC.SDKBase.Utilities.IsValid(
                                 __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0))
                         {
@@ -130,7 +130,7 @@ namespace QvPen.Udon.UI
                     while (__intnl_SystemInt32_2 < __intnl_SystemInt32_1)
                     {
                         __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0 =
-                            udonSharpBehaviours.Get(__intnl_SystemInt32_2);
+                            udonSharpBehaviours[__intnl_SystemInt32_2];
                         if (VRC.SDKBase.Utilities.IsValid(
                                 __lcl_udonSharpBehaviour_VRCUdonUdonBehaviour_0))
                         {

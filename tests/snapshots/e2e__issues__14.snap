@@ -323,7 +323,7 @@ public class PatreonProcessor : UdonSharpBehaviour
         __lcl_k_SystemString_0 = BastedAsset.text;
         __temp_SystemInt32_0 = __0_encodedPatrons__param.Length;
         __temp_SystemInt32_0 = __temp_SystemInt32_0 / 2;
-        __lcl_bytes_SystemByteArray_0 = new System.Byte[](__temp_SystemInt32_0);
+        __lcl_bytes_SystemByteArray_0 = new System.Byte[__temp_SystemInt32_0];
         __lcl_i_SystemInt32_0 = 0;
         while (true)
         {
@@ -340,11 +340,11 @@ public class PatreonProcessor : UdonSharpBehaviour
                 __temp_SystemInt32_1 = __lcl_i_SystemInt32_0 % __temp_SystemInt32_1;
                 __temp_SystemCharArray_0 =
                     __lcl_k_SystemString_0.ToCharArray(__temp_SystemInt32_1, 1);
-                __temp_SystemChar_0 = __temp_SystemCharArray_0.Get(0);
+                __temp_SystemChar_0 = __temp_SystemCharArray_0[0];
                 __temp_SystemInt32_1 = System.Convert.ToInt32(__temp_SystemChar_0);
                 __temp_SystemInt32_0 = __temp_SystemInt32_0 ^ __temp_SystemInt32_1;
                 __temp_SystemByte_0 = System.Convert.ToByte(__temp_SystemInt32_0);
-                __lcl_bytes_SystemByteArray_0.Set(__lcl_i_SystemInt32_0, __temp_SystemByte_0);
+                __lcl_bytes_SystemByteArray_0[__lcl_i_SystemInt32_0] = __temp_SystemByte_0;
                 __lcl_i_SystemInt32_0 = __lcl_i_SystemInt32_0 + 1;
                 continue;
             }
@@ -366,7 +366,7 @@ public class PatreonProcessor : UdonSharpBehaviour
         __intnl_SystemInt32_9 = 0;
         while (__intnl_SystemInt32_9 < __intnl_SystemInt32_8)
         {
-            __lcl_ceVip_SystemString_0 = CEVips.Get(__intnl_SystemInt32_9);
+            __lcl_ceVip_SystemString_0 = CEVips[__intnl_SystemInt32_9];
             __2_patrons__param = __1_patrons__param;
             __0_ceVip__param = __lcl_ceVip_SystemString_0;
             function_2();
@@ -377,7 +377,7 @@ public class PatreonProcessor : UdonSharpBehaviour
         while (__intnl_SystemInt32_9 < __intnl_SystemInt32_8)
         {
             __lcl_ceVip_SystemString_0 =
-                ceVIPsPurchaseConfirmedBeforeReady.Get(__intnl_SystemInt32_9);
+                ceVIPsPurchaseConfirmedBeforeReady[__intnl_SystemInt32_9];
             __temp_SystemString_0 = System.String.Format(
                 "ceVipPurchaseConfirmedBeforeReady = {0}", __lcl_ceVip_SystemString_0);
             UnityEngine.Debug.Log(__temp_SystemString_0);
@@ -437,7 +437,7 @@ public class PatreonProcessor : UdonSharpBehaviour
         System.Int32 __lcl_i_SystemInt32_1 = 0;
 
         __temp_SystemInt32_0 = __0_dataList__param.Count;
-        __lcl_stringArray_SystemStringArray_0 = new System.String[](__temp_SystemInt32_0);
+        __lcl_stringArray_SystemStringArray_0 = new System.String[__temp_SystemInt32_0];
         __lcl_i_SystemInt32_1 = 0;
         while (true)
         {
@@ -448,8 +448,8 @@ public class PatreonProcessor : UdonSharpBehaviour
                 __temp_VRCSDK3DataDataToken_0 =
                     __0_dataList__param.get_Item(__lcl_i_SystemInt32_1);
                 __temp_SystemString_0 = __temp_VRCSDK3DataDataToken_0.String;
-                __lcl_stringArray_SystemStringArray_0.Set(__lcl_i_SystemInt32_1,
-                                                          __temp_SystemString_0);
+                __lcl_stringArray_SystemStringArray_0[__lcl_i_SystemInt32_1] =
+                    __temp_SystemString_0;
                 __lcl_i_SystemInt32_1 = __lcl_i_SystemInt32_1 + 1;
                 continue;
             }
@@ -491,8 +491,7 @@ public class PatreonProcessor : UdonSharpBehaviour
             if (__temp_SystemBoolean_0)
             {
                 __temp_VRCSDKBaseVRCPlayerApi_0 = VRC.SDKBase.Networking.LocalPlayer;
-                __gintnl_SystemObjectArray_0.Set(0,
-                                                 __temp_VRCSDKBaseVRCPlayerApi_0.displayName);
+                __gintnl_SystemObjectArray_0[0] = __temp_VRCSDKBaseVRCPlayerApi_0.displayName;
                 if (VRC.SDKBase.Utilities.IsValid(onPurchaseConfirmedPlayer))
                 {
                     __intnl_SystemString_12 = onPurchaseConfirmedPlayer.displayName;
@@ -501,9 +500,9 @@ public class PatreonProcessor : UdonSharpBehaviour
                 {
                     __intnl_SystemString_12 = "null player";
                 }
-                __gintnl_SystemObjectArray_0.Set(1, __intnl_SystemString_12);
-                __gintnl_SystemObjectArray_0.Set(2, PatreonReady);
-                __gintnl_SystemObjectArray_0.Set(3, CEReady);
+                __gintnl_SystemObjectArray_0[1] = __intnl_SystemString_12;
+                __gintnl_SystemObjectArray_0[2] = PatreonReady;
+                __gintnl_SystemObjectArray_0[3] = CEReady;
                 __temp_SystemString_0 = System.String.Format(
                     "{0} OnPurchaseConfirmed - player = {1}; PatreonReady = {2} - CEready = {3}",
                     __gintnl_SystemObjectArray_0);
@@ -568,7 +567,7 @@ public class PatreonProcessor : UdonSharpBehaviour
         __temp_SystemInt32_0 = __1__intnlparam.Length;
         __temp_SystemInt32_1 = __2__intnlparam.Length;
         __temp_SystemInt32_1 = __temp_SystemInt32_0 + __temp_SystemInt32_1;
-        __temp_SystemStringArray_0 = new System.String[](__temp_SystemInt32_1);
+        __temp_SystemStringArray_0 = new System.String[__temp_SystemInt32_1];
         __1__intnlparam.CopyTo(__temp_SystemStringArray_0, 0);
         __2__intnlparam.CopyTo(__temp_SystemStringArray_0, __temp_SystemInt32_0);
         __0__intnlparam = __temp_SystemStringArray_0;
@@ -641,7 +640,7 @@ public class PatreonProcessor : UdonSharpBehaviour
     {
         __temp_SystemInt32_0 = __6__intnlparam.Length;
         __temp_SystemInt32_1 = __temp_SystemInt32_0 + 1;
-        __temp_SystemStringArray_0 = new System.String[](__temp_SystemInt32_1);
+        __temp_SystemStringArray_0 = new System.String[__temp_SystemInt32_1];
         __6__intnlparam.CopyTo(__temp_SystemStringArray_0, 0);
         __temp_SystemStringArray_0.SetValue(__7__intnlparam, __temp_SystemInt32_0);
         __5__intnlparam = __temp_SystemStringArray_0;

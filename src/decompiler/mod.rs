@@ -20,16 +20,17 @@ pub use codegen::generate_csharp;
 pub(crate) use codegen::{render_expression, render_variable_expression};
 pub use context::{DecompileContext, DecompileHeapEntry, DecompileSymbol};
 pub use instruction_list::{InstructionId, InstructionList};
+pub(crate) use ir::build_extern_ir_expression;
 pub use ir::{
-    ControlFlowGraph, ControlFlowNode, IrAssignmentStatement, IrBlock, IrBlockContainer, IrBuilder,
-    IrClass, IrConstructorCallExpression, IrContainerKind, IrExpression, IrExpressionStatement,
-    IrExternalCallExpression, IrFunction, IrHighLevelDoWhile, IrHighLevelSwitch,
-    IrHighLevelSwitchSection, IrHighLevelWhile, IrIf, IrInternalCallExpression, IrJump, IrLeave,
-    IrLiteralExpression, IrOperator, IrOperatorCallExpression, IrPropertyAccessExpression,
-    IrRawExpression, IrReturn, IrStatement, IrSwitch, IrVariableDeclarationStatement,
-    IrVariableExpression, build_ir_functions, compute_dominance, mark_nodes_with_reachable_exits,
+    ControlFlowGraph, ControlFlowNode, IrArrayAccessExpression, IrAssignmentStatement, IrBlock,
+    IrBlockContainer, IrBuilder, IrClass, IrConstructorCallExpression, IrContainerKind,
+    IrExpression, IrExpressionStatement, IrExternalCallExpression, IrFunction, IrHighLevelDoWhile,
+    IrHighLevelSwitch, IrHighLevelSwitchSection, IrHighLevelWhile, IrIf, IrInternalCallExpression,
+    IrJump, IrLeave, IrLiteralExpression, IrOperator, IrOperatorCallExpression,
+    IrPropertyAccessExpression, IrRawExpression, IrReturn, IrStatement, IrSwitch,
+    IrVariableDeclarationStatement, IrVariableExpression, build_ir_functions, compute_dominance,
+    mark_nodes_with_reachable_exits,
 };
-pub(crate) use ir::{build_extern_ir_expression, is_property_setter};
 pub use module_info::{ExternFunctionInfo, FunctionDefinitionType, ParameterType, UdonModuleInfo};
 pub use pipeline::{DecompilePipelineOutput, run_analysis_pipeline, run_decompile_pipeline};
 pub use transform::{

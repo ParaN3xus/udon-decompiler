@@ -23,7 +23,7 @@ public class OutParameter : UdonSharpBehaviour
             "TargetKey", ref __lcl_outResult_VRCSDK3DataDataToken_0);
         if (__lcl_success_SystemBoolean_0)
         {
-            __gintnl_SystemObjectArray_0.Set(0, __lcl_outResult_VRCSDK3DataDataToken_0.Int);
+            __gintnl_SystemObjectArray_0[0] = __lcl_outResult_VRCSDK3DataDataToken_0.Int;
             UnityEngine.Debug.LogFormat("Success! Value is: {0}", __gintnl_SystemObjectArray_0);
         }
         else
