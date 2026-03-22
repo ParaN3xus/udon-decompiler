@@ -24,7 +24,7 @@ For English version, refer to #cross-link("/user-en/installation.typ")[Installat
 + 使用 #vcc 确认上述两个 SDK 包均已升级到最新版本
 + 解压上一步中下载的 `editor-scripts.zip`
 + 在该项目中新建 `Assets/Editor` 目录, 将得到的所有编辑器脚本复制到该目录中
-+ 在 Unity 的顶部菜单栏点击 `Tools/Extract Udon Module Info`
++ 在 Unity 的顶部菜单栏点击 `Tools/Udon Decompiler/Extract Udon Module Info`
 + 控制台中应该出现日志(数值可能略有不同)
   ```
   Registry lookup built with 34756 entries.

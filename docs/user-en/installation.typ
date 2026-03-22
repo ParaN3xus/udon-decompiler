@@ -23,7 +23,7 @@ You can of course obtain this file from other sources, but we recommend generati
 + Use #vcc to ensure both SDK packages above are upgraded to the latest versions
 + Extract `editor-scripts.zip` downloaded in the previous step
 + Create an `Assets/Editor` directory in that project and copy all editor scripts into that directory
-+ In Unity's top menu bar, click `Tools/Extract Udon Module Info`
++ In Unity's top menu bar, click `Tools/Udon Decompiler/Extract Udon Module Info`
 + The console should show logs like (numbers may differ)
   ```
   Registry lookup built with 34756 entries.
