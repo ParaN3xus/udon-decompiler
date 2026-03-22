@@ -14,7 +14,7 @@ This project does not provide guidance on this. You should have a `.vrcw` file.
 
 = Extract Udon programs
 
-+ Use the `UdonProgramDumper` program downloaded in the [= Installation] section of #cross-link-heading("/user-en/installation.typ", [= Installation])[Installation] to extract program files from `.vrcw`. Specifically:
++ Use the `UdonProgramDumper` program downloaded in the #cross-link-heading("/user-en/installation.typ", [= Installation])[Installation] section to extract program files from `.vrcw`. Specifically:
 - Use the command line
   ```shell-unix-generic
   UdonProgramDumper dump <world.vrcw>
