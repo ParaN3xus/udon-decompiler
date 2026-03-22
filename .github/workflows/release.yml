@@ -64,14 +64,52 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.is_nightly == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.detect.outputs.should_run }}
     steps:
+      - name: Compare current SHA with published nightly SHA
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ env.NIGHTLY_BADGE_BRANCH }}
+          SHA: ${{ needs.prepare.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "Manual nightly trigger detected; forcing rebuild."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mkdir -p prior-meta
+          PUBLISHED_SHA=""
+
+          if gh api "repos/${REPO}/contents/nightly-meta.json?ref=${BRANCH}" --jq '.content' > prior-meta/nightly-meta.base64 2>/dev/null; then
+            tr -d '\n' < prior-meta/nightly-meta.base64 | base64 -d > prior-meta/nightly-meta.json
+            PUBLISHED_SHA="$(jq -r '.current_artifact.published_sha // ""' prior-meta/nightly-meta.json)"
+          fi
+
+          SHOULD_RUN="true"
+          if [ -n "${PUBLISHED_SHA}" ] && [ "${PUBLISHED_SHA}" = "${SHA}" ]; then
+            SHOULD_RUN="false"
+            echo "Nightly release already published for ${SHA}; skipping rebuild."
+          fi
+
+          echo "should_run=${SHOULD_RUN}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
+        if: steps.detect.outputs.should_run == 'true'
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
           ref: ${{ needs.prepare.outputs.ref }}
 
       - name: Render nightly status files
+        if: steps.detect.outputs.should_run == 'true'
         uses: ./.github/actions/render-nightly-status
         with:
           github_token: ${{ github.token }}
@@ -83,6 +121,7 @@ jobs:
           phase: start
 
       - name: Update nightly release
+        if: steps.detect.outputs.should_run == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -105,6 +144,7 @@ jobs:
           fi
 
       - name: Publish nightly metadata branch
+        if: steps.detect.outputs.should_run == 'true'
         uses: ./.github/actions/publish-nightly-metadata
         with:
           github_token: ${{ github.token }}
@@ -168,8 +208,9 @@ jobs:
     name: Build ${{ matrix.name }}
     needs:
       - prepare
+      - prepare-nightly-metadata
       - bump-version
-    if: always() && needs.prepare.result == 'success' && (needs.prepare.outputs.is_nightly == 'true' || needs.bump-version.result == 'success')
+    if: always() && needs.prepare.result == 'success' && ((needs.prepare.outputs.is_nightly == 'true' && needs.prepare-nightly-metadata.result == 'success' && needs.prepare-nightly-metadata.outputs.should_run == 'true') || (needs.prepare.outputs.is_nightly == 'false' && needs.bump-version.result == 'success'))
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -264,8 +305,9 @@ jobs:
     name: Package editor scripts
     needs:
       - prepare
+      - prepare-nightly-metadata
       - bump-version
-    if: always() && needs.prepare.result == 'success' && (needs.prepare.outputs.is_nightly == 'true' || needs.bump-version.result == 'success')
+    if: always() && needs.prepare.result == 'success' && ((needs.prepare.outputs.is_nightly == 'true' && needs.prepare-nightly-metadata.result == 'success' && needs.prepare-nightly-metadata.outputs.should_run == 'true') || (needs.prepare.outputs.is_nightly == 'false' && needs.bump-version.result == 'success'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -300,7 +342,7 @@ jobs:
       - prepare-nightly-metadata
       - build
       - package-editor-scripts
-    if: always() && needs.prepare.outputs.is_nightly == 'true'
+    if: always() && needs.prepare.outputs.is_nightly == 'true' && needs.prepare-nightly-metadata.result == 'success' && needs.prepare-nightly-metadata.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
