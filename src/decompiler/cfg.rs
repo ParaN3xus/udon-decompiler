@@ -887,7 +887,10 @@ fn is_header_push_address(ctx: &DecompileContext, address: u32) -> bool {
 pub(crate) fn build_initial_heap_state(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
     let mut out = HashMap::<u32, HeapValue>::with_capacity(ctx.heap_entries.len());
     for entry in &ctx.heap_entries {
-        let value = if ctx.symbol_name_by_address.get(&entry.address).map(|x| x.as_str())
+        let value = if ctx
+            .symbol_name_by_address
+            .get(&entry.address)
+            .map(|x| x.as_str())
             == Some(SYMBOL_RETURN_JUMP_U32)
         {
             HeapValue::HaltJump
@@ -919,9 +922,10 @@ fn simulate_extern_call(
     module_info: &UdonModuleInfo,
 ) -> Result<()> {
     let operand = inst.numeric_operand();
-    let signature = ctx.heap_string_literals.get(&operand).ok_or_else(|| {
+    let signature = resolve_initial_heap_string_value(ctx, operand, heap_state).ok_or_else(|| {
+        let state = heap_state.get(&operand).cloned().unwrap_or(HeapValue::Unknown);
         DecompileError::new(format!(
-            "EXTERN operand 0x{operand:08X} does not resolve to a heap string literal"
+            "EXTERN operand 0x{operand:08X} does not resolve to a heap string literal in current heap state: {state:?}"
         ))
     })?;
     let info = module_info.get_function_info(signature).ok_or_else(|| {
@@ -942,4 +946,15 @@ fn simulate_extern_call(
         }
     }
     Ok(())
+}
+
+fn resolve_initial_heap_string_value<'a>(
+    ctx: &'a DecompileContext,
+    heap_address: u32,
+    heap_state: &HeapLiteralState,
+) -> Option<&'a String> {
+    match heap_state.get(&heap_address) {
+        Some(HeapValue::InitValue) => ctx.heap_string_literals.get(&heap_address),
+        _ => None,
+    }
 }
