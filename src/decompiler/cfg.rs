@@ -9,7 +9,7 @@ use tracing::{debug, info, warn};
 use super::basic_block::{BasicBlockCollection, BasicBlockType};
 use super::context::{DecompileContext, DecompileSymbol};
 use super::indir_jump_analysis::{is_return_jump_operand, resolve_switch_info_for_jump_indirect};
-use super::module_info::UdonModuleInfo;
+use super::module_info::{ParameterType, UdonModuleInfo};
 use super::{DecompileError, Result};
 
 type HeapLiteralState = HashMap<u32, HeapValue>;
@@ -50,11 +50,15 @@ impl StackValue {
         }
     }
 
-    pub fn as_u32_literal(&self, heap_state: &HeapLiteralState) -> Option<u32> {
+    pub fn as_u32_literal(
+        &self,
+        ctx: &DecompileContext,
+        heap_state: &HeapLiteralState,
+    ) -> Option<u32> {
         match self {
-            Self::HeapAddress(address) => {
-                heap_state.get(address).and_then(HeapValue::as_u32_literal)
-            }
+            Self::HeapAddress(address) => heap_state
+                .get(address)
+                .and_then(|value| value.resolve_u32_literal(ctx, *address)),
             Self::HaltJump => Some(u32::MAX),
         }
     }
@@ -72,15 +76,15 @@ impl StackValue {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HeapValue {
-    U32(u32),
+    InitValue,
     HaltJump,
     Unknown,
 }
 
 impl HeapValue {
-    pub fn as_u32_literal(&self) -> Option<u32> {
+    pub fn resolve_u32_literal(&self, ctx: &DecompileContext, heap_address: u32) -> Option<u32> {
         match self {
-            Self::U32(value) => Some(*value),
+            Self::InitValue => ctx.heap_u32_literals.get(&heap_address).copied(),
             Self::HaltJump => Some(u32::MAX),
             Self::Unknown => None,
         }
@@ -192,7 +196,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
         .iter()
         .map(|x| x.entry_call_jump_target(ctx))
         .collect::<HashSet<_>>();
-    let initial_heap_literals = build_heap_literal_u32_map(ctx);
+    let initial_heap_literals = build_initial_heap_state(ctx);
 
     let mut out = SimulationArtifacts::default();
     let mut pending = VecDeque::<PendingSimulation>::new();
@@ -333,7 +337,7 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                     let seems_like_call = entry_set.contains(&target_addr)
                         || looks_like_function_header(ctx, target_addr);
                     let is_returning_call =
-                        next_addr.is_some_and(|x| matches_stack_literal(top, x, &heap_state));
+                        next_addr.is_some_and(|x| matches_stack_literal(ctx, top, x, &heap_state));
 
                     if is_returning_call {
                         register_entry_target(
@@ -880,15 +884,23 @@ fn is_header_push_address(ctx: &DecompileContext, address: u32) -> bool {
         .is_some_and(|x| x == SYMBOL_RETURN_JUMP_U32)
 }
 
-fn build_heap_literal_u32_map(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
-    let mut out = HashMap::<u32, HeapValue>::with_capacity(ctx.heap_u32_literals.len());
-    for (address, value) in &ctx.heap_u32_literals {
-        out.insert(*address, HeapValue::U32(*value));
+pub(crate) fn build_initial_heap_state(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
+    let mut out = HashMap::<u32, HeapValue>::with_capacity(ctx.heap_entries.len());
+    for entry in &ctx.heap_entries {
+        let value = if ctx.symbol_name_by_address.get(&entry.address).map(|x| x.as_str())
+            == Some(SYMBOL_RETURN_JUMP_U32)
+        {
+            HeapValue::HaltJump
+        } else {
+            HeapValue::InitValue
+        };
+        out.insert(entry.address, value);
     }
     out
 }
 
 fn matches_stack_literal(
+    ctx: &DecompileContext,
     stack_value: Option<&StackValue>,
     expected: u32,
     heap_state: &HeapLiteralState,
@@ -896,7 +908,7 @@ fn matches_stack_literal(
     let Some(stack_value) = stack_value else {
         return false;
     };
-    stack_value.as_u32_literal(heap_state) == Some(expected)
+    stack_value.as_u32_literal(ctx, heap_state) == Some(expected)
 }
 
 fn simulate_extern_call(
@@ -918,28 +930,16 @@ fn simulate_extern_call(
         ))
     })?;
 
-    let mut first_popped = None::<StackValue>;
-    for idx in 0..info.parameter_count() {
+    for param_type in info.parameters.iter().rev() {
         let popped = stack_state.pop().ok_or_else(|| {
             DecompileError::new(format!(
                 "stack underflow while simulating EXTERN call: signature={signature}"
             ))
         })?;
-        if idx == 0 {
-            first_popped = Some(popped.clone());
+        if matches!(param_type, ParameterType::Out | ParameterType::InOut) {
+            let target_address = popped.heap_address();
+            heap_state.insert(target_address, HeapValue::Unknown);
         }
-    }
-
-    // Same behavior as Python BlockStackSimulator:
-    // non-void extern writes into the last formal parameter (typically an out slot).
-    if !info.returns_void {
-        let target = first_popped.ok_or_else(|| {
-            DecompileError::new(format!(
-                "EXTERN non-void signature missing destination slot on stack: {signature}"
-            ))
-        })?;
-        let target_address = target.heap_address();
-        heap_state.insert(target_address, HeapValue::Unknown);
     }
     Ok(())
 }

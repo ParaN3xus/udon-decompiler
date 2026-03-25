@@ -4,7 +4,7 @@ use crate::str_constants::{TYPE_SYSTEM_UINT32_ARRAY, UINT32_ARRAY_GET_METHOD_NAM
 use crate::udon_asm::OpCode;
 
 use super::basic_block::SwitchTableInfo;
-use super::cfg::HeapValue;
+use super::cfg::{HeapValue, build_initial_heap_state};
 use super::context::DecompileContext;
 use super::instruction_list::InstructionId;
 use super::module_info::UdonModuleInfo;
@@ -14,7 +14,7 @@ pub(crate) fn collect_switch_target_block_starts(
     module_info: Option<&UdonModuleInfo>,
 ) -> Vec<u32> {
     let mut out = HashSet::<u32>::new();
-    let initial_heap_state = build_initial_heap_literal_state(ctx);
+    let initial_heap_state = build_initial_heap_state(ctx);
     for (inst_id, _addr, inst) in ctx.instructions.iter() {
         if inst.opcode != OpCode::JumpIndirect {
             continue;
@@ -43,13 +43,6 @@ pub(crate) fn collect_switch_target_block_starts(
     starts
 }
 
-fn build_initial_heap_literal_state(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
-    ctx.heap_u32_literals
-        .iter()
-        .map(|(address, value)| (*address, HeapValue::U32(*value)))
-        .collect()
-}
-
 pub(crate) fn is_return_jump_operand(
     ctx: &DecompileContext,
     operand: u32,
@@ -57,7 +50,9 @@ pub(crate) fn is_return_jump_operand(
 ) -> bool {
     match heap_state.get(&operand) {
         Some(HeapValue::HaltJump) => true,
-        Some(HeapValue::U32(v)) => ctx.is_out_of_program_counter_range(*v),
+        Some(value) => value
+            .resolve_u32_literal(ctx, operand)
+            .is_some_and(|v| ctx.is_out_of_program_counter_range(v)),
         _ => false,
     }
 }
