@@ -127,6 +127,8 @@ pub struct StackSimulationResult {
     pub block_exit_states: HashMap<usize, StackFrame>,
     // address -> stack state before that instruction executes.
     pub instruction_states: HashMap<u32, StackFrame>,
+    // address -> heap state before that instruction executes.
+    pub instruction_heap_states: HashMap<u32, HashMap<u32, HeapValue>>,
 }
 
 impl StackSimulationResult {
@@ -136,6 +138,10 @@ impl StackSimulationResult {
 
     pub fn get_instruction_state(&self, address: u32) -> Option<&StackFrame> {
         self.instruction_states.get(&address)
+    }
+
+    pub fn get_instruction_heap_state(&self, address: u32) -> Option<&HashMap<u32, HeapValue>> {
+        self.instruction_heap_states.get(&address)
     }
 }
 
@@ -256,6 +262,9 @@ fn simulate_and_discover(ctx: &mut DecompileContext) -> Result<SimulationArtifac
                 out.stack_results
                     .instruction_states
                     .insert(addr, stack_state.clone());
+                out.stack_results
+                    .instruction_heap_states
+                    .insert(addr, heap_state.clone());
             }
 
             match inst.opcode {
@@ -948,7 +957,7 @@ fn simulate_extern_call(
     Ok(())
 }
 
-fn resolve_initial_heap_string_value<'a>(
+pub(crate) fn resolve_initial_heap_string_value<'a>(
     ctx: &'a DecompileContext,
     heap_address: u32,
     heap_state: &HeapLiteralState,

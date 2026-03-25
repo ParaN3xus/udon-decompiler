@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashSet};
 use tracing::{debug, info};
 
 use crate::decompiler::basic_block::{BasicBlock, BasicBlockType};
-use crate::decompiler::cfg::StackFrame;
+use crate::decompiler::cfg::{HeapValue, StackFrame, resolve_initial_heap_string_value};
 use crate::decompiler::context::DecompileContext;
 use crate::decompiler::module_info::{ExternFunctionInfo, FunctionDefinitionType, UdonModuleInfo};
 use crate::str_constants::SYMBOL_RETURN_JUMP_U32;
@@ -204,12 +204,17 @@ impl<'a> IrBuilder<'a> {
         };
 
         let signature = self
-            .ctx
-            .heap_string_literals
-            .get(&signature_addr)
+            .resolve_extern_signature(address, signature_addr)
             .cloned()
             .unwrap_or_else(|| {
-                panic!("EXTERN at 0x{address:08X} missing heap string signature for 0x{signature_addr:08X}")
+                let state = self
+                    .require_instruction_heap_state(address)
+                    .get(&signature_addr)
+                    .cloned()
+                    .unwrap_or(HeapValue::Unknown);
+                panic!(
+                    "EXTERN at 0x{address:08X} missing heap string signature for 0x{signature_addr:08X} in current heap state: {state:?}"
+                )
             });
         let function_info = self
             .module_info
@@ -543,6 +548,24 @@ impl<'a> IrBuilder<'a> {
             .stack_simulation
             .get_instruction_state(address)
             .unwrap_or_else(|| panic!("Missing stack state at instruction 0x{address:08X}"))
+    }
+
+    fn require_instruction_heap_state(
+        &self,
+        address: u32,
+    ) -> &std::collections::HashMap<u32, HeapValue> {
+        self.ctx
+            .stack_simulation
+            .get_instruction_heap_state(address)
+            .unwrap_or_else(|| panic!("Missing heap state at instruction 0x{address:08X}"))
+    }
+
+    fn resolve_extern_signature(&self, address: u32, signature_addr: u32) -> Option<&String> {
+        resolve_initial_heap_string_value(
+            self.ctx,
+            signature_addr,
+            self.require_instruction_heap_state(address),
+        )
     }
 
     fn is_switch_scaffold_instruction(&self, block: &BasicBlock, instruction_address: u32) -> bool {
