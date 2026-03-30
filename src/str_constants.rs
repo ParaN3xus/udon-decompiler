@@ -30,6 +30,7 @@ pub const TYPE_UNITY_GAME_OBJECT: &str = "UnityEngine.GameObject";
 pub const TYPE_UNITY_TRANSFORM: &str = "UnityEngine.Transform";
 pub const TYPE_UNITY_KEY_CODE: &str = "UnityEngine.KeyCode";
 
+pub const TYPE_VRC_SDKBASE_VRCURL: &str = "VRC.SDKBase.VRCUrl";
 pub const TYPE_VRC_SERIALIZATION_RESULT: &str = "VRC.Udon.Common.SerializationResult";
 pub const TYPE_VRC_NETWORK_EVENT_TARGET: &str = "VRC.Udon.Common.Interfaces.NetworkEventTarget";
 pub const TYPE_VRC_EVENT_TIMING: &str = "VRC.Udon.Common.Enums.EventTiming";

@@ -23,6 +23,7 @@ pub(crate) enum HeapLiteralValue {
     F64(f64),
     String(String),
     SystemType(String),
+    VrcUrl(String),
     Vector2(f32, f32),
     Vector3(f32, f32, f32),
     Quaternion(f32, f32, f32, f32),

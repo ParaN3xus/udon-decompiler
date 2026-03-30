@@ -3,7 +3,7 @@ use base64::Engine as _;
 use crate::odin::{
     NodeId, NodeKind, OdinDocument, OdinError, OdinString, PrimitiveValue, Result, StringEncoding,
 };
-use crate::str_constants::{TYPE_SYSTEM_RUNTIME_TYPE, TYPE_SYSTEM_TYPE};
+use crate::str_constants::{TYPE_SYSTEM_RUNTIME_TYPE, TYPE_SYSTEM_TYPE, TYPE_VRC_SDKBASE_VRCURL};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SymbolSection {
@@ -443,6 +443,25 @@ impl UdonProgramBinary {
                 node_kind
             ))),
         }
+    }
+
+    pub fn set_heap_dump_strongbox_vrcurl(&mut self, index: usize, value: &str) -> Result<()> {
+        let value_node = self.heap_dump_strongbox_value_node_id(index)?;
+        let resolved = self
+            .doc
+            .resolve_node_payload(value_node)
+            .unwrap_or(value_node);
+        let Some(target) = find_vrcurl_storage_node(&self.doc, resolved) else {
+            return Err(OdinError::new(format!(
+                "HeapDump[{index}] cannot locate writable {TYPE_VRC_SDKBASE_VRCURL}.url field."
+            )));
+        };
+        set_string_like_primitive(
+            &mut self.doc,
+            target,
+            value.to_string(),
+            TYPE_VRC_SDKBASE_VRCURL,
+        )
     }
 
     pub fn set_heap_dump_type_from_entry(
@@ -1081,6 +1100,14 @@ fn find_serialization_result_component_node_ids(
     Some([success, byte_count])
 }
 
+fn find_vrcurl_storage_node(doc: &OdinDocument, root: NodeId) -> Option<NodeId> {
+    find_named_string_component_node(doc, root, "url").or_else(|| {
+        first_node_matching(doc, root, &mut |kind| {
+            matches!(kind, NodeKind::Primitive(PrimitiveValue::String(_)))
+        })
+    })
+}
+
 fn find_float_components_by_names_or_fallback(
     doc: &OdinDocument,
     root: NodeId,
@@ -1133,6 +1160,16 @@ fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str)
 fn find_named_bool_component_node(doc: &OdinDocument, root: NodeId, name: &str) -> Option<NodeId> {
     find_named_component_node(doc, root, name, |kind| {
         matches!(kind, NodeKind::Primitive(PrimitiveValue::Boolean(_)))
+    })
+}
+
+fn find_named_string_component_node(
+    doc: &OdinDocument,
+    root: NodeId,
+    name: &str,
+) -> Option<NodeId> {
+    find_named_component_node(doc, root, name, |kind| {
+        matches!(kind, NodeKind::Primitive(PrimitiveValue::String(_)))
     })
 }
 

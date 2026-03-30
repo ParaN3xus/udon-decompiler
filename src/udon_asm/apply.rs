@@ -252,6 +252,9 @@ fn apply_heap_init(
         HeapLiteralValue::SystemType(v) => {
             program.set_heap_dump_strongbox_system_type_name(heap_index, v.as_str())?;
         }
+        HeapLiteralValue::VrcUrl(v) => {
+            program.set_heap_dump_strongbox_vrcurl(heap_index, v.as_str())?;
+        }
         HeapLiteralValue::Vector2(x, y) => {
             program.set_heap_dump_strongbox_vector2(heap_index, *x, *y)?;
         }

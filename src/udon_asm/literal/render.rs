@@ -22,6 +22,7 @@ pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -
         HeapLiteralValue::F64(v) => render_f64_scalar(*v),
         HeapLiteralValue::String(v) => format!("{v:?}"),
         HeapLiteralValue::SystemType(v) => render_system_type_literal(v),
+        HeapLiteralValue::VrcUrl(v) => render_vrcurl_literal(v),
         HeapLiteralValue::Vector2(x, y) => render_vector2_literal(*x, *y),
         HeapLiteralValue::Vector3(x, y, z) => render_vector3_literal(*x, *y, *z),
         HeapLiteralValue::Quaternion(x, y, z, w) => render_quaternion_literal(*x, *y, *z, *w),
@@ -94,6 +95,7 @@ fn render_heap_array_element_literal(type_name: Option<&str>, value: &HeapLitera
         HeapLiteralValue::F64(v) => render_f64_scalar(*v),
         HeapLiteralValue::String(v) => format!("{v:?}"),
         HeapLiteralValue::SystemType(v) => render_system_type_literal(v),
+        HeapLiteralValue::VrcUrl(v) => render_vrcurl_literal(v),
         HeapLiteralValue::Vector2(x, y) => render_vector2_literal(*x, *y),
         HeapLiteralValue::Vector3(x, y, z) => render_vector3_literal(*x, *y, *z),
         HeapLiteralValue::Quaternion(x, y, z, w) => render_quaternion_literal(*x, *y, *z, *w),
@@ -198,6 +200,10 @@ fn render_system_type_literal(text: &str) -> String {
     } else {
         format!("typeof({type_name}) /* {assembly_name} */")
     }
+}
+
+fn render_vrcurl_literal(text: &str) -> String {
+    format!("new {}({text:?})", TYPE_VRC_SDKBASE_VRCURL)
 }
 
 fn split_assembly_qualified_type(value: &str) -> (&str, &str) {

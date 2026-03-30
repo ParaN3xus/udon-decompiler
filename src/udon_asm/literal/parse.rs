@@ -165,6 +165,9 @@ fn parse_typed_heap_literal(
         TYPE_SYSTEM_TYPE => Ok(HeapLiteralValue::SystemType(parse_system_type_literal(
             trimmed, line_num,
         )?)),
+        TYPE_VRC_SDKBASE_VRCURL => Ok(HeapLiteralValue::VrcUrl(parse_vrcurl_literal(
+            trimmed, line_num,
+        )?)),
         TYPE_UNITY_VECTOR2 => {
             let (x, y) = parse_typed_vector2_literal(trimmed, line_num)?;
             Ok(HeapLiteralValue::Vector2(x, y))
@@ -686,6 +689,53 @@ fn parse_system_type_literal(text: &str, line_num: usize) -> Result<String> {
     Ok(format!("{type_name}, {assembly}"))
 }
 
+fn parse_vrcurl_literal(text: &str, line_num: usize) -> Result<String> {
+    let trimmed = text.trim();
+
+    if let Ok(value) = parse_quoted_string(trimmed, line_num) {
+        return Ok(value);
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("new").map(str::trim_start) {
+        let ctor_prefix = normalize_type_token(TYPE_VRC_SDKBASE_VRCURL);
+        let rest_normalized = normalize_type_token(rest);
+
+        if rest_normalized.starts_with(ctor_prefix.as_str()) {
+            let after_type = rest[TYPE_VRC_SDKBASE_VRCURL.len()..].trim_start();
+            if after_type.starts_with('(') && after_type.ends_with(')') {
+                return parse_quoted_string(&after_type[1..after_type.len() - 1], line_num);
+            }
+        }
+    }
+
+    if let Some(value) = parse_vrcurl_object_initializer(trimmed, line_num) {
+        return Ok(value);
+    }
+
+    Err(AsmError::new(format!(
+        "Line {}: invalid {} init '{}'. Expected quoted string, 'new {}(\"...\")' or legacy 'new {} {{ url = \"...\" }}'.",
+        line_num, TYPE_VRC_SDKBASE_VRCURL, text, TYPE_VRC_SDKBASE_VRCURL, TYPE_VRC_SDKBASE_VRCURL
+    )))
+}
+
+fn parse_vrcurl_object_initializer(text: &str, line_num: usize) -> Option<String> {
+    let rest = text.strip_prefix("new")?.trim_start();
+    if !normalize_type_token(rest)
+        .starts_with(normalize_type_token(TYPE_VRC_SDKBASE_VRCURL).as_str())
+    {
+        return None;
+    }
+    let after_type = rest[TYPE_VRC_SDKBASE_VRCURL.len()..].trim_start();
+    let body = after_type.strip_prefix('{')?.strip_suffix('}')?.trim();
+    for pair in body.split(',') {
+        let (key, value) = pair.split_once('=')?;
+        if key.trim() == "url" {
+            return parse_quoted_string(value.trim(), line_num).ok();
+        }
+    }
+    None
+}
+
 fn parse_vector2_literal(text: &str) -> Option<(f32, f32)> {
     parse_ctor_or_tuple_literal(text, &[TYPE_UNITY_VECTOR2], 2).map(|v| (v[0], v[1]))
 }
@@ -894,6 +944,11 @@ pub(crate) fn literal_from_typed_odin_node(
     {
         return parse_roundtrip_literal(type_name, HeapLiteralValue::SystemType(name));
     }
+    if head == TYPE_VRC_SDKBASE_VRCURL
+        && let Some(url) = extract_vrcurl(doc, resolved)
+    {
+        return parse_roundtrip_literal(type_name, HeapLiteralValue::VrcUrl(url));
+    }
     if head == TYPE_UNITY_VECTOR3
         && let Some((x, y, z)) = extract_vector3(doc, resolved)
     {
@@ -1047,6 +1102,9 @@ pub(crate) fn heap_literal_from_node_kind(type_name: &str, kind: &NodeKind) -> H
         (TYPE_SYSTEM_TYPE, NodeKind::Primitive(PrimitiveValue::String(v))) => {
             HeapLiteralValue::SystemType(v.value.clone())
         }
+        (TYPE_VRC_SDKBASE_VRCURL, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            HeapLiteralValue::VrcUrl(v.value.clone())
+        }
         (
             TYPE_SYSTEM_TYPE,
             NodeKind::TypeIdMetadata {
@@ -1133,6 +1191,15 @@ fn extract_vector3(doc: &OdinDocument, root: NodeId) -> Option<(f32, f32, f32)> 
         read_f32_primitive(doc, ids[1])?,
         read_f32_primitive(doc, ids[2])?,
     ))
+}
+
+fn extract_vrcurl(doc: &OdinDocument, root: NodeId) -> Option<String> {
+    let url = find_named_string_component_node(doc, root, "url").or_else(|| {
+        first_node_matching(doc, root, &mut |kind| {
+            matches!(kind, NodeKind::Primitive(PrimitiveValue::String(_)))
+        })
+    })?;
+    read_string_primitive(doc, url)
 }
 
 fn extract_vector2(doc: &OdinDocument, root: NodeId) -> Option<(f32, f32)> {
@@ -1241,6 +1308,16 @@ fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str)
 fn find_named_bool_component_node(doc: &OdinDocument, root: NodeId, name: &str) -> Option<NodeId> {
     find_named_component_node(doc, root, name, |kind| {
         matches!(kind, NodeKind::Primitive(PrimitiveValue::Boolean(_)))
+    })
+}
+
+fn find_named_string_component_node(
+    doc: &OdinDocument,
+    root: NodeId,
+    name: &str,
+) -> Option<NodeId> {
+    find_named_component_node(doc, root, name, |kind| {
+        matches!(kind, NodeKind::Primitive(PrimitiveValue::String(_)))
     })
 }
 
@@ -1389,6 +1466,13 @@ fn read_f32_primitive(doc: &OdinDocument, node_id: NodeId) -> Option<f32> {
 fn read_bool_primitive(doc: &OdinDocument, node_id: NodeId) -> Option<bool> {
     match doc.node(node_id)?.kind() {
         NodeKind::Primitive(PrimitiveValue::Boolean(v)) => Some(*v),
+        _ => None,
+    }
+}
+
+fn read_string_primitive(doc: &OdinDocument, node_id: NodeId) -> Option<String> {
+    match doc.node(node_id)?.kind() {
+        NodeKind::Primitive(PrimitiveValue::String(v)) => Some(v.value.clone()),
         _ => None,
     }
 }
