@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "nightly",
-  "message": "passing",
-  "color": "green"
+  "message": "building",
+  "color": "yellow"
 }
