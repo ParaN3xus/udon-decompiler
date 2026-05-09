@@ -39,21 +39,20 @@ internal static partial class Program
             UseRefTypeManagerCache = true,
         };
 
+        string? tempUnpackedPath = null;
         try
         {
-            var bundle =
-                manager.LoadBundleFile(fullInputPath, unpackIfPacked: true) ??
+            var (bundle, tempPath) = LoadBundleSmart(manager, fullInputPath);
+            tempUnpackedPath = tempPath;
+
+            if (bundle == null)
                 throw new InvalidOperationException("Failed to load the asset bundle.");
 
             var dirInfos = bundle.file.BlockAndDirInfo.DirectoryInfos;
             for (var bundleIndex = 0; bundleIndex < dirInfos.Count; bundleIndex++)
             {
-                var assetsFile =
-                    manager.LoadAssetsFileFromBundle(bundle, bundleIndex, loadDeps: true);
-                if (assetsFile == null)
-                {
-                    continue;
-                }
+                var assetsFile = manager.LoadAssetsFileFromBundle(bundle, bundleIndex, loadDeps: true);
+                if (assetsFile == null) continue;
 
                 assetsFileCount++;
                 CollectBundleData(manager, assetsFile, programsDirectory, usedProgramNames,
@@ -63,6 +62,11 @@ internal static partial class Program
         finally
         {
             manager.UnloadAll(unloadClassData: true);
+
+            if (tempUnpackedPath != null)
+            {
+                try { File.Delete(tempUnpackedPath); } catch { }
+            }
         }
 
         if (assetsFileCount == 0)
@@ -83,6 +87,37 @@ internal static partial class Program
 
         return new DumpResult(dumpRootDirectory, programsDirectory, varsDirectory,
                               programsByPathId.Count, pendingBehaviours.Count);
+    }
+
+    private static (BundleFileInstance? bundle, string? tempUnpackedPath) LoadBundleSmart(
+    AssetsManager manager, string filePath)
+    {
+        var fileInfo = new FileInfo(filePath);
+        const long LargeFileThreshold = 750_000_000; // 750 MB
+
+        if (fileInfo.Exists && fileInfo.Length < LargeFileThreshold)
+        {
+            var bun = manager.LoadBundleFile(filePath, unpackIfPacked: true);
+            return (bun, null);
+        }
+
+        var original = manager.LoadBundleFile(filePath, unpackIfPacked: false);
+        if (original == null)
+            return (null, null);
+
+        if (original.file.DataIsCompressed != true)
+            return (original, null);
+
+        string tempPath = Path.GetTempFileName() + ".unpacked";
+        using (var outStream = File.Open(tempPath, FileMode.Create))
+        {
+            BundleHelper.UnpackBundleToStream(original.file, outStream);
+        }
+
+        manager.UnloadBundleFile(original);
+
+        var unpacked = manager.LoadBundleFile(tempPath, unpackIfPacked: false);
+        return (unpacked, tempPath);
     }
 
     private static void CollectBundleData(AssetsManager manager, AssetsFileInstance assetsFile,
