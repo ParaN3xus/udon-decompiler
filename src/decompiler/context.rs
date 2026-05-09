@@ -69,6 +69,7 @@ pub struct DecompileContext {
     pub input_path: Option<PathBuf>,
     pub input_file_name: Option<String>,
     pub inferred_class_name: String,
+    pub clang_format_enabled: bool,
     pub clang_format_override: Option<PathBuf>,
     pub bytecode: Vec<u8>,
     pub instructions: InstructionList,
@@ -134,6 +135,7 @@ impl DecompileContext {
             input_path: None,
             input_file_name,
             inferred_class_name: DEFAULT_DECOMPILED_PROGRAM_CLASS_NAME.to_string(),
+            clang_format_enabled: true,
             clang_format_override: None,
             bytecode,
             instructions,
@@ -166,6 +168,10 @@ impl DecompileContext {
 
     pub fn set_clang_format_override(&mut self, path: Option<PathBuf>) {
         self.clang_format_override = path;
+    }
+
+    pub fn set_clang_format_enabled(&mut self, enabled: bool) {
+        self.clang_format_enabled = enabled;
     }
 
     pub fn entry_point_index_by_name(&self, name: &str) -> Option<usize> {

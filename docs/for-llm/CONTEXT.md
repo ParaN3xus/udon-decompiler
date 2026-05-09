@@ -39,6 +39,7 @@
 
 - Input: `.hex` or `.asset`
 - Output: `.cs`
+- `--no-format`: skips `clang-format` for generated C#
 
 ### `dasm`
 

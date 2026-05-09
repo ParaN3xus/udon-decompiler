@@ -37,6 +37,8 @@ enum Commands {
     Dc {
         input: PathBuf,
         output: Option<PathBuf>,
+        #[arg(long = "no-format", help = "Disable clang-format for generated C#")]
+        no_format: bool,
     },
     /// Disassemble .hex or .asset to asm text.
     Dasm {
@@ -98,20 +100,36 @@ fn main() -> Result<()> {
     debug!(module_info = %module_info_path.display(), "module info path configured");
 
     let res = match cli.command {
-        Commands::Dc { input, output } => run(Mode::Dc, &input, output.as_deref(), None),
-        Commands::Dasm { input, output } => run(Mode::Dasm, &input, output.as_deref(), None),
+        Commands::Dc {
+            input,
+            output,
+            no_format,
+        } => run(Mode::Dc, &input, output.as_deref(), None, no_format),
+        Commands::Dasm { input, output } => run(Mode::Dasm, &input, output.as_deref(), None, false),
         Commands::Asm {
             input,
             output,
             template,
-        } => run(Mode::Asm, &input, output.as_deref(), template.as_deref()),
-        Commands::Pvar { input, output } => run(Mode::Pvar, &input, output.as_deref(), None),
+        } => run(
+            Mode::Asm,
+            &input,
+            output.as_deref(),
+            template.as_deref(),
+            false,
+        ),
+        Commands::Pvar { input, output } => run(Mode::Pvar, &input, output.as_deref(), None, false),
     };
     info!("done!");
     res
 }
 
-fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>) -> Result<()> {
+fn run(
+    mode: Mode,
+    input: &Path,
+    output: Option<&Path>,
+    template: Option<&Path>,
+    no_format: bool,
+) -> Result<()> {
     info!(
         mode = ?mode,
         input = %input.display(),
@@ -128,7 +146,7 @@ fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>)
     }
 
     if input.is_file() {
-        cli_process_single_file(mode, input, output, template)?;
+        cli_process_single_file(mode, input, output, template, no_format)?;
         return Ok(());
     }
 
@@ -139,7 +157,7 @@ fn run(mode: Mode, input: &Path, output: Option<&Path>, template: Option<&Path>)
         );
     }
 
-    cli_process_directory(mode, input, output, template)
+    cli_process_directory(mode, input, output, template, no_format)
 }
 
 fn cli_process_single_file(
@@ -147,6 +165,7 @@ fn cli_process_single_file(
     input_file: &Path,
     output: Option<&Path>,
     template: Option<&Path>,
+    no_format: bool,
 ) -> Result<()> {
     debug!(
         mode = ?mode,
@@ -157,7 +176,7 @@ fn cli_process_single_file(
     );
     ensure_input_extension(mode, input_file)?;
     validate_template_kind_for_single(mode, template)?;
-    let output_file = process_single_file(mode, input_file, output, None, template)?;
+    let output_file = process_single_file(mode, input_file, output, None, template, no_format)?;
     info!("{} -> {}", input_file.display(), output_file.display());
     Ok(())
 }
@@ -167,6 +186,7 @@ fn cli_process_directory(
     input_dir: &Path,
     output: Option<&Path>,
     template: Option<&Path>,
+    no_format: bool,
 ) -> Result<()> {
     info!(
         mode = ?mode,
@@ -212,8 +232,14 @@ fn cli_process_directory(
             Mode::Asm => template,
             _ => None,
         };
-        let output_file =
-            process_single_file(mode, &input_file, None, Some(&output_dir), file_template)?;
+        let output_file = process_single_file(
+            mode,
+            &input_file,
+            None,
+            Some(&output_dir),
+            file_template,
+            no_format,
+        )?;
         info!("{} -> {}", input_file.display(), output_file.display());
         if should_emit_directory_map(mode) {
             output_map.push((
@@ -241,10 +267,11 @@ fn process_single_file(
     output: Option<&Path>,
     output_dir: Option<&Path>,
     template: Option<&Path>,
+    no_format: bool,
 ) -> Result<PathBuf> {
     info!("processing {:?}", input_file.as_os_str());
 
-    let mut prepared = prepare_single_input(mode, input_file)?;
+    let mut prepared = prepare_single_input(mode, input_file, no_format)?;
     let default_filename = default_output_filename(mode, input_file, &prepared);
     let output_file = if let Some(output_dir) = output_dir {
         output_dir.join(default_filename)
@@ -379,15 +406,22 @@ fn process_single_file_inner(
     Ok(())
 }
 
-fn prepare_single_input(mode: Mode, input_file: &Path) -> Result<PreparedSingleInput> {
+fn prepare_single_input(
+    mode: Mode,
+    input_file: &Path,
+    no_format: bool,
+) -> Result<PreparedSingleInput> {
     match mode {
         Mode::Dc => {
-            let ctx = DecompileContext::from_file(input_file).with_context(|| {
+            let mut ctx = DecompileContext::from_file(input_file).with_context(|| {
                 format!(
                     "failed to load decompile context from {}",
                     input_file.display()
                 )
             })?;
+            if no_format {
+                ctx.set_clang_format_enabled(false);
+            }
             Ok(PreparedSingleInput::Dc { ctx: Box::new(ctx) })
         }
         Mode::Dasm => {
