@@ -728,12 +728,10 @@ fn rewrite_switch_exit_edges(container: &mut IrBlockContainer, exit_target: Opti
 
 fn rewrite_switch_exit_statement(statement: &mut IrStatement, switch_id: u32, exit_target: u32) {
     match statement {
-        IrStatement::Jump(IrJump { target_address }) => {
-            if *target_address == exit_target {
-                *statement = IrStatement::Leave(IrLeave {
-                    target_container_id: switch_id,
-                });
-            }
+        IrStatement::Jump(IrJump { target_address }) if *target_address == exit_target => {
+            *statement = IrStatement::Leave(IrLeave {
+                target_container_id: switch_id,
+            });
         }
         IrStatement::If(IrIf {
             true_statement,

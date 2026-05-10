@@ -166,10 +166,10 @@ impl ControlFlowGraph {
             }
             IrStatement::Leave(IrLeave {
                 target_container_id,
-            }) => {
-                if self.is_leave_out_of_container(*target_container_id, descendant_container_ids) {
-                    self.node_has_direct_exit_out_of_container[source_node_index] = true;
-                }
+            }) if self
+                .is_leave_out_of_container(*target_container_id, descendant_container_ids) =>
+            {
+                self.node_has_direct_exit_out_of_container[source_node_index] = true;
             }
             IrStatement::BlockContainer(container) => {
                 for nested in &container.blocks {

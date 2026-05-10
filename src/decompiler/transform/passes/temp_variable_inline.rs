@@ -452,13 +452,9 @@ fn replace_expr_reads(
     replacement: &IrExpression,
 ) -> usize {
     match expression {
-        IrExpression::Variable(variable_expression) => {
-            if variable_expression.address == address {
-                *expression = replacement.clone();
-                1
-            } else {
-                0
-            }
+        IrExpression::Variable(variable_expression) if variable_expression.address == address => {
+            *expression = replacement.clone();
+            1
         }
         IrExpression::OperatorCall(IrOperatorCallExpression { arguments, .. }) => arguments
             .iter_mut()

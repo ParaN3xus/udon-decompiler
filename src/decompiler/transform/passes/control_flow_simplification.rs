@@ -256,49 +256,31 @@ fn combine_once_in_statement(statement: &mut IrStatement, incoming: &HashMap<u32
             false_statement,
             ..
         }) => {
-            if combine_once_in_statement(true_statement, incoming) {
-                return true;
-            }
-            if let Some(false_statement) = false_statement.as_mut()
-                && combine_once_in_statement(false_statement, incoming)
-            {
-                return true;
-            }
+            combine_once_in_statement(true_statement, incoming)
+                || false_statement
+                    .as_mut()
+                    .is_some_and(|statement| combine_once_in_statement(statement, incoming))
         }
-        IrStatement::Block(block) => {
-            for nested in &mut block.statements {
-                if combine_once_in_statement(nested, incoming) {
-                    return true;
-                }
-            }
-        }
-        IrStatement::BlockContainer(container) => {
-            if combine_once_in_container(container, incoming) {
-                return true;
-            }
-        }
+        IrStatement::Block(block) => block
+            .statements
+            .iter_mut()
+            .any(|nested| combine_once_in_statement(nested, incoming)),
+        IrStatement::BlockContainer(container) => combine_once_in_container(container, incoming),
         IrStatement::HighLevelSwitch(IrHighLevelSwitch { sections, .. }) => {
-            for section in sections {
-                for nested in &mut section.body.statements {
-                    if combine_once_in_statement(nested, incoming) {
-                        return true;
-                    }
-                }
-            }
+            sections.iter_mut().any(|section| {
+                section
+                    .body
+                    .statements
+                    .iter_mut()
+                    .any(|nested| combine_once_in_statement(nested, incoming))
+            })
         }
-        IrStatement::HighLevelWhile(IrHighLevelWhile { body, .. }) => {
-            if combine_once_in_container(body, incoming) {
-                return true;
-            }
+        IrStatement::HighLevelWhile(IrHighLevelWhile { body, .. })
+        | IrStatement::HighLevelDoWhile(IrHighLevelDoWhile { body, .. }) => {
+            combine_once_in_container(body, incoming)
         }
-        IrStatement::HighLevelDoWhile(IrHighLevelDoWhile { body, .. }) => {
-            if combine_once_in_container(body, incoming) {
-                return true;
-            }
-        }
-        _ => {}
+        _ => false,
     }
-    false
 }
 
 fn remove_dead_blocks_in_container(

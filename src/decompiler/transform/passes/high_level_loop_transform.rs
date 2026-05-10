@@ -369,10 +369,7 @@ fn collect_do_while_conditions(
 ) -> Vec<IrIf> {
     let mut conditions = Vec::<IrIf>::new();
     let mut index = block.statements.len().saturating_sub(2);
-    loop {
-        let Some(statement) = block.statements.get(index) else {
-            break;
-        };
+    while let Some(statement) = block.statements.get(index) {
         let IrStatement::If(if_inst) = statement else {
             break;
         };
