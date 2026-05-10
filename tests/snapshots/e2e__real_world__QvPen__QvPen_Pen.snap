@@ -103,7 +103,7 @@ namespace QvPen.UdonScript
         System.String _logPrefix = null;
         System.Boolean __0_get_AllowCallPen__ret = false;
         System.Single __0_get_pointerRadius__ret = 0.0f;
-        System.Single[] __gintnl_SystemSingleArray_0 = new System.Single[] { 0, 0, 0 };
+        System.Single[] __gintnl_SystemSingleArray_0 = new System.Single[3];
         System.Single __0_get_pointerRadiusMultiplierForDesktop__ret = 0.0f;
         System.Boolean __0_get_isUserInVR__ret = false;
         UnityEngine.MeshCollider __0_get_inkPrefabCollider__ret = null;

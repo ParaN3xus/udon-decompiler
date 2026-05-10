@@ -1,9 +1,11 @@
 mod constants;
+mod default;
 mod enum_map;
 mod parse;
 mod render;
 
 pub(crate) use constants::*;
+pub(crate) use default::{default_heap_literal_for_type, is_default_heap_literal};
 pub(crate) use enum_map::EnumRepr;
 use enum_map::enum_repr;
 

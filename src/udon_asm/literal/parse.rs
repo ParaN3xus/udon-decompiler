@@ -4,7 +4,12 @@ use crate::udon_asm::types::{AsmError, Result, TypeRefDirective};
 use super::constants::*;
 use super::enum_map::{enum_name_to_value, enum_repr};
 use super::render::render_heap_literal;
-use super::{EnumRepr, HeapLiteralValue, type_name_head};
+use super::{EnumRepr, HeapLiteralValue, default_heap_literal_for_type, type_name_head};
+
+enum ParsedArrayLiteral {
+    Elements(Vec<String>),
+    DefaultFill { len: usize },
+}
 
 pub(crate) fn parse_type_ref(text: &str, line_num: usize) -> Result<TypeRefDirective> {
     let text = text.trim();
@@ -49,8 +54,23 @@ fn parse_typed_heap_literal(
         // u32 arr is usually addr, we process that seperately
         && head != TYPE_SYSTEM_UINT32_ARRAY
     {
-        let parts = parse_array_items(trimmed, line_num)?;
-        if !is_supported_typed_scalar_or_enum(element_type.trim()) {
+        let element_type = element_type.trim();
+        let parts = match parse_array_literal(trimmed, line_num)? {
+            ParsedArrayLiteral::Elements(parts) => parts,
+            ParsedArrayLiteral::DefaultFill { len } => {
+                let default = default_heap_literal_for_type(element_type).ok_or_else(|| {
+                    AsmError::new(format!(
+                        "Line {}: array init '{}' omits elements, but '{}' has no supported default literal.",
+                        line_num, trimmed, element_type
+                    ))
+                })?;
+                return Ok(HeapLiteralValue::TypedArray {
+                    element_type: element_type.to_string(),
+                    elements: vec![default; len],
+                });
+            }
+        };
+        if !is_supported_typed_array_element(element_type) {
             if parts
                 .iter()
                 .all(|part| is_unserializable_placeholder_token(part.as_str()))
@@ -69,13 +89,13 @@ fn parse_typed_heap_literal(
         let mut elements = Vec::<HeapLiteralValue>::with_capacity(parts.len());
         for item in parts {
             elements.push(parse_typed_heap_literal(
-                element_type.trim(),
+                element_type,
                 item.as_str(),
                 line_num,
             )?);
         }
         return Ok(HeapLiteralValue::TypedArray {
-            element_type: element_type.trim().to_string(),
+            element_type: element_type.to_string(),
             elements,
         });
     }
@@ -345,15 +365,24 @@ fn enum_literal_from_node_kind(type_head: &str, kind: &NodeKind) -> Option<HeapL
 }
 
 fn parse_u32_array_literal(text: &str, line_num: usize) -> Result<Vec<u32>> {
-    let body = parse_array_literal_body(text, line_num, "u32[]")?;
-    if body.trim().is_empty() {
-        return Ok(Vec::new());
-    }
+    let parts = match parse_array_literal(text, line_num)? {
+        ParsedArrayLiteral::Elements(parts) => parts,
+        ParsedArrayLiteral::DefaultFill { len } => return Ok(vec![0; len]),
+    };
     let mut out = Vec::<u32>::new();
-    for part in body.split(',') {
+    for part in parts {
         out.push(parse_u32_literal(part.trim(), line_num)?);
     }
     Ok(out)
+}
+
+fn parse_array_literal(text: &str, line_num: usize) -> Result<ParsedArrayLiteral> {
+    if let Some(len) = parse_default_array_len(text, line_num)? {
+        return Ok(ParsedArrayLiteral::DefaultFill { len });
+    }
+    Ok(ParsedArrayLiteral::Elements(parse_array_items(
+        text, line_num,
+    )?))
 }
 
 fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
@@ -366,6 +395,9 @@ fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
     let mut current = String::new();
     let mut in_string = false;
     let mut escaped = false;
+    let mut paren_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut bracket_depth = 0usize;
 
     for ch in body.chars() {
         if in_string {
@@ -387,7 +419,31 @@ fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
                 in_string = true;
                 current.push(ch);
             }
-            ',' => {
+            '(' => {
+                paren_depth += 1;
+                current.push(ch);
+            }
+            ')' => {
+                paren_depth = paren_depth.saturating_sub(1);
+                current.push(ch);
+            }
+            '{' => {
+                brace_depth += 1;
+                current.push(ch);
+            }
+            '}' => {
+                brace_depth = brace_depth.saturating_sub(1);
+                current.push(ch);
+            }
+            '[' => {
+                bracket_depth += 1;
+                current.push(ch);
+            }
+            ']' => {
+                bracket_depth = bracket_depth.saturating_sub(1);
+                current.push(ch);
+            }
+            ',' if paren_depth == 0 && brace_depth == 0 && bracket_depth == 0 => {
                 out.push(current.trim().to_string());
                 current.clear();
             }
@@ -401,6 +457,12 @@ fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
             line_num, text
         )));
     }
+    if paren_depth != 0 || brace_depth != 0 || bracket_depth != 0 {
+        return Err(AsmError::new(format!(
+            "Line {}: unbalanced delimiters in array literal '{}'.",
+            line_num, text
+        )));
+    }
     if !current.trim().is_empty() {
         out.push(current.trim().to_string());
     } else if body.ends_with(',') {
@@ -410,6 +472,37 @@ fn parse_array_items(text: &str, line_num: usize) -> Result<Vec<String>> {
         )));
     }
     Ok(out)
+}
+
+fn parse_default_array_len(text: &str, line_num: usize) -> Result<Option<usize>> {
+    let trimmed = text.trim();
+    let Some(after_new) = trimmed.strip_prefix("new").map(str::trim_start) else {
+        return Ok(None);
+    };
+    if after_new.contains('{') {
+        return Ok(None);
+    }
+    let Some(open_bracket) = after_new.rfind('[') else {
+        return Ok(None);
+    };
+    let Some(close_bracket) = after_new[open_bracket + 1..].find(']') else {
+        return Ok(None);
+    };
+    let close_bracket = open_bracket + 1 + close_bracket;
+    if !after_new[close_bracket + 1..].trim().is_empty() {
+        return Ok(None);
+    }
+    let len_text = after_new[open_bracket + 1..close_bracket].trim();
+    if len_text.is_empty() {
+        return Ok(None);
+    }
+    let len = len_text.parse::<usize>().map_err(|e| {
+        AsmError::new(format!(
+            "Line {}: invalid default array length '{}': {}",
+            line_num, len_text, e
+        ))
+    })?;
+    Ok(Some(len))
 }
 
 fn parse_array_literal_body<'a>(
@@ -537,7 +630,7 @@ fn decode_typed_primitive_array_from_raw(
     Some(out)
 }
 
-fn is_supported_typed_scalar_or_enum(type_name: &str) -> bool {
+fn is_supported_typed_array_element(type_name: &str) -> bool {
     if enum_repr(type_name_head(type_name)).is_some() {
         return true;
     }
@@ -554,7 +647,7 @@ fn is_supported_typed_scalar_or_enum(type_name: &str) -> bool {
             | TYPE_SYSTEM_UINT64
             | TYPE_SYSTEM_SINGLE
             | TYPE_SYSTEM_DOUBLE
-    )
+    ) || default_heap_literal_for_type(type_name).is_some()
 }
 
 fn is_unserializable_placeholder_token(token: &str) -> bool {

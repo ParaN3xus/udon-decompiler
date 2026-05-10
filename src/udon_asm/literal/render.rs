@@ -1,6 +1,9 @@
 use super::constants::*;
 use super::enum_map::{enum_repr, enum_value_to_name};
-use super::{EnumRepr, HeapLiteralValue, type_name_head};
+use super::{
+    EnumRepr, HeapLiteralValue, default_heap_literal_for_type, is_default_heap_literal,
+    type_name_head,
+};
 
 pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -> String {
     let head = type_name_head(type_name);
@@ -115,20 +118,32 @@ fn render_heap_array_element_literal(type_name: Option<&str>, value: &HeapLitera
 }
 
 fn render_typed_array_literal(element_type: &str, elements: &[HeapLiteralValue]) -> String {
+    if default_heap_literal_for_type(element_type).is_some()
+        && elements
+            .iter()
+            .all(|value| is_default_heap_literal(element_type, value))
+    {
+        let csharp_element_type = normalize_csharp_type_name(type_name_head(element_type));
+        return format!("new {csharp_element_type}[{}]", elements.len());
+    }
     let parts = elements
         .iter()
         .map(|value| render_heap_array_element_literal(Some(element_type), value))
         .collect::<Vec<_>>();
-    let csharp_array_type = format!(
-        "{}[]",
-        normalize_csharp_type_name(type_name_head(element_type))
-    );
-    format!("new {csharp_array_type} {{ {} }}", parts.join(", "))
+    format!(
+        "new {}[] {{ {} }}",
+        normalize_csharp_type_name(type_name_head(element_type)),
+        parts.join(", ")
+    )
 }
 
 fn render_u32_array_literal(values: &[u32]) -> String {
-    let parts = values.iter().map(|x| x.to_string()).collect::<Vec<_>>();
     let csharp_array_type = normalize_csharp_type_name(TYPE_SYSTEM_UINT32_ARRAY);
+    if values.iter().all(|value| *value == 0) {
+        let csharp_element_type = csharp_array_type.trim_end_matches("[]");
+        return format!("new {csharp_element_type}[{}]", values.len());
+    }
+    let parts = values.iter().map(|x| x.to_string()).collect::<Vec<_>>();
     format!("new {csharp_array_type} {{ {} }}", parts.join(", "))
 }
 

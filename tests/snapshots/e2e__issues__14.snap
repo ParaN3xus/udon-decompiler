@@ -19,7 +19,7 @@ public class PatreonProcessor : UdonSharpBehaviour
     VRC.Economy.UdonProduct VIPProduct = null;
     VRC.SDKBase.VRCUrl Url = null;
     System.String[] CEVips = null;
-    System.String[] ceVIPsPurchaseConfirmedBeforeReady = new System.String[] {};
+    System.String[] ceVIPsPurchaseConfirmedBeforeReady = new System.String[0];
     System.String patronsToProcess = null;
     VRC.SDKBase.VRCPlayerApi localPlayer = null;
     System.Boolean CEReady = false;

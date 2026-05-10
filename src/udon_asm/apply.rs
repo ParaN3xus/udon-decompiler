@@ -8,7 +8,8 @@ use super::literal::{
     EnumRepr, HeapLiteralValue, TYPE_MISSING, TYPE_SYSTEM_BOOLEAN, TYPE_SYSTEM_BYTE,
     TYPE_SYSTEM_DOUBLE, TYPE_SYSTEM_INT16, TYPE_SYSTEM_INT32, TYPE_SYSTEM_INT64, TYPE_SYSTEM_SBYTE,
     TYPE_SYSTEM_SINGLE, TYPE_SYSTEM_UINT16, TYPE_SYSTEM_UINT32, TYPE_SYSTEM_UINT64,
-    TYPE_UNSERIALIZABLE, enum_repr_for_type, type_name_head,
+    TYPE_UNSERIALIZABLE, enum_repr_for_type, is_default_heap_literal, literal_from_typed_odin_node,
+    type_name_head,
 };
 use super::text::parse_generated_heap_symbol;
 use super::types::{
@@ -535,12 +536,83 @@ impl ProgramExt for UdonProgramBinary {
         element_type: &str,
         elements: &[HeapLiteralValue],
     ) -> OdinResult<()> {
+        // Primitive and enum arrays can be encoded as raw PrimitiveArray bytes,
+        // so they should always go through the normal write path.
+        if can_encode_typed_array_element_type(element_type) {
+            let mut raw = Vec::<u8>::new();
+            for element in elements {
+                append_typed_array_element_raw(&mut raw, element_type, element)?;
+            }
+            return self.set_heap_dump_strongbox_u32_array_raw(heap_index, raw.as_slice());
+        }
+
+        // Non-primitive arrays can only be skipped for the `new T[len]` form.
+        // Explicit non-default elements must fall through and fail loudly.
+        if !elements
+            .iter()
+            .all(|element| is_default_heap_literal(element_type, element))
+        {
+            let mut raw = Vec::<u8>::new();
+            for element in elements {
+                append_typed_array_element_raw(&mut raw, element_type, element)?;
+            }
+            return self.set_heap_dump_strongbox_u32_array_raw(heap_index, raw.as_slice());
+        }
+
+        // Skip case: render shortened an existing all-default object array to
+        // `new T[len]`. No write is needed because the original already matches.
+        if current_heap_array_is_all_default(self, heap_index, element_type, elements.len())? {
+            return Ok(());
+        }
+
+        // The user changed a non-default object array to `new T[len]`. Do not
+        // silently skip that edit; fail through the unsupported raw writer.
         let mut raw = Vec::<u8>::new();
         for element in elements {
             append_typed_array_element_raw(&mut raw, element_type, element)?;
         }
         self.set_heap_dump_strongbox_u32_array_raw(heap_index, raw.as_slice())
     }
+}
+
+fn current_heap_array_is_all_default(
+    program: &UdonProgramBinary,
+    heap_index: usize,
+    element_type: &str,
+    expected_len: usize,
+) -> OdinResult<bool> {
+    let value_node = program.heap_dump_strongbox_value_node_id(heap_index)?;
+    let array_type = format!("{element_type}[]");
+    let literal = literal_from_typed_odin_node(program.document(), value_node, &array_type);
+    match literal {
+        HeapLiteralValue::TypedArray { elements, .. } => Ok(elements.len() == expected_len
+            && elements
+                .iter()
+                .all(|element| is_default_heap_literal(element_type, element))),
+        HeapLiteralValue::U32Array(values) => {
+            Ok(values.len() == expected_len && values.iter().all(|value| *value == 0))
+        }
+        _ => Ok(false),
+    }
+}
+
+fn can_encode_typed_array_element_type(element_type: &str) -> bool {
+    let head = type_name_head(element_type);
+    enum_repr_for_type(head).is_some()
+        || matches!(
+            head,
+            TYPE_SYSTEM_BOOLEAN
+                | TYPE_SYSTEM_SBYTE
+                | TYPE_SYSTEM_BYTE
+                | TYPE_SYSTEM_INT16
+                | TYPE_SYSTEM_UINT16
+                | TYPE_SYSTEM_INT32
+                | TYPE_SYSTEM_UINT32
+                | TYPE_SYSTEM_INT64
+                | TYPE_SYSTEM_UINT64
+                | TYPE_SYSTEM_SINGLE
+                | TYPE_SYSTEM_DOUBLE
+        )
 }
 
 fn append_typed_array_element_raw(

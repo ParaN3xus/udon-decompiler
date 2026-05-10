@@ -35,7 +35,7 @@ namespace QvPen.UdonScript
         VRC.SDK3.Components.VRCObjectSync __0_get_objectSync__ret = null;
         System.Boolean __0_get_IsUser__ret = false;
         System.Single __0_get_eraserRadius__ret = 0.0f;
-        System.Single[] __gintnl_SystemSingleArray_0 = new System.Single[] { 0, 0, 0 };
+        System.Single[] __gintnl_SystemSingleArray_0 = new System.Single[3];
         VRC.SDKBase.VRCPlayerApi __0_get_localPlayer__ret = null;
         System.Int32 __0_get_localPlayerId__ret = 0;
         VRC.Udon.UdonBehaviour __0_eraserManager__param = null;
