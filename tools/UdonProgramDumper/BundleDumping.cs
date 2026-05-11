@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
+using Microsoft.IO;
 
 internal static partial class Program
 {
@@ -13,6 +14,7 @@ internal static partial class Program
     private const string SerializedProgramAssetPointerFieldPath = "serializedProgramAsset";
     private const string GameObjectPointerFieldPath = "m_GameObject";
     private const string PointerPathIdFieldName = "m_PathID";
+    private static readonly RecyclableMemoryStreamManager RecyclableMemoryStreams = new();
     private static readonly HashSet<char> InvalidFileNameChars =
         [..Path.GetInvalidFileNameChars()];
 
@@ -39,20 +41,20 @@ internal static partial class Program
             UseRefTypeManagerCache = true,
         };
 
-        string? tempUnpackedPath = null;
+        Stream? ownedBundleStream = null;
         try
         {
-            var (bundle, tempPath) = LoadBundleSmart(manager, fullInputPath);
-            tempUnpackedPath = tempPath;
-
-            if (bundle == null)
+            var bundle =
+                LoadBundleFromStream(manager, fullInputPath, out ownedBundleStream) ??
                 throw new InvalidOperationException("Failed to load the asset bundle.");
 
             var dirInfos = bundle.file.BlockAndDirInfo.DirectoryInfos;
             for (var bundleIndex = 0; bundleIndex < dirInfos.Count; bundleIndex++)
             {
-                var assetsFile = manager.LoadAssetsFileFromBundle(bundle, bundleIndex, loadDeps: true);
-                if (assetsFile == null) continue;
+                var assetsFile =
+                    manager.LoadAssetsFileFromBundle(bundle, bundleIndex, loadDeps: true);
+                if (assetsFile == null)
+                    continue;
 
                 assetsFileCount++;
                 CollectBundleData(manager, assetsFile, programsDirectory, usedProgramNames,
@@ -62,11 +64,7 @@ internal static partial class Program
         finally
         {
             manager.UnloadAll(unloadClassData: true);
-
-            if (tempUnpackedPath != null)
-            {
-                try { File.Delete(tempUnpackedPath); } catch { }
-            }
+            ownedBundleStream?.Dispose();
         }
 
         if (assetsFileCount == 0)
@@ -89,35 +87,37 @@ internal static partial class Program
                               programsByPathId.Count, pendingBehaviours.Count);
     }
 
-    private static (BundleFileInstance? bundle, string? tempUnpackedPath) LoadBundleSmart(
-    AssetsManager manager, string filePath)
+    private static BundleFileInstance? LoadBundleFromStream(AssetsManager manager,
+                                                            string filePath,
+                                                            out Stream? ownedStream)
     {
-        var fileInfo = new FileInfo(filePath);
-        const long LargeFileThreshold = 750_000_000; // 750 MB
-
-        if (fileInfo.Exists && fileInfo.Length < LargeFileThreshold)
-        {
-            var bun = manager.LoadBundleFile(filePath, unpackIfPacked: true);
-            return (bun, null);
-        }
+        ownedStream = null;
 
         var original = manager.LoadBundleFile(filePath, unpackIfPacked: false);
         if (original == null)
-            return (null, null);
+            return null;
 
         if (original.file.DataIsCompressed != true)
-            return (original, null);
+            return original;
 
-        string tempPath = Path.GetTempFileName() + ".unpacked";
-        using (var outStream = File.Open(tempPath, FileMode.Create))
+        var unpackedStream = RecyclableMemoryStreams.GetStream($"unpacked:{filePath}");
+        try
         {
-            BundleHelper.UnpackBundleToStream(original.file, outStream);
+            BundleHelper.UnpackBundleToStream(original.file, unpackedStream);
+            unpackedStream.Position = 0;
+
+            manager.UnloadBundleFile(original);
+
+            var unpacked = manager.LoadBundleFile(unpackedStream, $"{filePath}.unpacked",
+                                                  unpackIfPacked: false);
+            ownedStream = unpackedStream;
+            return unpacked;
         }
-
-        manager.UnloadBundleFile(original);
-
-        var unpacked = manager.LoadBundleFile(tempPath, unpackIfPacked: false);
-        return (unpacked, tempPath);
+        catch
+        {
+            unpackedStream.Dispose();
+            throw;
+        }
     }
 
     private static void CollectBundleData(AssetsManager manager, AssetsFileInstance assetsFile,
