@@ -9,6 +9,11 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -54,6 +59,7 @@ jobs:
         run: dotnet publish tools/UdonProgramDumper/UdonProgramDumper.csproj -c Release -r linux-x64 -p:PublishAot=true
 
       - name: Download UdonModuleInfo.json
+        if: github.event_name != 'pull_request'
         shell: bash
         env:
           UDON_MODULE_INFO_URL: ${{ secrets.UDON_MODULE_INFO_URL }}
@@ -72,4 +78,27 @@ jobs:
           fi
 
       - name: Cargo test
+        if: github.event_name != 'pull_request'
         run: cargo test --test e2e -- --nocapture
+
+      - name: Note skipped e2e tests
+        if: github.event_name == 'pull_request'
+        run: |
+          cat >>"${GITHUB_STEP_SUMMARY}" <<'EOF'
+          ## Skipped e2e tests
+
+          `cargo test --test e2e` was skipped for this pull request because it requires
+          `UDON_MODULE_INFO_URL`, which is only available from repository secrets.
+          EOF
+
+      - name: Comment on skipped e2e tests
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: "Warning: PR CI skipped `cargo test --test e2e` because it requires `UDON_MODULE_INFO_URL`, which is only available from repository secrets.",
+            });
