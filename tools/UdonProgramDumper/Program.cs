@@ -74,7 +74,7 @@ internal static partial class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[{options.Input}] {ex.Message}");
+            Console.Error.WriteLine($"[{options.Input}] {ex}");
             return 1;
         }
     }
@@ -89,7 +89,7 @@ internal static partial class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(ex);
             return 1;
         }
     }
