@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <PackageReference Include="AssetsTools.NET" Version="3.0.4" />
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageReference Include="System.CommandLine" Version="2.0.5" />
   </ItemGroup>
 

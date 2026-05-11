@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
+using Microsoft.IO;
 
 internal static partial class Program
 {
@@ -13,6 +14,7 @@ internal static partial class Program
     private const string SerializedProgramAssetPointerFieldPath = "serializedProgramAsset";
     private const string GameObjectPointerFieldPath = "m_GameObject";
     private const string PointerPathIdFieldName = "m_PathID";
+    private static readonly RecyclableMemoryStreamManager RecyclableMemoryStreams = new();
     private static readonly HashSet<char> InvalidFileNameChars =
         [..Path.GetInvalidFileNameChars()];
 
@@ -39,10 +41,11 @@ internal static partial class Program
             UseRefTypeManagerCache = true,
         };
 
+        Stream? ownedBundleStream = null;
         try
         {
             var bundle =
-                manager.LoadBundleFile(fullInputPath, unpackIfPacked: true) ??
+                UnpackAndLoadBundle(manager, fullInputPath, out ownedBundleStream) ??
                 throw new InvalidOperationException("Failed to load the asset bundle.");
 
             var dirInfos = bundle.file.BlockAndDirInfo.DirectoryInfos;
@@ -51,9 +54,7 @@ internal static partial class Program
                 var assetsFile =
                     manager.LoadAssetsFileFromBundle(bundle, bundleIndex, loadDeps: true);
                 if (assetsFile == null)
-                {
                     continue;
-                }
 
                 assetsFileCount++;
                 CollectBundleData(manager, assetsFile, programsDirectory, usedProgramNames,
@@ -63,6 +64,7 @@ internal static partial class Program
         finally
         {
             manager.UnloadAll(unloadClassData: true);
+            ownedBundleStream?.Dispose();
         }
 
         if (assetsFileCount == 0)
@@ -83,6 +85,39 @@ internal static partial class Program
 
         return new DumpResult(dumpRootDirectory, programsDirectory, varsDirectory,
                               programsByPathId.Count, pendingBehaviours.Count);
+    }
+
+    private static BundleFileInstance? UnpackAndLoadBundle(AssetsManager manager,
+                                                           string filePath,
+                                                           out Stream? ownedStream)
+    {
+        ownedStream = null;
+
+        var original = manager.LoadBundleFile(filePath, unpackIfPacked: false);
+        if (original == null)
+            return null;
+
+        if (original.file.DataIsCompressed != true)
+            return original;
+
+        var unpackedStream = RecyclableMemoryStreams.GetStream($"unpacked:{filePath}");
+        try
+        {
+            BundleHelper.UnpackBundleToStream(original.file, unpackedStream);
+            unpackedStream.Position = 0;
+
+            manager.UnloadBundleFile(original);
+
+            var unpacked = manager.LoadBundleFile(unpackedStream, $"{filePath}.unpacked",
+                                                  unpackIfPacked: false);
+            ownedStream = unpackedStream;
+            return unpacked;
+        }
+        catch
+        {
+            unpackedStream.Dispose();
+            throw;
+        }
     }
 
     private static void CollectBundleData(AssetsManager manager, AssetsFileInstance assetsFile,
