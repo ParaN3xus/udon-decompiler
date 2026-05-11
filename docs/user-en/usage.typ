@@ -14,17 +14,15 @@ This project does not provide guidance on this. You should have a `.vrcw` file.
 
 = Extract Udon programs
 
-+ Use the `UdonProgramDumper` program downloaded in the #cross-link-heading("/user-en/installation.typ", [= Installation])[Installation] section to extract program files from `.vrcw`. Specifically:
-- Use the command line
-  ```shell-unix-generic
-  UdonProgramDumper dump <world.vrcw>
-  ```
-  You should get output like this
-  ```
-  $ UdonProgramDumper dump example.vrcw
-  [example.vrcw] dumped 8 program(s), 8 public var file(s) to /path/to/example-dumped
-  ```
-- Drag and drop a `.vrcw` file directly onto `UdonProgramDumper`. This is effectively equivalent to the previous method.
+Use the `UdonProgramDumper` program downloaded in the #cross-link-heading("/user-en/installation.typ", [= Installation])[Installation] section to extract program files from `.vrcw`. Specifically, you should execute
+```shell-unix-generic
+UdonProgramDumper dump <world.vrcw>
+```
+You should get output like this
+```
+$ UdonProgramDumper dump example.vrcw
+[example.vrcw] dumped 8 program(s), 8 public var file(s) to /path/to/example-dumped
+```
 
 You can then find the generated `example-dumped` folder in the same directory as the `.vrcw` file, containing:
 - `programs/`: extracted `.hex` program files
