@@ -45,7 +45,7 @@ internal static partial class Program
         try
         {
             var bundle =
-                LoadBundleFromStream(manager, fullInputPath, out ownedBundleStream) ??
+                UnpackAndLoadBundle(manager, fullInputPath, out ownedBundleStream) ??
                 throw new InvalidOperationException("Failed to load the asset bundle.");
 
             var dirInfos = bundle.file.BlockAndDirInfo.DirectoryInfos;
@@ -87,9 +87,9 @@ internal static partial class Program
                               programsByPathId.Count, pendingBehaviours.Count);
     }
 
-    private static BundleFileInstance? LoadBundleFromStream(AssetsManager manager,
-                                                            string filePath,
-                                                            out Stream? ownedStream)
+    private static BundleFileInstance? UnpackAndLoadBundle(AssetsManager manager,
+                                                           string filePath,
+                                                           out Stream? ownedStream)
     {
         ownedStream = null;
 
