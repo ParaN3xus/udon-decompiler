@@ -253,6 +253,20 @@ fn apply_heap_init(
         HeapLiteralValue::SystemType(v) => {
             program.set_heap_dump_strongbox_system_type_name(heap_index, v.as_str())?;
         }
+        HeapLiteralValue::TimeSpan(v) => {
+            program
+                .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Long(*v))?;
+        }
+        HeapLiteralValue::DateTimeOffset(v) => {
+            program.set_heap_dump_strongbox_value_primitive(
+                heap_index,
+                PrimitiveValue::String(crate::odin::OdinString::utf16(v.clone())),
+            )?;
+        }
+        HeapLiteralValue::DateTime(v) => {
+            program
+                .set_heap_dump_strongbox_value_primitive(heap_index, PrimitiveValue::Long(*v))?;
+        }
         HeapLiteralValue::VrcUrl(v) => {
             program.set_heap_dump_strongbox_vrcurl(heap_index, v.as_str())?;
         }

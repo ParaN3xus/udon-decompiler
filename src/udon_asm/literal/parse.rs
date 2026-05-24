@@ -2,6 +2,10 @@ use crate::odin::{NodeId, NodeKind, OdinDocument, PrimitiveValue, UdonProgramBin
 use crate::udon_asm::types::{AsmError, Result, TypeRefDirective};
 
 use super::constants::*;
+use super::dotnet_time::{
+    datetime_ticks_from_components, parse_datetimeoffset_storage_text,
+    timespan_ticks_from_components,
+};
 use super::enum_map::{enum_name_to_value, enum_repr};
 use super::render::render_heap_literal;
 use super::{EnumRepr, HeapLiteralValue, default_heap_literal_for_type, type_name_head};
@@ -185,6 +189,15 @@ fn parse_typed_heap_literal(
         TYPE_SYSTEM_TYPE => Ok(HeapLiteralValue::SystemType(parse_system_type_literal(
             trimmed, line_num,
         )?)),
+        TYPE_SYSTEM_TIMESPAN => Ok(HeapLiteralValue::TimeSpan(parse_timespan_literal(
+            trimmed, line_num,
+        )?)),
+        TYPE_SYSTEM_DATETIMEOFFSET => Ok(HeapLiteralValue::DateTimeOffset(
+            parse_datetimeoffset_literal(trimmed, line_num)?,
+        )),
+        TYPE_SYSTEM_DATETIME => Ok(HeapLiteralValue::DateTime(parse_datetime_literal(
+            trimmed, line_num,
+        )?)),
         TYPE_VRC_SDKBASE_VRCURL => Ok(HeapLiteralValue::VrcUrl(parse_vrcurl_literal(
             trimmed, line_num,
         )?)),
@@ -283,6 +296,114 @@ fn parse_f32_literal(text: &str, line_num: usize) -> Result<f32> {
 fn parse_f64_literal(text: &str, line_num: usize) -> Result<f64> {
     parse_f64_component(text)
         .ok_or_else(|| AsmError::new(format!("Line {}: invalid f64 init '{}'.", line_num, text)))
+}
+
+fn parse_i64_literal(text: &str, line_num: usize) -> Result<i64> {
+    text.parse::<i64>().map_err(|e| {
+        AsmError::new(format!(
+            "Line {}: invalid i64 init '{}': {}",
+            line_num, text, e
+        ))
+    })
+}
+
+fn parse_timespan_literal(text: &str, line_num: usize) -> Result<i64> {
+    if let Ok(ticks) = parse_i64_literal(text, line_num) {
+        return Ok(ticks);
+    }
+    if let Some(ticks) = parse_ctor_i64_arg(text, TYPE_SYSTEM_TIMESPAN, line_num)? {
+        return Ok(ticks);
+    }
+    let parts = parse_ctor_i32_args(text, TYPE_SYSTEM_TIMESPAN, 5).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: TimeSpan init must be ticks or new System.TimeSpan(days, hours, minutes, seconds, milliseconds), got '{}'.",
+            line_num, text
+        ))
+    })?;
+    timespan_ticks_from_components(parts[0], parts[1], parts[2], parts[3], parts[4]).ok_or_else(
+        || {
+            AsmError::new(format!(
+                "Line {}: TimeSpan init overflows ticks: '{}'.",
+                line_num, text
+            ))
+        },
+    )
+}
+
+fn parse_datetimeoffset_literal(text: &str, line_num: usize) -> Result<String> {
+    if text.trim().starts_with('"') {
+        let value = parse_quoted_string(text, line_num)?;
+        if parse_datetimeoffset_storage_text(value.as_str()).is_some() {
+            return Ok(value);
+        }
+    }
+    let prefix = format!("new {TYPE_SYSTEM_DATETIMEOFFSET}");
+    let args = parse_ctor_args(text, prefix.as_str()).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: DateTimeOffset init must be new System.DateTimeOffset(year, month, day, hour, minute, second, millisecond, System.TimeSpan.Zero), got '{}'.",
+            line_num, text
+        ))
+    })?;
+    if args.len() != 8 || args[7].trim() != "System.TimeSpan.Zero" {
+        return Err(AsmError::new(format!(
+            "Line {}: DateTimeOffset init requires UTC offset System.TimeSpan.Zero, got '{}'.",
+            line_num, text
+        )));
+    }
+    let mut values = Vec::<i32>::with_capacity(7);
+    for arg in &args[..7] {
+        values.push(arg.trim().parse::<i32>().map_err(|e| {
+            AsmError::new(format!(
+                "Line {}: invalid DateTimeOffset numeric component '{}': {}",
+                line_num,
+                arg.trim(),
+                e
+            ))
+        })?);
+    }
+    datetime_ticks_from_components(
+        values[0], values[1], values[2], values[3], values[4], values[5], values[6],
+    )
+    .ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid DateTimeOffset date/time components in '{}'.",
+            line_num, text
+        ))
+    })?;
+    Ok(format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:07}+00:00",
+        values[0],
+        values[1],
+        values[2],
+        values[3],
+        values[4],
+        values[5],
+        values[6] * 10_000
+    ))
+}
+
+fn parse_datetime_literal(text: &str, line_num: usize) -> Result<i64> {
+    if let Ok(ticks) = parse_i64_literal(text, line_num) {
+        return Ok(ticks);
+    }
+    if let Some(ticks) = parse_ctor_i64_arg(text, TYPE_SYSTEM_DATETIME, line_num)? {
+        return Ok(ticks);
+    }
+    let values = parse_ctor_i32_args(text, TYPE_SYSTEM_DATETIME, 7).ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: DateTime init must be ticks or new System.DateTime(year, month, day, hour, minute, second, millisecond), got '{}'.",
+            line_num, text
+        ))
+    })?;
+    datetime_ticks_from_components(
+        values[0], values[1], values[2], values[3], values[4], values[5], values[6],
+    )
+    .ok_or_else(|| {
+        AsmError::new(format!(
+            "Line {}: invalid DateTime date/time components in '{}'.",
+            line_num, text
+        ))
+    })
 }
 
 fn parse_typed_enum_literal(
@@ -559,6 +680,34 @@ fn parse_csharp_cast_literal(text: &str) -> Option<(&str, &str)> {
         return None;
     }
     Some((cast_type, value))
+}
+
+fn parse_ctor_i32_args(text: &str, ctor_name: &str, count: usize) -> Option<Vec<i32>> {
+    let prefix = format!("new {ctor_name}");
+    let args = parse_ctor_args(text, prefix.as_str())?;
+    if args.len() != count {
+        return None;
+    }
+    args.iter()
+        .map(|arg| arg.trim().parse::<i32>().ok())
+        .collect()
+}
+
+fn parse_ctor_i64_arg(text: &str, ctor_name: &str, line_num: usize) -> Result<Option<i64>> {
+    let prefix = format!("new {ctor_name}");
+    let Some(args) = parse_ctor_args(text, prefix.as_str()) else {
+        return Ok(None);
+    };
+    if args.len() != 1 {
+        return Ok(None);
+    }
+    parse_i64_literal(args[0].trim(), line_num).map(Some)
+}
+
+fn parse_ctor_args(text: &str, prefix: &str) -> Option<Vec<String>> {
+    let rest = text.trim().strip_prefix(prefix)?.trim_start();
+    let body = rest.strip_prefix('(')?.strip_suffix(')')?;
+    parse_array_items(body, 0).ok()
 }
 
 fn normalize_type_token(text: &str) -> String {
@@ -1194,6 +1343,19 @@ pub(crate) fn heap_literal_from_node_kind(type_name: &str, kind: &NodeKind) -> H
         }
         (TYPE_SYSTEM_TYPE, NodeKind::Primitive(PrimitiveValue::String(v))) => {
             HeapLiteralValue::SystemType(v.value.clone())
+        }
+        (TYPE_SYSTEM_TIMESPAN, NodeKind::Primitive(PrimitiveValue::Long(v))) => {
+            HeapLiteralValue::TimeSpan(*v)
+        }
+        (TYPE_SYSTEM_DATETIMEOFFSET, NodeKind::Primitive(PrimitiveValue::String(v))) => {
+            if parse_datetimeoffset_storage_text(v.value.as_str()).is_some() {
+                HeapLiteralValue::DateTimeOffset(v.value.clone())
+            } else {
+                HeapLiteralValue::Unserializable
+            }
+        }
+        (TYPE_SYSTEM_DATETIME, NodeKind::Primitive(PrimitiveValue::Long(v))) => {
+            HeapLiteralValue::DateTime(*v)
         }
         (TYPE_VRC_SDKBASE_VRCURL, NodeKind::Primitive(PrimitiveValue::String(v))) => {
             HeapLiteralValue::VrcUrl(v.value.clone())

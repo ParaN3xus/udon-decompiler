@@ -12,6 +12,7 @@ flate2 = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
+time = { version = "0.3.47", features = ["macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 unity-asset-yaml = "0.2.0"

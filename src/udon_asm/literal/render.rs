@@ -1,4 +1,8 @@
 use super::constants::*;
+use super::dotnet_time::{
+    TICKS_PER_MILLISECOND, datetime_parts_from_ticks, parse_datetimeoffset_storage_text,
+    timespan_parts_from_ticks,
+};
 use super::enum_map::{enum_repr, enum_value_to_name};
 use super::{
     EnumRepr, HeapLiteralValue, default_heap_literal_for_type, is_default_heap_literal,
@@ -25,6 +29,9 @@ pub(crate) fn render_heap_literal(type_name: &str, literal: &HeapLiteralValue) -
         HeapLiteralValue::F64(v) => render_f64_scalar(*v),
         HeapLiteralValue::String(v) => format!("{v:?}"),
         HeapLiteralValue::SystemType(v) => render_system_type_literal(v),
+        HeapLiteralValue::TimeSpan(v) => render_timespan_literal(*v),
+        HeapLiteralValue::DateTimeOffset(v) => render_datetimeoffset_literal(v),
+        HeapLiteralValue::DateTime(v) => render_datetime_literal(*v),
         HeapLiteralValue::VrcUrl(v) => render_vrcurl_literal(v),
         HeapLiteralValue::Vector2(x, y) => render_vector2_literal(*x, *y),
         HeapLiteralValue::Vector3(x, y, z) => render_vector3_literal(*x, *y, *z),
@@ -98,6 +105,9 @@ fn render_heap_array_element_literal(type_name: Option<&str>, value: &HeapLitera
         HeapLiteralValue::F64(v) => render_f64_scalar(*v),
         HeapLiteralValue::String(v) => format!("{v:?}"),
         HeapLiteralValue::SystemType(v) => render_system_type_literal(v),
+        HeapLiteralValue::TimeSpan(v) => render_timespan_literal(*v),
+        HeapLiteralValue::DateTimeOffset(v) => render_datetimeoffset_literal(v),
+        HeapLiteralValue::DateTime(v) => render_datetime_literal(*v),
         HeapLiteralValue::VrcUrl(v) => render_vrcurl_literal(v),
         HeapLiteralValue::Vector2(x, y) => render_vector2_literal(*x, *y),
         HeapLiteralValue::Vector3(x, y, z) => render_vector3_literal(*x, *y, *z),
@@ -219,6 +229,61 @@ fn render_system_type_literal(text: &str) -> String {
 
 fn render_vrcurl_literal(text: &str) -> String {
     format!("new {}({text:?})", TYPE_VRC_SDKBASE_VRCURL)
+}
+
+fn render_timespan_literal(ticks: i64) -> String {
+    if let Some(parts) = timespan_parts_from_ticks(ticks) {
+        format!(
+            "new {}({}, {}, {}, {}, {})",
+            TYPE_SYSTEM_TIMESPAN,
+            parts.days,
+            parts.hours,
+            parts.minutes,
+            parts.seconds,
+            parts.milliseconds
+        )
+    } else {
+        format!("new {}({ticks})", TYPE_SYSTEM_TIMESPAN)
+    }
+}
+
+fn render_datetimeoffset_literal(text: &str) -> String {
+    if let Some(parts) = parse_datetimeoffset_storage_text(text) {
+        format!(
+            "new {}({}, {}, {}, {}, {}, {}, {}, System.TimeSpan.Zero)",
+            TYPE_SYSTEM_DATETIMEOFFSET,
+            parts.year,
+            parts.month,
+            parts.day,
+            parts.hour,
+            parts.minute,
+            parts.second,
+            parts.millisecond
+        )
+    } else {
+        format!("new {}({text:?})", TYPE_SYSTEM_DATETIMEOFFSET)
+    }
+}
+
+fn render_datetime_literal(ticks: i64) -> String {
+    if ticks % TICKS_PER_MILLISECOND != 0 {
+        return format!("new {}({ticks})", TYPE_SYSTEM_DATETIME);
+    }
+    if let Some(parts) = datetime_parts_from_ticks(ticks) {
+        format!(
+            "new {}({}, {}, {}, {}, {}, {}, {})",
+            TYPE_SYSTEM_DATETIME,
+            parts.year,
+            parts.month,
+            parts.day,
+            parts.hour,
+            parts.minute,
+            parts.second,
+            parts.millisecond
+        )
+    } else {
+        ticks.to_string()
+    }
 }
 
 fn split_assembly_qualified_type(value: &str) -> (&str, &str) {

@@ -26,6 +26,11 @@ heap_literal_defaults! {
     TYPE_SYSTEM_DOUBLE => HeapLiteralValue::F64(0.0),
     TYPE_SYSTEM_STRING => HeapLiteralValue::Null,
     TYPE_SYSTEM_TYPE => HeapLiteralValue::Null,
+    TYPE_SYSTEM_TIMESPAN => HeapLiteralValue::TimeSpan(0),
+    TYPE_SYSTEM_DATETIMEOFFSET => HeapLiteralValue::DateTimeOffset(
+        "0001-01-01T00:00:00.0000000+00:00".to_string()
+    ),
+    TYPE_SYSTEM_DATETIME => HeapLiteralValue::DateTime(0),
     TYPE_VRC_SDKBASE_VRCURL => HeapLiteralValue::Null,
     TYPE_UNITY_VECTOR2 => HeapLiteralValue::Vector2(0.0, 0.0),
     TYPE_UNITY_VECTOR3 => HeapLiteralValue::Vector3(0.0, 0.0, 0.0),

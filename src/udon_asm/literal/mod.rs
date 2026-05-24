@@ -1,5 +1,6 @@
 mod constants;
 mod default;
+mod dotnet_time;
 mod enum_map;
 mod parse;
 mod render;
@@ -25,6 +26,9 @@ pub(crate) enum HeapLiteralValue {
     F64(f64),
     String(String),
     SystemType(String),
+    TimeSpan(i64),
+    DateTimeOffset(String),
+    DateTime(i64),
     VrcUrl(String),
     Vector2(f32, f32),
     Vector3(f32, f32, f32),
