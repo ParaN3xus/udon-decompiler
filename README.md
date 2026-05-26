@@ -1,6 +1,7 @@
 # Udon Decompiler
 
 [![Nightly Build](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FParaN3xus%2Fudon-decompiler%2Fbadges%2Fnightly-badge.json)](https://github.com/ParaN3xus/udon-decompiler/releases/tag/nightly)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ParaN3xus/udon-decompiler)
 
 The Udon Decompiler.
 
