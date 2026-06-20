@@ -182,7 +182,7 @@ impl<'a> IrBuilder<'a> {
             .ctx
             .variables
             .get_by_address(target_address)
-            .is_some_and(|variable| variable.name == SYMBOL_RETURN_JUMP_U32)
+            .is_some_and(|variable| SYMBOL_RETURN_JUMP_U32.contains(&variable.name.as_str()))
         {
             return Vec::new();
         }

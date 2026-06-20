@@ -890,7 +890,7 @@ fn is_header_push_address(ctx: &DecompileContext, address: u32) -> bool {
     let prev_operand = prev_inst.numeric_operand();
     ctx.symbol_name_by_address
         .get(&prev_operand)
-        .is_some_and(|x| x == SYMBOL_RETURN_JUMP_U32)
+        .is_some_and(|x| SYMBOL_RETURN_JUMP_U32.contains(&x.as_str()))
 }
 
 pub(crate) fn build_initial_heap_state(ctx: &DecompileContext) -> HashMap<u32, HeapValue> {
@@ -900,7 +900,7 @@ pub(crate) fn build_initial_heap_state(ctx: &DecompileContext) -> HashMap<u32, H
             .symbol_name_by_address
             .get(&entry.address)
             .map(|x| x.as_str())
-            == Some(SYMBOL_RETURN_JUMP_U32)
+            .is_some_and(|name| SYMBOL_RETURN_JUMP_U32.contains(&name))
         {
             HeapValue::HaltJump
         } else {
