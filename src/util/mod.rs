@@ -8,8 +8,8 @@ use anyhow::{Result, bail};
 
 pub use asset::{read_compressed_program_bytes_from_asset, read_program_bytes_from_asset};
 pub use hex::{
-    decode_compressed_hex_text, decode_gzip_bytes, encode_compressed_hex_bytes,
-    read_compressed_hex_bytes,
+    decode_compressed_hex_text, decode_gzip_bytes, decode_program_payload_bytes,
+    encode_compressed_hex_bytes, read_compressed_hex_bytes,
 };
 pub use naming::sanitize_output_stem;
 

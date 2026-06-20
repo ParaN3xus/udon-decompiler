@@ -5,7 +5,7 @@ use unity_asset_yaml::python_like_api::PythonLikeUnityDocument;
 
 use crate::str_constants::ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES;
 
-use super::hex::decode_gzip_bytes;
+use super::hex::decode_program_payload_bytes;
 
 pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> {
     let doc = PythonLikeUnityDocument::load_yaml(path, false).map_err(|e| {
@@ -93,10 +93,10 @@ pub fn read_compressed_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> 
 }
 
 pub fn read_program_bytes_from_asset(path: &Path) -> Result<Vec<u8>> {
-    let compressed = read_compressed_program_bytes_from_asset(path)?;
-    decode_gzip_bytes(&compressed).with_context(|| {
+    let payload = read_compressed_program_bytes_from_asset(path)?;
+    decode_program_payload_bytes(&payload).with_context(|| {
         format!(
-            "failed to gzip-decompress {} from {}",
+            "failed to decode {} from {}",
             ASSET_FIELD_SERIALIZED_PROGRAM_COMPRESSED_BYTES,
             path.display()
         )

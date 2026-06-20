@@ -15,6 +15,18 @@ pub fn decode_gzip_bytes(compressed: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
+pub fn decode_program_payload_bytes(payload: &[u8]) -> Result<Vec<u8>> {
+    if !is_gzip_payload(payload) {
+        return Ok(payload.to_vec());
+    }
+
+    decode_gzip_bytes(payload).context("failed to gzip-decompress program payload")
+}
+
+fn is_gzip_payload(payload: &[u8]) -> bool {
+    matches!(payload, [0x1f, 0x8b, 0x08, ..])
+}
+
 pub fn decode_compressed_hex_text(text: &str) -> Result<Vec<u8>> {
     let normalized = text
         .chars()
@@ -27,7 +39,7 @@ pub fn decode_compressed_hex_text(text: &str) -> Result<Vec<u8>> {
         bail!("hex input has odd length");
     }
 
-    let mut compressed = Vec::<u8>::with_capacity(normalized.len() / 2);
+    let mut payload = Vec::<u8>::with_capacity(normalized.len() / 2);
     for index in (0..normalized.len()).step_by(2) {
         let byte = u8::from_str_radix(&normalized[index..index + 2], 16).with_context(|| {
             format!(
@@ -36,10 +48,10 @@ pub fn decode_compressed_hex_text(text: &str) -> Result<Vec<u8>> {
                 index,
             )
         })?;
-        compressed.push(byte);
+        payload.push(byte);
     }
 
-    decode_gzip_bytes(&compressed).context("failed to gzip-decompress hex payload")
+    decode_program_payload_bytes(&payload).context("failed to decode hex program payload")
 }
 
 pub fn read_compressed_hex_bytes(path: &Path) -> Result<Vec<u8>> {
