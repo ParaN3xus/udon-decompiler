@@ -9,6 +9,7 @@ internal static partial class Program
     private const string SerializedUdonProgramAssetClassName = "SerializedUdonProgramAsset";
     private const string UdonBehaviourClassName = "UdonBehaviour";
     private const string CompressedProgramFieldPath = "serializedProgramCompressedBytes.Array";
+    private const string ProgramBytesStringFieldPath = "serializedProgramBytesString";
     private const string SerializedPublicVariablesFieldPath =
         "serializedPublicVariablesBytesString";
     private const string SerializedProgramAssetPointerFieldPath = "serializedProgramAsset";
@@ -169,19 +170,13 @@ internal static partial class Program
                                                         string programsDirectory,
                                                         ISet<string> usedProgramNames)
     {
-        var compressedField = baseField[CompressedProgramFieldPath];
-        if (compressedField.IsDummy)
+        if (!TryReadCompressedProgramBytes(baseField, out var programPayloadBytes) &&
+            !TryReadUncompressedProgramString(baseField, out programPayloadBytes))
         {
             return null;
         }
 
-        var compressedBytes = ReadByteArrayField(compressedField);
-        if (compressedBytes.Length == 0)
-        {
-            return null;
-        }
-
-        var programHex = Convert.ToHexString(compressedBytes).ToLowerInvariant();
+        var programHex = Convert.ToHexString(programPayloadBytes).ToLowerInvariant();
 
         var assetName = GetAssetName(baseField, assetInfo);
         var outputPath =
@@ -189,6 +184,36 @@ internal static partial class Program
         File.WriteAllText(outputPath, programHex);
         return new ProgramDumpInfo(assetInfo.PathId,
                                    Path.GetFileNameWithoutExtension(outputPath));
+    }
+
+    private static bool TryReadCompressedProgramBytes(AssetTypeValueField baseField,
+                                                      out byte[] programPayloadBytes)
+    {
+        programPayloadBytes = [];
+
+        var compressedField = baseField[CompressedProgramFieldPath];
+        if (compressedField.IsDummy)
+        {
+            return false;
+        }
+
+        programPayloadBytes = ReadByteArrayField(compressedField);
+        return programPayloadBytes.Length > 0;
+    }
+
+    private static bool TryReadUncompressedProgramString(AssetTypeValueField baseField,
+                                                         out byte[] programPayloadBytes)
+    {
+        programPayloadBytes = [];
+
+        var programBytesString = ReadStringField(baseField[ProgramBytesStringFieldPath]);
+        if (string.IsNullOrWhiteSpace(programBytesString))
+        {
+            return false;
+        }
+
+        programPayloadBytes = Convert.FromBase64String(programBytesString);
+        return programPayloadBytes.Length > 0;
     }
 
     private static ProgramVarMap BuildProgramVarMap(
