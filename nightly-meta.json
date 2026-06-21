@@ -1,15 +1,15 @@
 {
   "latest_attempt": {
-    "status": "building",
+    "status": "success",
     "attempted_sha": "5249fc1d501ddeb0dedf4af7fb076fd0e7c0c281",
     "attempted_run_id": "27890391241",
-    "attempted_at": "2026-06-21T02:02:18Z",
-    "result": "building"
+    "attempted_at": "2026-06-21T02:05:45Z",
+    "result": "success"
   },
   "current_artifact": {
-    "published_sha": "6b007d37f2e5b4090f936e42455fe978f6debe32",
-    "published_run_id": "26485450902",
+    "published_sha": "5249fc1d501ddeb0dedf4af7fb076fd0e7c0c281",
+    "published_run_id": "27890391241",
     "published_event": "schedule",
-    "published_at": "2026-05-27T01:39:53Z"
+    "published_at": "2026-06-21T02:05:45Z"
   }
 }
