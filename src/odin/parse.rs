@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::odin::io::ByteReader;
@@ -547,6 +548,8 @@ impl OdinDocument {
             tokens,
             nodes,
             root_nodes,
+            reference_id_cache: RefCell::new(None),
+            array_element_cache: RefCell::new(HashMap::new()),
         })
     }
 }

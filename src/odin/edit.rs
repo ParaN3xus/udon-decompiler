@@ -165,10 +165,11 @@ impl OdinDocument {
         } = &mut self.nodes[node_id].kind
         {
             *id = reference_id;
-            Ok(())
         } else {
-            Err(OdinError::new("Node kind mismatch for reference node."))
+            return Err(OdinError::new("Node kind mismatch for reference node."));
         }
+        self.invalidate_reference_id_cache();
+        Ok(())
     }
 
     pub fn set_internal_reference(&mut self, node_id: NodeId, value: i32) -> Result<()> {
@@ -480,7 +481,7 @@ impl OdinDocument {
     }
 
     pub fn array_remove_at(&mut self, array_node_id: NodeId, element_index: usize) -> Result<()> {
-        let element_node_ids = self.array_element_node_ids(array_node_id)?;
+        let element_node_ids = self.array_element_node_ids_cached(array_node_id)?;
         if element_index >= element_node_ids.len() {
             return Err(OdinError::new(format!(
                 "Array element index {} is out of range (len={}).",
@@ -501,7 +502,7 @@ impl OdinDocument {
         insert_index: usize,
         source_node_id: NodeId,
     ) -> Result<()> {
-        let element_node_ids = self.array_element_node_ids(array_node_id)?;
+        let element_node_ids = self.array_element_node_ids_cached(array_node_id)?;
         if insert_index > element_node_ids.len() {
             return Err(OdinError::new(format!(
                 "Array insert index {} is out of range (len={}).",
@@ -566,27 +567,6 @@ impl OdinDocument {
         let rebuilt = self.to_bytes()?;
         *self = OdinDocument::parse(&rebuilt)?;
         Ok(())
-    }
-
-    fn array_element_node_ids(&self, array_node_id: NodeId) -> Result<Vec<NodeId>> {
-        let array_node = self
-            .nodes
-            .get(array_node_id)
-            .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", array_node_id)))?;
-        if !matches!(array_node.kind, NodeKind::Array { .. }) {
-            return Err(OdinError::new(format!(
-                "Node {} is not a normal array.",
-                array_node_id
-            )));
-        }
-        let mut ids = array_node
-            .children
-            .iter()
-            .copied()
-            .filter(|id| self.nodes[*id].array_index.is_some())
-            .collect::<Vec<_>>();
-        ids.sort_by_key(|id| self.nodes[*id].array_index.unwrap_or(usize::MAX));
-        Ok(ids)
     }
 
     fn array_end_token_index(&self, array_node_id: NodeId) -> Result<usize> {

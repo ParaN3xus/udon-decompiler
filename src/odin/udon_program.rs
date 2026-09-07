@@ -90,7 +90,9 @@ impl UdonProgramBinary {
     }
 
     pub fn heap_dump_len(&self) -> Result<usize> {
-        Ok(self.heap_dump_entry_node_ids()?.len())
+        // to build cache
+        self.doc
+            .array_element_node_ids_len_cached(self.heap_dump_array_node_id()?)
     }
 
     pub fn heap_dump_item(&self, index: usize) -> Result<HeapDumpItem> {
@@ -491,7 +493,8 @@ impl UdonProgramBinary {
     }
 
     pub fn symbols_len(&self, section: SymbolSection) -> Result<usize> {
-        Ok(self.symbol_item_node_ids(section)?.len())
+        self.doc
+            .array_element_node_ids_len_cached(self.symbols_array_node_id(section)?)
     }
 
     pub fn symbol_item(&self, section: SymbolSection, index: usize) -> Result<SymbolItem> {
@@ -645,7 +648,8 @@ impl UdonProgramBinary {
     }
 
     pub fn exported_symbols_len(&self, section: SymbolSection) -> Result<usize> {
-        Ok(self.exported_symbol_node_ids(section)?.len())
+        self.doc
+            .array_element_node_ids_len_cached(self.exported_symbols_array_node_id(section)?)
     }
 
     pub fn exported_symbol(&self, section: SymbolSection, index: usize) -> Result<String> {
@@ -700,9 +704,8 @@ impl UdonProgramBinary {
     }
 
     fn heap_dump_tuple_node_id(&self, index: usize) -> Result<NodeId> {
-        let ids = self.heap_dump_entry_node_ids()?;
-        ids.get(index)
-            .copied()
+        self.doc
+            .array_element_node_id_at_cached(self.heap_dump_array_node_id()?, index)?
             .ok_or_else(|| OdinError::new(format!("HeapDump index {} is out of range.", index)))
     }
 
@@ -718,10 +721,6 @@ impl UdonProgramBinary {
         let tuple = self.heap_dump_tuple_node_id(index)?;
         named_child(&self.doc, tuple, "Item3")
             .ok_or_else(|| OdinError::new(format!("HeapDump[{index}] missing Item3.")))
-    }
-
-    fn heap_dump_entry_node_ids(&self) -> Result<Vec<NodeId>> {
-        array_element_nodes(&self.doc, self.heap_dump_array_node_id()?)
     }
 
     fn heap_payload_array_node_id(&self) -> Result<NodeId> {
@@ -763,14 +762,15 @@ impl UdonProgramBinary {
     }
 
     fn symbol_item_node_id(&self, section: SymbolSection, index: usize) -> Result<NodeId> {
-        let ids = self.symbol_item_node_ids(section)?;
-        ids.get(index).copied().ok_or_else(|| {
-            OdinError::new(format!(
-                "{}.Symbols index {} is out of range.",
-                section_name(section),
-                index
-            ))
-        })
+        self.doc
+            .array_element_node_id_at_cached(self.symbols_array_node_id(section)?, index)?
+            .ok_or_else(|| {
+                OdinError::new(format!(
+                    "{}.Symbols index {} is out of range.",
+                    section_name(section),
+                    index
+                ))
+            })
     }
 
     fn symbol_type_node_id(&self, section: SymbolSection, index: usize) -> Result<NodeId> {
@@ -790,22 +790,15 @@ impl UdonProgramBinary {
     }
 
     fn exported_symbol_node_id(&self, section: SymbolSection, index: usize) -> Result<NodeId> {
-        let ids = self.exported_symbol_node_ids(section)?;
-        ids.get(index).copied().ok_or_else(|| {
-            OdinError::new(format!(
-                "{}.ExportedSymbols index {} is out of range.",
-                section_name(section),
-                index
-            ))
-        })
-    }
-
-    fn symbol_item_node_ids(&self, section: SymbolSection) -> Result<Vec<NodeId>> {
-        array_element_nodes(&self.doc, self.symbols_array_node_id(section)?)
-    }
-
-    fn exported_symbol_node_ids(&self, section: SymbolSection) -> Result<Vec<NodeId>> {
-        array_element_nodes(&self.doc, self.exported_symbols_array_node_id(section)?)
+        self.doc
+            .array_element_node_id_at_cached(self.exported_symbols_array_node_id(section)?, index)?
+            .ok_or_else(|| {
+                OdinError::new(format!(
+                    "{}.ExportedSymbols index {} is out of range.",
+                    section_name(section),
+                    index
+                ))
+            })
     }
 
     fn section_payload_array_node_id(&self, section: SymbolSection) -> Result<NodeId> {
@@ -971,30 +964,6 @@ fn first_child(doc: &OdinDocument, parent_id: NodeId) -> Option<NodeId> {
     doc.node(parent_id)?.children().first().copied()
 }
 
-fn array_element_nodes(doc: &OdinDocument, array_node_id: NodeId) -> Result<Vec<NodeId>> {
-    let array_node = doc
-        .node(array_node_id)
-        .ok_or_else(|| OdinError::new(format!("Array node {} is out of range.", array_node_id)))?;
-    if !matches!(array_node.kind(), NodeKind::Array { .. }) {
-        return Err(OdinError::new(format!(
-            "Node {} is not a normal Array node.",
-            array_node_id
-        )));
-    }
-    let mut ids = array_node
-        .children()
-        .iter()
-        .copied()
-        .filter(|id| doc.node(*id).and_then(|x| x.array_index()).is_some())
-        .collect::<Vec<_>>();
-    ids.sort_by_key(|id| {
-        doc.node(*id)
-            .and_then(|x| x.array_index())
-            .unwrap_or(usize::MAX)
-    });
-    Ok(ids)
-}
-
 fn section_name(section: SymbolSection) -> &'static str {
     match section {
         SymbolSection::EntryPoints => "EntryPoints",
@@ -1039,7 +1008,7 @@ fn find_system_type_storage_node(doc: &OdinDocument, node_id: NodeId) -> Option<
             | NodeKind::TypeIdMetadata { .. }
             | NodeKind::Primitive(PrimitiveValue::String(_)) => return Some(resolved),
             NodeKind::InternalReference(reference_id) => {
-                if let Some(target) = doc.resolve_reference_id(*reference_id) {
+                if let Some(target) = doc.resolve_reference_id_cached(*reference_id) {
                     stack.push(target);
                 }
             }
@@ -1145,7 +1114,7 @@ fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str)
         }
 
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1216,7 +1185,7 @@ where
         }
 
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1243,7 +1212,7 @@ where
             return Some(resolved);
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1267,7 +1236,7 @@ fn first_float_node(doc: &OdinDocument, root: NodeId) -> Option<NodeId> {
             return Some(resolved);
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1299,7 +1268,7 @@ fn collect_float_component_nodes(doc: &OdinDocument, root: NodeId, limit: usize)
             continue;
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1349,7 +1318,7 @@ fn extract_type_name_from_type_payload(doc: &OdinDocument, root: NodeId) -> Opti
                 ..
             } => Some(name.as_str()),
             NodeKind::InternalReference(reference_id) => {
-                if let Some(target) = doc.resolve_reference_id(*reference_id) {
+                if let Some(target) = doc.resolve_reference_id_cached(*reference_id) {
                     stack.push(target);
                 }
                 None

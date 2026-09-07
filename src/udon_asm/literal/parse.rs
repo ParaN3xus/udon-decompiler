@@ -1054,10 +1054,9 @@ fn parse_serialization_result_text(text: &str) -> Option<(bool, i32)> {
 fn parse_serialization_result_object_initializer(text: &str) -> Option<(bool, i32)> {
     let prefix = format!("new {TYPE_VRC_SERIALIZATION_RESULT}");
     let rest = text.strip_prefix(prefix.as_str())?.trim_start();
-    let body = if let Some(after_brace) = rest.strip_prefix('{') {
+    let body = {
+        let after_brace = rest.strip_prefix('{')?;
         after_brace.strip_suffix('}')?.trim()
-    } else {
-        return None;
     };
     parse_serialization_result_key_values(body, '=')
 }
@@ -1426,7 +1425,7 @@ fn extract_system_type_name_from_node(doc: &OdinDocument, node_id: NodeId) -> Op
             } => return Some(name.clone()),
             NodeKind::Primitive(PrimitiveValue::String(v)) => return Some(v.value.clone()),
             NodeKind::InternalReference(reference_id) => {
-                if let Some(target) = doc.resolve_reference_id(*reference_id) {
+                if let Some(target) = doc.resolve_reference_id_cached(*reference_id) {
                     stack.push(target);
                 }
             }
@@ -1549,7 +1548,7 @@ fn find_named_float_component_node(doc: &OdinDocument, root: NodeId, name: &str)
             return Some(id);
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1618,7 +1617,7 @@ where
             return Some(id);
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1645,7 +1644,7 @@ where
             return Some(resolved);
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1669,7 +1668,7 @@ fn first_float_node(doc: &OdinDocument, root: NodeId) -> Option<NodeId> {
             return Some(resolved);
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }
@@ -1700,7 +1699,7 @@ fn collect_float_component_nodes(doc: &OdinDocument, root: NodeId, limit: usize)
             continue;
         }
         if let NodeKind::InternalReference(reference_id) = node.kind()
-            && let Some(target) = doc.resolve_reference_id(*reference_id)
+            && let Some(target) = doc.resolve_reference_id_cached(*reference_id)
         {
             stack.push(target);
         }

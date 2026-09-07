@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::ops::Range;
@@ -214,6 +215,8 @@ pub struct OdinDocument {
     pub(crate) tokens: Vec<Token>,
     pub(crate) nodes: Vec<OdinNode>,
     pub(crate) root_nodes: Vec<NodeId>,
+    pub(crate) reference_id_cache: RefCell<Option<HashMap<i32, NodeId>>>,
+    pub(crate) array_element_cache: RefCell<HashMap<NodeId, Vec<NodeId>>>,
 }
 
 impl OdinDocument {
@@ -229,7 +232,23 @@ impl OdinDocument {
         self.nodes.get(id)
     }
 
-    pub fn reference_id_index(&self) -> HashMap<i32, NodeId> {
+    pub fn reference_id_index_cached(&self) -> HashMap<i32, NodeId> {
+        let mut cache = self.reference_id_cache.borrow_mut();
+        if cache.is_none() {
+            *cache = Some(self.build_reference_id_index());
+        }
+        cache.as_ref().unwrap().clone()
+    }
+
+    pub fn resolve_reference_id_cached(&self, reference_id: i32) -> Option<NodeId> {
+        let mut cache = self.reference_id_cache.borrow_mut();
+        if cache.is_none() {
+            *cache = Some(self.build_reference_id_index());
+        }
+        cache.as_ref().unwrap().get(&reference_id).copied()
+    }
+
+    fn build_reference_id_index(&self) -> HashMap<i32, NodeId> {
         let mut out = HashMap::<i32, NodeId>::new();
         for node in &self.nodes {
             if let NodeKind::ReferenceNode { reference_id, .. } = node.kind() {
@@ -239,14 +258,74 @@ impl OdinDocument {
         out
     }
 
-    pub fn resolve_reference_id(&self, reference_id: i32) -> Option<NodeId> {
-        self.reference_id_index().get(&reference_id).copied()
+    pub(crate) fn array_element_node_ids_len_cached(&self, array_node_id: NodeId) -> Result<usize> {
+        let mut cache = self.array_element_cache.borrow_mut();
+        if cache.get(&array_node_id).is_none() {
+            let ids = self.build_array_element_node_ids(array_node_id)?;
+            cache.insert(array_node_id, ids);
+        }
+        Ok(cache.get(&array_node_id).map_or(0, Vec::len))
+    }
+
+    pub(crate) fn array_element_node_id_at_cached(
+        &self,
+        array_node_id: NodeId,
+        index: usize,
+    ) -> Result<Option<NodeId>> {
+        let mut cache = self.array_element_cache.borrow_mut();
+        if cache.get(&array_node_id).is_none() {
+            let ids = self.build_array_element_node_ids(array_node_id)?;
+            cache.insert(array_node_id, ids);
+        }
+        Ok(cache
+            .get(&array_node_id)
+            .and_then(|ids| ids.get(index).copied()))
+    }
+
+    pub(crate) fn array_element_node_ids_cached(
+        &self,
+        array_node_id: NodeId,
+    ) -> Result<Vec<NodeId>> {
+        let mut cache = self.array_element_cache.borrow_mut();
+        if let Some(ids) = cache.get(&array_node_id) {
+            return Ok(ids.clone());
+        }
+        let ids = self.build_array_element_node_ids(array_node_id)?;
+        cache.insert(array_node_id, ids.clone());
+        Ok(ids)
+    }
+
+    fn build_array_element_node_ids(&self, array_node_id: NodeId) -> Result<Vec<NodeId>> {
+        let array_node = self
+            .nodes
+            .get(array_node_id)
+            .ok_or_else(|| OdinError::new(format!("Node {} is out of range.", array_node_id)))?;
+        if !matches!(array_node.kind, NodeKind::Array { .. }) {
+            return Err(OdinError::new(format!(
+                "Node {} is not a normal Array node.",
+                array_node_id
+            )));
+        }
+        let mut ids = array_node
+            .children
+            .iter()
+            .copied()
+            .filter(|id| self.nodes[*id].array_index.is_some())
+            .collect::<Vec<_>>();
+        ids.sort_by_key(|id| self.nodes[*id].array_index.unwrap_or(usize::MAX));
+        Ok(ids)
+    }
+
+    pub(crate) fn invalidate_reference_id_cache(&mut self) {
+        self.reference_id_cache = RefCell::new(None);
     }
 
     pub fn resolve_internal_reference_node_id(&self, node_id: NodeId) -> Option<NodeId> {
         let node = self.node(node_id)?;
         match node.kind() {
-            NodeKind::InternalReference(reference_id) => self.resolve_reference_id(*reference_id),
+            NodeKind::InternalReference(reference_id) => {
+                self.resolve_reference_id_cached(*reference_id)
+            }
             _ => None,
         }
     }
@@ -261,7 +340,7 @@ impl OdinDocument {
             let node = self.node(current)?;
             let next = match node.kind() {
                 NodeKind::InternalReference(reference_id) => {
-                    self.resolve_reference_id(*reference_id)
+                    self.resolve_reference_id_cached(*reference_id)
                 }
                 _ => None,
             };
